@@ -11,27 +11,31 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Entity
+@Setter
 @Table(name = "User")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false)
     private String email;
-
+    private String username;
+    private String role;
     private Boolean gender;
     private Date birthDate;
     private String name;
 
-    @Column(name = "couple_id", nullable = false)
-    private Integer coupleId;
+//    @Column(name = "couple_id", nullable = false)
+//    private Integer coupleId;
 
 //    @OneToOne(mappedBy = "owner", fetch = FetchType.LAZY)
 //    private Library library;
