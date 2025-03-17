@@ -2,7 +2,6 @@ package com.ssafy.loveledger.domain.account.domain;
 
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.user.domain.User;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
@@ -29,14 +28,8 @@ public class Account {
     @JoinColumn(name = "user_id")
     @ManyToOne
     private User user;
-
-
     private String bankCode;
-
-
     private LocalDateTime certedAt;
-
-    @Column(name = "amount")
     private Long amount;
 
     @OneToMany(fetch = FetchType.LAZY)

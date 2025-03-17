@@ -1,6 +1,7 @@
 package com.ssafy.loveledger.domain.user.domain;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
+import com.ssafy.loveledger.domain.library.domain.Library;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,7 +23,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter @Setter @Builder
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 public class User {
 
     @Id
@@ -33,31 +35,25 @@ public class User {
 
     private Boolean gender;
     private LocalDateTime birthDate;
-
     private String provider;
-    private String userCode;
-
+    private String usercode;
     private String name;
 
-//    @Column(name = "couple_id", nullable = false)
-//    private Integer coupleId;
+    @OneToOne(mappedBy = "owner")
+    private Library library;
 
-//    @OneToOne(mappedBy = "owner", fetch = FetchType.LAZY)
-//    private Library library;
-//
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Account> account;
 
+//    @Column(nullable = false)
+//    private Integer coupleId;\
 //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-//    @BatchSize(size = 10)
 //    private List<DailyStatistics> dailyStatistics;
 //
 //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-//    @BatchSize(size = 10)
 //    private List<MonthlyStatisticsByCategory> monthlyStatisticsByCategories;
 //
 //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-//    @BatchSize(size = 10)
 //    private List<WeeklyStatisticsByCategory> weeklyStatisticsByCategories;
 //
 //    @OneToOne(mappedBy = "owner", fetch = FetchType.LAZY)
