@@ -1,6 +1,5 @@
 package com.ssafy.loveledger.global.auth.dto.request;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +18,7 @@ public class CustomOAuth2User implements OAuth2User {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Collection<GrantedAuthority> collection = new ArrayList<>();
-
-        collection.add(() -> userDto.getRole());
-        return collection;
+        return null;
     }
 
     @Override

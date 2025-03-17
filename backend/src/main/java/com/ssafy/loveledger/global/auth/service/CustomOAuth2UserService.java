@@ -6,6 +6,7 @@ import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.auth.dto.request.UserDto;
 import com.ssafy.loveledger.global.auth.dto.response.GoogleResponse;
 import com.ssafy.loveledger.global.auth.dto.response.OAuth2Response;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -25,7 +26,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
 
         OAuth2User oauth2User = super.loadUser(userRequest);
-//        System.out.println(oauth2User);
         log.info("oauth2 유저 정보 : {}", oauth2User);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
@@ -38,27 +38,31 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             return null;
         }
 
-        String username = oauth2Response.getProvider() + " " + oauth2Response.getProviderId();
-        User existData = userRepository.findByUsername(username);
+        String provider = oauth2Response.getProvider();
+        String code = oauth2Response.getProviderId();
+        String username = provider + " " + code;
 
-        if (existData == null) {
-            User user = User.builder().username(username).email(oauth2Response.getEmail())
-                .name(oauth2Response.getName()).role("ROLE_USER").build();
+        Optional<User> existData = userRepository.findByProviderAndUsercode(provider, code);
 
+        if (existData.isEmpty()) {
+            User user = User.builder().provider(provider).email(oauth2Response.getEmail())
+                .name(oauth2Response.getName()).usercode(code).build();
             userRepository.save(user);
 
             UserDto userDto = UserDto.builder().username(username).name(oauth2Response.getName())
-                .role("ROLE_USER").build();
+                .build();
 
             return new CustomOAuth2User(userDto);
 
         } else {
-            existData.setEmail(oauth2Response.getEmail());
-            existData.setName(oauth2Response.getName());
-            userRepository.save(existData);
+            User existingUser = existData.get();
 
-            UserDto userDto = UserDto.builder().name(existData.getName())
-                .username(existData.getUsername()).role(existData.getRole()).build();
+            existingUser.setEmail(oauth2Response.getEmail());
+            existingUser.setName(oauth2Response.getName());
+            userRepository.save(existingUser);
+
+            UserDto userDto = UserDto.builder().name(existingUser.getName())
+                .username(username).build();
             return new CustomOAuth2User(userDto);
         }
     }

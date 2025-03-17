@@ -34,9 +34,9 @@ public class JWTUtil {
             .getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, Long expiredMs, String role) {
+    public String createJwt(String username, Long expiredMs) {
 
-        return Jwts.builder().claim("username", username).claim("role", role)
+        return Jwts.builder().claim("username", username)
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + expiredMs)).signWith(secretKey)
             .compact();

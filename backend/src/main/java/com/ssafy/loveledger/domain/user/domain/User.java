@@ -21,7 +21,9 @@ import lombok.Setter;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Setter @Builder
+@Getter
+@Setter
+@Builder
 @Entity
 @Table(name = "user")
 public class User {
@@ -39,7 +41,7 @@ public class User {
     private String usercode;
     private String name;
 
-    @OneToOne(mappedBy = "owner")
+    @OneToOne(mappedBy = "user")
     private Library library;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
