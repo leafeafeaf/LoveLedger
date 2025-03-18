@@ -31,33 +31,21 @@ pipeline {
             }
         }
 
-        stage('Stop Existing Backend') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                    cd ./backend
-
-                    # 기존에 실행 중인 애플리케이션 종료
-                    if [ -f backend.pid ]; then
-                        kill $(cat backend.pid) || true
-                        rm backend.pid
-                    fi
+                    docker build -t loveledger-backend -f backend/Dockerfile .
                 '''
             }
         }
 
-        stage('Run Backend') {
+        stage('Run Docker Container') {
             steps {
                 sh '''
-                    cd ./backend/build/libs
+                    docker stop loveledger-backend || true
+                    docker rm loveledger-backend || true
 
-                    chmod +x *.jar  # JAR 파일 실행 권한 부여
-                    
-                    rm -f *-plain.jar
-
-                    nohup setsid java -jar *.jar 1>output.log 2>error.log < /dev/null &
-                    
-                    echo $! > ../../backend.pid  # PID 저장
-
+                    docker run -d --name loveledger-backend -p 8080:8080 loveledger-backend
                 '''
             }
         }
