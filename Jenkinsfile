@@ -32,6 +32,8 @@ pipeline {
         stage('Stop Existing Backend') {
             steps {
                 sh '''
+                    cd ./backend
+
                     # 기존에 실행 중인 애플리케이션 종료
                     if [ -f backend.pid ]; then
                         kill $(cat backend.pid) || true
