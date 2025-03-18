@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    environment {
+        GRADLE_USER_HOME = "/home/ubuntu/jenkins/.gradle"
+    }
     stages {
         stage('Secrets Setup') {
             steps {
