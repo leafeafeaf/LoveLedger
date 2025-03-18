@@ -34,7 +34,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    sudo docker build -t loveledger-backend -f backend/Dockerfile .
+                    docker build -t loveledger-backend -f backend/Dockerfile .
                 '''
             }
         }
@@ -42,10 +42,10 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 sh '''
-                    sudo docker stop loveledger-backend || true
-                    sudo docker rm loveledger-backend || true
+                    docker stop loveledger-backend || true
+                    docker rm loveledger-backend || true
 
-                    sudo docker run -d --name loveledger-backend -p 8080:8080 loveledger-backend
+                    docker run -d --name loveledger-backend -p 8080:8080 loveledger-backend
                 '''
             }
         }
