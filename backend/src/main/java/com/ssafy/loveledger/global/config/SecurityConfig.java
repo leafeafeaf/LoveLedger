@@ -1,20 +1,25 @@
 package com.ssafy.loveledger.global.config;
 
+import com.ssafy.loveledger.global.auth.filter.CustomLogoutFilter;
 import com.ssafy.loveledger.global.auth.filter.JWTFilter;
 import com.ssafy.loveledger.global.auth.handler.CustomSuccessHandler;
 import com.ssafy.loveledger.global.auth.service.CustomOAuth2UserService;
-import com.ssafy.loveledger.global.util.JWTUtil;
+import com.ssafy.loveledger.global.auth.util.JWTUtil;
+import com.ssafy.loveledger.global.config.handler.CustomAuthenticationEntryPoint;
+import com.ssafy.loveledger.global.redis.sevice.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -26,9 +31,16 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomSuccessHandler customSuccessHandler;
     private final JWTUtil jwtUtil;
+    private final TokenBlacklistService blacklistService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.exceptionHandling(ex ->
+            ex.authenticationEntryPoint(customAuthenticationEntryPoint) // ✅ 인증 실패 시 403 JSON 응답 반환
+        );
+
         //cors
         http
             .cors(
@@ -60,7 +72,8 @@ public class SecurityConfig {
         http.httpBasic((auth) -> auth.disable());
 
         http
-            .addFilterBefore(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JWTFilter(jwtUtil, blacklistService),
+                UsernamePasswordAuthenticationFilter.class);
 
         //oauth2 설정
         http.oauth2Login((oauth2) -> oauth2
@@ -68,10 +81,14 @@ public class SecurityConfig {
                 .userService(customOAuth2UserService))
             .successHandler(customSuccessHandler));
 
+        http
+            .addFilterBefore(new CustomLogoutFilter(jwtUtil, redisTemplate),
+                LogoutFilter.class);
+
         //인가
         http.authorizeHttpRequests(
 
-            (auth) -> auth.requestMatchers("/test", "/").permitAll()
+            (auth) -> auth.requestMatchers("/test").permitAll()
                 .anyRequest().authenticated());
 
         // 세션 stateless

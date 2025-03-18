@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.global.util;
+package com.ssafy.loveledger.global.auth.util;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
@@ -19,6 +19,12 @@ public class JWTUtil {
             SIG.HS256.key().build().getAlgorithm());
     }
 
+    public String getCategory(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload()
+            .get("category", String.class);
+    }
+
+
     public String getUsername(String token) {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload()
             .get("username", String.class);
@@ -34,11 +40,17 @@ public class JWTUtil {
             .getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, Long expiredMs) {
-
+    public String createJwt(String category, String username, Long expiredMs) {
         return Jwts.builder().claim("username", username)
+            .claim("category", category)
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + expiredMs)).signWith(secretKey)
             .compact();
     }
+
+    public long getExpirationTime(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload()
+            .getExpiration().getTime();
+    }
+
 }

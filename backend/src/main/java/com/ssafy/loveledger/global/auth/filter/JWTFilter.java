@@ -2,13 +2,15 @@ package com.ssafy.loveledger.global.auth.filter;
 
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.auth.dto.request.UserDto;
-import com.ssafy.loveledger.global.util.JWTUtil;
+import com.ssafy.loveledger.global.auth.util.JWTUtil;
+import com.ssafy.loveledger.global.redis.sevice.TokenBlacklistService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,50 +23,47 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JWTFilter extends OncePerRequestFilter {
 
     private final JWTUtil jwtUtil;
+    private final TokenBlacklistService blacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-        if (path.equals("/") || path.equals("/test")) {
+        // 프론트에서 `Authorization` 헤더에 accessToken을 넣어 보내야 함.
+        String accessToken = request.getHeader("Authorization");
+
+        if (accessToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String authorization = null;
-        Cookie[] cookies = request.getCookies();
-
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("Authorization")) {
-                    authorization = cookie.getValue();
-                }
-            }
-        } else {
-            log.info("쿠키 없음");
-        }
-
-        //Authorization 헤더 검증
-        if (authorization == null) {
-            log.info("토큰 없음");
-            filterChain.doFilter(request, response);
-
-            //조건이 해당되면 메소드 종료(필수)
+        //블랙리스트 확인 추가
+        if (blacklistService.isBlacklisted(accessToken)) {
+            PrintWriter writer = response.getWriter();
+            writer.println("token is blacklisted");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-        // 토큰
-        String token = authorization;
 
-        //토큰 소멸 시간 검증
-        if (jwtUtil.isExpired(token)) {
-            log.info("토큰 만료 초과");
-            filterChain.doFilter(request, response);
-            //조건이 해당되면 메소드 종료(필수)
+        try {
+            jwtUtil.isExpired(accessToken);
+        } catch (ExpiredJwtException e) {
+            PrintWriter writer = response.getWriter();
+            writer.println("access token expired");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-        //토큰에서 username
-        String username = jwtUtil.getUsername(token);
+
+        String category = jwtUtil.getCategory(accessToken);
+        if (!category.equals("access")) {
+            PrintWriter writer = response.getWriter();
+            writer.println("invalid access token");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        String username = jwtUtil.getUsername(accessToken);
+        // ----------------------------------------------------------------- //
 
         //userDTO를 생성하여 값 set
         UserDto userDto = UserDto.builder()
