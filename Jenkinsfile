@@ -34,7 +34,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build -t loveledger-backend -f backend/Dockerfile .
+                    docker build --build-arg HOME=/home/ubuntu/jenkins -t loveledger-backend -f backend/Dockerfile .
                 '''
             }
         }
