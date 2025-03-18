@@ -54,12 +54,10 @@ pipeline {
                     
                     rm -f *-plain.jar
 
-                    # 백그라운드 실행 및 로그 저장
-                    nohup java -jar *.jar 1>output.log 2>error.log &
-
+                    nohup setsid java -jar *.jar 1>output.log 2>error.log < /dev/null &
+                    
                     echo $! > ../../backend.pid  # PID 저장
 
-                    disown
                 '''
             }
         }
