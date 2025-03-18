@@ -58,6 +58,8 @@ pipeline {
                     nohup java -jar *.jar 1>output.log 2>error.log &
 
                     echo $! > ../../backend.pid  # PID 저장
+
+                    disown
                 '''
             }
         }
