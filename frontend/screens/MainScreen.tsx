@@ -1,0 +1,749 @@
+import React, { useState, useRef, useEffect } from 'react';
+import Header from '../components/Header';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Pressable,
+  Animated,
+  useWindowDimensions,
+  ScrollView,
+  PanResponder
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { theme } from '../utils/theme';
+import PartnerSwitch from '../components/PartnerSwitch';
+import { dailyFinanceData, transactionHistoryData, Transaction } from '../utils/dummyData';
+
+// Helper function to format currency in Korean Won
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency: 'KRW',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+// Helper function to get finance data for a specific date
+const getFinanceForDate = (date: Date, activeView: string) => {
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  let financeData = { earn: 0, consume: 0 };
+  
+  dailyFinanceData.data.days
+    .filter(day => {
+      if (activeView === 'you') return day.userId === 'user1';
+      if (activeView === 'partner') return day.userId === 'user2';
+      return true; // combined view
+    })
+    .forEach(day => {
+      if (day.day === dateString) {
+        financeData.earn += day.earn;
+        financeData.consume += day.consume;
+      }
+    });
+  
+  return financeData.earn > 0 || financeData.consume > 0 ? financeData : null;
+};
+
+// Helper function to get transactions for a specific date
+const getTransactionsForDate = (date: Date): Transaction[] => {
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return transactionHistoryData.data.history.filter(
+    transaction => transaction.time.startsWith(dateString)
+  );
+};
+
+const FABComponent = React.memo(({ navigation, showFabMenu, toggleFabMenu, fabAnimation, menuAnimation, position, setPosition }) => {
+  const pan = useRef(new Animated.ValueXY(position)).current;
+  const { width, height } = useWindowDimensions();
+  
+  const defaultPosition = {
+    x: width - 80,
+    y: height - 192,
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: pan.x._value,
+          y: pan.y._value
+        });
+      },
+      onPanResponderMove: Animated.event(
+        [
+          null,
+          { dx: pan.x, dy: pan.y }
+        ],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gesture) => {
+        pan.flattenOffset();
+        const newX = pan.x._value;
+        const newY = pan.y._value;
+
+        // Calculate bounds
+        const maxX = width - 80;
+        const maxY = height - 200;
+        const minX = 0;
+        const minY = 0;
+
+        // Check if FAB is dragged too far
+        const isOffScreenX = newX < minX || newX > maxX;
+        const isOffScreenY = newY < minY || newY > maxY;
+
+        let finalX = newX;
+        let finalY = newY;
+
+        // If off screen, snap to nearest edge
+        if (isOffScreenX) {
+          finalX = newX < minX ? minX : maxX;
+        }
+        if (isOffScreenY) {
+          finalY = newY < minY ? minY : maxY;
+        }
+
+        // Snap to edges if close
+        const snapThreshold = 40;
+        if (Math.abs(newX - maxX) < snapThreshold) finalX = maxX;
+        if (Math.abs(newX - minX) < snapThreshold) finalX = minX;
+        if (Math.abs(newY - maxY) < snapThreshold) finalY = maxY;
+        if (Math.abs(newY - minY) < snapThreshold) finalY = minY;
+
+        const finalPosition = { x: finalX, y: finalY };
+
+        Animated.spring(pan, {
+          toValue: finalPosition,
+          useNativeDriver: false,
+          friction: 7,
+          tension: 40
+        }).start(() => {
+          setPosition(finalPosition);
+        });
+      }
+    })
+  ).current;
+
+  return (
+    <Animated.View 
+      style={[
+        styles.fabContainer,
+        {
+          transform: pan.getTranslateTransform(),
+          zIndex: 1000,
+        }
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <Animated.View 
+        style={[
+          styles.fabMenu,
+          {
+            opacity: menuAnimation,
+            transform: [
+              { scale: menuAnimation },
+              {
+                translateY: menuAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0]
+                })
+              }
+            ]
+          }
+        ]}
+      >
+        <Pressable 
+          style={styles.fabMenuItem}
+          onPress={() => {
+            toggleFabMenu();
+            navigation.navigate('StorySettings');
+          }}
+        >
+          <MaterialCommunityIcons 
+            name="book-open-variant" 
+            size={20} 
+            color={theme.colors.white} 
+          />
+          <Text style={styles.fabMenuText}>Create Story</Text>
+        </Pressable>
+        
+        <Pressable 
+          style={styles.fabMenuItem}
+          onPress={() => {
+            toggleFabMenu();
+            navigation.navigate('Diary');
+          }}
+        >
+          <MaterialCommunityIcons 
+            name="notebook" 
+            size={20} 
+            color={theme.colors.white} 
+          />          
+          <Text style={styles.fabMenuText}>Write Diary</Text>
+        </Pressable>
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.fab,
+          {
+            transform: [
+              {
+                rotate: fabAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '45deg']
+                })
+              }
+            ]
+          }
+        ]}
+      >
+        <Pressable 
+          onPress={toggleFabMenu}
+          style={styles.fabButton}
+        >
+          <MaterialCommunityIcons 
+            name="pencil" 
+            size={24} 
+            color={theme.colors.white} 
+          />
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
+  );
+});
+
+type CalendarDayProps = {
+  day: {
+    isEmpty?: boolean;
+    index?: number;
+    date?: Date;
+    isToday?: boolean;
+    financeData?: {
+      earn: number;
+      consume: number;
+    };
+  };
+  navigation: any;
+  onSelectDate: (date: Date) => void;
+};
+
+const CalendarDay = React.memo(({ day, navigation, onSelectDate, isSelected }: CalendarDayProps) => {
+  if (day.isEmpty) {
+    return <View key={`empty-${day.index}`} style={styles.emptyDay} />;
+  }
+
+  const financeData = day.financeData;
+  
+  return (
+    <Pressable
+      style={[
+        styles.dayCard,
+        financeData && (financeData.earn > 0 || financeData.consume > 0) && styles.dayCardWithEntry,
+        day.isToday && styles.todayCard,
+        isSelected && {
+          backgroundColor: theme.colors.primary,
+          transform: [{ scale: 1.1 }],
+          borderWidth: 2,
+          borderColor: theme.colors.primary,
+        }
+      ]}
+      onPress={() => {
+        if (day.date) {
+          onSelectDate(day.date);
+        }
+      }}
+    >
+      <Text style={[
+        styles.dayNumber,
+        day.isToday && styles.todayText
+      ]}>
+        {day.date?.getDate()}
+      </Text>
+      
+      {financeData && (financeData.earn > 0 || financeData.consume > 0) && (
+        <View style={styles.financeIndicator}>
+          {financeData.earn > 0 && (
+            <Text style={styles.earnText}>+{(financeData.earn / 10000).toFixed(1)}만</Text>
+          )}
+          {financeData.consume > 0 && (
+            <Text style={styles.consumeText}>-{(financeData.consume / 10000).toFixed(1)}만</Text>
+          )}
+        </View>
+      )}
+    </Pressable>
+  );
+});
+
+const DailySummary = React.memo(({ selectedDate, transactions }) => {
+  const total = transactions.reduce((acc, curr) => {
+    return curr.remittance ? acc - curr.amount : acc + curr.amount;
+  }, 0);
+  
+  return (
+    <View style={styles.dailySummaryContainer}>
+      <Text style={styles.dailySummaryDate}>
+        {selectedDate.toLocaleDateString('ko-KR', { 
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long'
+        })}
+      </Text>
+      <View style={styles.dailySummaryAmounts}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>수입</Text>
+          <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
+            {formatCurrency(transactions.reduce((acc, curr) => !curr.remittance ? acc + curr.amount : acc, 0))}
+          </Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>지출</Text>
+          <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
+            {formatCurrency(transactions.reduce((acc, curr) => curr.remittance ? acc + curr.amount : acc, 0))}
+          </Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>합계</Text>
+          <Text style={[styles.summaryAmount, { color: total >= 0 ? theme.colors.success : theme.colors.error }]}>
+            {formatCurrency(total)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+});
+
+export default function MainScreen({ navigation }) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [displayedMonth, setDisplayedMonth] = useState(new Date());
+  const [selectedDayTransactions, setSelectedDayTransactions] = useState<Transaction[]>([]);
+  const [activeView, setActiveView] = useState('you');
+  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
+  const dimensions = useWindowDimensions();
+  
+  const translateX = useRef(new Animated.Value(0)).current;
+  const fabAnimation = useRef(new Animated.Value(0)).current;
+  const menuAnimation = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    const transactions = getTransactionsForDate(selectedDate);
+    setSelectedDayTransactions(transactions);
+  }, [selectedDate]);
+
+  const toggleFabMenu = () => {
+    const toValue = showFabMenu ? 0 : 1;
+    setShowFabMenu(!showFabMenu);
+    
+    Animated.parallel([
+      Animated.spring(fabAnimation, {
+        toValue,
+        friction: 5,
+        tension: 40,
+        useNativeDriver: true
+      }),
+      Animated.spring(menuAnimation, {
+        toValue,
+        friction: 6,
+        tension: 35,
+        useNativeDriver: true
+      })
+    ]).start();
+  };
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const generateCalendarDays = () => {
+    const days = [];
+    const totalDays = getDaysInMonth(displayedMonth);
+    const firstDay = getFirstDayOfMonth(displayedMonth);
+    
+    for (let i = 0; i < firstDay; i++) {
+      days.push({ isEmpty: true, index: i });
+    }
+    
+    for (let i = 1; i <= totalDays; i++) {
+      const date = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), i);
+      const isToday = date.toDateString() === new Date().toDateString();
+      
+      const financeData = getFinanceForDate(date, activeView);
+      
+      days.push({
+        date,
+        financeData,
+        isToday,
+      });
+    }
+    
+    return days;
+  };
+
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+    if (
+      date.getMonth() !== displayedMonth.getMonth() ||
+      date.getFullYear() !== displayedMonth.getFullYear()
+    ) {
+      setDisplayedMonth(date);
+    }
+    
+    const transactions = getTransactionsForDate(date);
+    navigation.navigate('DailyDetail', {
+      selectedDate: date,
+      transactions: transactions
+    });
+  };
+
+  return (
+    <View style={styles.container}>      <Header 
+        title="Love Calendar"
+        showBack={false}
+        showClose={false}
+        rightElement={
+          <Pressable 
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('ProfileMain')}
+          >            <MaterialCommunityIcons 
+              name="cog" 
+              size={24} 
+              color={theme.colors.primary} 
+            />
+          </Pressable>
+        }
+      />
+
+      <View style={styles.partnerSwitchContainer}>
+        <PartnerSwitch 
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
+      </View>
+
+      <View style={styles.monthSelector}>
+        <Pressable
+          onPress={() => {
+            const newDate = new Date(displayedMonth);
+            newDate.setMonth(displayedMonth.getMonth() - 1);
+            setDisplayedMonth(newDate);
+          }}
+        >
+          <MaterialCommunityIcons 
+            name="chevron-left" 
+            size={24} 
+            color={theme.colors.text} 
+          />
+        </Pressable>
+        <Text style={styles.monthText}>
+          {`${displayedMonth.getFullYear()}년 ${displayedMonth.getMonth() + 1}월`}
+        </Text>
+        <Pressable
+          onPress={() => {
+            const newDate = new Date(displayedMonth);
+            newDate.setMonth(displayedMonth.getMonth() + 1);
+            setDisplayedMonth(newDate);
+          }}
+        >
+          <MaterialCommunityIcons 
+            name="chevron-right" 
+            size={24} 
+            color={theme.colors.text} 
+          />
+        </Pressable>
+      </View>
+
+      <View style={styles.weekdayHeader}>
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <Text key={day} style={styles.weekdayText}>{day}</Text>
+        ))}
+      </View>
+      <View style={styles.calendarContainer}>
+        <View style={styles.calendar}>
+          {generateCalendarDays().map((day, index) => (
+            <CalendarDay 
+              key={day.isEmpty ? `empty-${index}` : day.date?.toString()}
+              day={day}
+              navigation={navigation}
+              onSelectDate={handleSelectDate}
+              isSelected={selectedDate && day.date && 
+                selectedDate.toDateString() === day.date.toDateString()}
+            />
+          ))}
+        </View>
+      </View>
+      <View style={{ flex: 1 }} />
+      
+      <FABComponent 
+        navigation={navigation}
+        showFabMenu={showFabMenu}
+        toggleFabMenu={toggleFabMenu}
+        fabAnimation={fabAnimation}
+        menuAnimation={menuAnimation}
+        position={fabPosition}
+        setPosition={setFabPosition}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  profileButton: {
+    padding: theme.spacing.sm,
+  },
+  partnerSwitchContainer: {
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  monthSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+  },
+  monthText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.text,
+    letterSpacing: -0.5,
+  },
+  weekdayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  weekdayText: {
+    width: '13.28%',
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textLight,
+  },
+  calendarContainer: {
+    paddingHorizontal: theme.spacing.md,
+    height: '70%',
+  },
+  calendar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emptyDay: {
+    width: '13.28%',
+    aspectRatio: 1,
+    padding: 2,
+  },
+  dayCard: {
+    width: '13.28%',
+    aspectRatio: 1,
+    padding: 2,
+    margin: 1,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.sm,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  dayCardWithEntry: {
+    backgroundColor: theme.colors.secondary,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  todayCard: {
+    backgroundColor: theme.colors.primary,
+    transform: [{ scale: 1.05 }],
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  todayText: {
+    color: theme.colors.white,
+  },
+  financeIndicator: {
+    marginTop: 2,
+    alignItems: 'center',
+  },
+  earnText: {
+    fontSize: 9,
+    color: theme.colors.success || 'green',
+    fontWeight: '600',
+  },
+  consumeText: {
+    fontSize: 9,
+    color: theme.colors.error || 'red',
+    fontWeight: '600',
+  },
+  dailyOverview: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: theme.borderRadius.lg,
+    borderTopRightRadius: theme.borderRadius.lg,
+    ...theme.shadows.medium,
+  },
+  dailySummaryContainer: {
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.secondary,
+    borderTopLeftRadius: theme.borderRadius.lg,
+    borderTopRightRadius: theme.borderRadius.lg,
+  },
+  dailySummaryDate: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  dailySummaryAmounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginBottom: theme.spacing.xs,
+  },
+  summaryAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: theme.spacing.md,
+  },
+  transactionsContainer: {
+    padding: theme.spacing.md,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.white,
+  },
+  transactionDetails: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
+  transactionTarget: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  transactionCategory: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+  },
+  transactionTime: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  expenseAmount: {
+    color: theme.colors.error,
+  },
+  incomeAmount: {
+    color: theme.colors.success,
+  },
+  noTransactionsContainer: {
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+  },
+  noTransactionsText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: theme.spacing.xl,
+    bottom: 90,
+    alignItems: 'flex-end',
+    elevation: 1000,
+    zIndex: 1000,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.medium,
+  },
+  fabButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabMenu: {
+    position: 'absolute',
+    bottom: 70,
+    right: 0,
+    backgroundColor: 'transparent',
+    gap: theme.spacing.md,
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    transform: [{ scale: 1.05 }],
+    maxWidth: 140,
+    minWidth: 126,
+    marginBottom: theme.spacing.sm,
+    ...theme.shadows.small,
+  },
+  fabMenuText: {
+    color: theme.colors.white,
+    fontWeight: '600',
+    marginLeft: theme.spacing.md,
+    fontSize: 13,
+    flexShrink: 1,
+  },
+});
