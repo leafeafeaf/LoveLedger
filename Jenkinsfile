@@ -34,7 +34,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build --build-arg HOME=/home/ubuntu/jenkins -t loveledger-backend -f backend/Dockerfile .
+                    export HOME=/home/ubuntu/jenkins
+                    export DOCKER_CONFIG=/home/ubuntu/jenkins/.docker
+                    mkdir -p $DOCKER_CONFIG
+                    
+                    docker build --build-arg HOME=$HOME -t loveledger-backend -f backend/Dockerfile .
                 '''
             }
         }
