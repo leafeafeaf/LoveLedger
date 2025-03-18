@@ -72,7 +72,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(
 
             (auth) -> auth.requestMatchers("/test", "/").permitAll()
-                .anyRequest().authenticated());
+                .anyRequest().permitAll());
 
         // 세션 stateless
         http.sessionManagement(
