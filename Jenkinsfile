@@ -51,17 +51,11 @@ pipeline {
                     cd ./backend/build/libs
 
                     chmod +x *.jar  # JAR 파일 실행 권한 부여
-
-                    # 실행할 JAR 파일 찾기 (plain이 없는 JAR 선택)
-                    JAR_FILE=$(ls | grep -E '.*\.jar' | grep -v 'plain' | head -n 1)
-
-                    if [ -z "$JAR_FILE" ]; then
-                        echo "ERROR: 실행할 JAR 파일을 찾을 수 없습니다!"
-                        exit 1
-                    fi
+                    
+                    rm -f *-plain.jar
 
                     # 백그라운드 실행 및 로그 저장
-                    nohup java -jar "$JAR_FILE" 1>output.log 2>error.log &
+                    nohup java -jar *.jar 1>output.log 2>error.log &
 
                     echo $! > ../../backend.pid  # PID 저장
                 '''
