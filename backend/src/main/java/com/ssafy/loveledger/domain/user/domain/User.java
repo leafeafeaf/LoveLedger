@@ -41,6 +41,9 @@ public class User {
     private String usercode;
     private String name;
 
+    @Column(unique = true)
+    private String userKey;
+
     @OneToOne(mappedBy = "user")
     private Library library;
 
