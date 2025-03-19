@@ -88,8 +88,8 @@ public class SecurityConfig {
         //인가
         http.authorizeHttpRequests(
 
-            (auth) -> auth.requestMatchers("/test").permitAll()
-                .anyRequest().authenticated());
+            (auth) -> auth.requestMatchers("/test", "/").permitAll()
+                .anyRequest().permitAll());
 
         // 세션 stateless
         http.sessionManagement(
