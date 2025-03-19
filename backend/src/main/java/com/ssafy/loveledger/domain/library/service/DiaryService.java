@@ -2,7 +2,6 @@ package com.ssafy.loveledger.domain.library.service;
 
 import com.ssafy.loveledger.domain.library.domain.Diary;
 import com.ssafy.loveledger.domain.library.domain.repository.DiaryRepository;
-import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateDTO;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateDTO;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadDTO;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 public class DiaryService {
 
     private final DiaryRepository diaryRepository;
-    private final LibraryRepository libraryRepository;
 
     //TODO 전역 에러 처리 및 에러 메시지 표준화 필요
     public void createDiary(User user, @Valid DiaryCreateDTO diaryCreateDTO) {
