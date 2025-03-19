@@ -19,9 +19,13 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "account")
-@Getter @Setter @Builder
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Account {
+
     @Id
     private String accountId;
 
@@ -31,6 +35,8 @@ public class Account {
     private String bankCode;
     private LocalDateTime certedAt;
     private Long amount;
+
+    private LocalDateTime lastUpdated;
 
     @OneToMany(fetch = FetchType.LAZY)
     private List<History> historyList;
