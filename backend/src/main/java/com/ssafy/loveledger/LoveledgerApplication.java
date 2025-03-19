@@ -1,11 +1,15 @@
 package com.ssafy.loveledger;
 
+import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
 
+@EnableFeignClients
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.ssafy.loveledger.domain.user.domain.repository")
 public class LoveledgerApplication {
 
     public static void main(String[] args) {
