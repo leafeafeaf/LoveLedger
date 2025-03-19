@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto;
+package com.ssafy.loveledger.domain.library.presentation.dto.request;
 
 import lombok.Getter;
 import lombok.Setter;
