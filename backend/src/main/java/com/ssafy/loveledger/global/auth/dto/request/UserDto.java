@@ -9,7 +9,9 @@ import lombok.Setter;
 @Builder
 public class UserDto {
 
+    private Long userId;
     private String name;
     private String username;
+    private Long libraryId;
 
 }

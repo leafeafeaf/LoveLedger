@@ -11,6 +11,7 @@ public class CustomOAuth2User implements OAuth2User {
 
     private final UserDto userDto;
 
+
     @Override
     public Map<String, Object> getAttributes() {
         return null;
@@ -26,7 +27,15 @@ public class CustomOAuth2User implements OAuth2User {
         return userDto.getName();
     }
 
+    public Long getUserId() {
+        return userDto.getUserId();
+    }
+
     public String getUsername() {
         return userDto.getUsername();
+    }
+
+    public Long getLibraryId() {
+        return userDto.getLibraryId();
     }
 }
