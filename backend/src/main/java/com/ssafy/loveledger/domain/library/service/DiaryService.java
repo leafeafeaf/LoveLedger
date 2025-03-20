@@ -278,7 +278,7 @@ public class DiaryService {
                 history.getCreatedTime(),
                 history.getTransactionType() == 1 ? "true" : "false",
                 history.getTransactionTarget(),
-                history.getCategoryId(),
+                history.getCategory(),
                 history.getAmountAfterTransaction(),
                 history.getTransactionAmount(),
                 history.getMemo(),
