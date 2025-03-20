@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../src/utils/theme";
+import { theme } from "../../utils/theme";
 
 interface HeaderProps {
   title: string;
@@ -54,31 +54,30 @@ export default function Header({
 const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.colors.white,
-    marginTop: 20,
     paddingTop: theme.spacing.xl * 1.5,
-    paddingBottom: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
     ...theme.shadows.small,
   },
   headerButtons: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: theme.spacing.md,
-    position: "absolute",
-    right: theme.spacing.md,
-    top: theme.spacing.xl * 1.5,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
   },
   headerButton: {
     padding: theme.spacing.sm,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     color: theme.colors.textLight,
+    textAlign: "center",
+    marginTop: theme.spacing.xs,
   },
 });

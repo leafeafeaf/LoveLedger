@@ -1,15 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../src/utils/theme";
-
-type BookItem = {
-  id: string;
-  title: string;
-  date: string;
-  type: "diary" | "story" | "goal";
-  mood?: "happy" | "excited" | "peaceful" | string;
-};
+import { theme } from "../../utils/theme";
+import { BookItem } from "../../types";
 
 type BookCardProps = {
   item: BookItem;

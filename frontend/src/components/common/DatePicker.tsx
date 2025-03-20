@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, Modal } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../src/utils/theme";
+import { theme } from "../../utils/theme";
 
 interface DatePickerProps {
   visible: boolean;
@@ -23,6 +23,9 @@ export default function DatePicker({
   const [displayedMonth, setDisplayedMonth] = useState(new Date());
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(null);
+  const [tempRangeStart, setTempRangeStart] = useState<Date | null>(null);
+  const [tempRangeEnd, setTempRangeEnd] = useState<Date | null>(null);
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -75,9 +78,6 @@ export default function DatePicker({
 
     return days;
   };
-  const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(null);
-  const [tempRangeStart, setTempRangeStart] = useState<Date | null>(null);
-  const [tempRangeEnd, setTempRangeEnd] = useState<Date | null>(null);
 
   const handleDateSelect = (date: Date) => {
     if (!isRange) {
@@ -153,6 +153,7 @@ export default function DatePicker({
               />
             </Pressable>
           </View>
+
           <View style={styles.weekdayHeader}>
             {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
               <Text key={day} style={styles.weekdayText}>
@@ -160,6 +161,7 @@ export default function DatePicker({
               </Text>
             ))}
           </View>
+
           <View style={styles.calendar}>
             {generateCalendarDays().map((day, index) => (
               <Pressable
@@ -189,7 +191,8 @@ export default function DatePicker({
                 )}
               </Pressable>
             ))}
-          </View>{" "}
+          </View>
+
           <View style={styles.footer}>
             <Pressable style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>취소</Text>
@@ -247,106 +250,87 @@ const styles = StyleSheet.create({
   },
   weekdayHeader: {
     flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: theme.spacing.sm,
   },
   weekdayText: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "500",
     color: theme.colors.textLight,
+    fontSize: 14,
   },
   calendar: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-around",
   },
   dayCell: {
-    width: "13.28%",
+    width: "14%",
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: "transparent",
-    margin: 1,
-    position: "relative",
+    marginVertical: 2,
+  },
+  dayText: {
+    fontSize: 16,
+    color: theme.colors.text,
   },
   emptyDay: {
     backgroundColor: "transparent",
   },
-  dayText: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
   selectedDay: {
-    backgroundColor: `${theme.colors.primary}20`,
-    borderColor: theme.colors.primary,
-    borderWidth: 2,
-    borderRadius: theme.borderRadius.sm,
-    transform: [{ scale: 1.05 }],
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.full,
   },
   selectedDayText: {
-    fontWeight: "700",
+    color: theme.colors.white,
   },
   todayCell: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.sm,
-    backgroundColor: `${theme.colors.primary}10`,
+    borderRadius: theme.borderRadius.full,
   },
   todayText: {
     color: theme.colors.primary,
-    fontWeight: "600",
   },
   rangeDay: {
-    backgroundColor: `${theme.colors.primary}15`,
-    borderColor: `${theme.colors.primary}30`,
-    borderWidth: 1,
+    backgroundColor: `${theme.colors.primary}20`,
   },
   rangeStartDay: {
-    backgroundColor: `${theme.colors.primary}20`,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-    borderTopLeftRadius: theme.borderRadius.sm,
-    borderBottomLeftRadius: theme.borderRadius.sm,
-    transform: [{ scale: 1.1 }],
+    backgroundColor: theme.colors.primary,
+    borderTopLeftRadius: theme.borderRadius.full,
+    borderBottomLeftRadius: theme.borderRadius.full,
   },
   rangeEndDay: {
-    backgroundColor: `${theme.colors.primary}20`,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-    borderTopRightRadius: theme.borderRadius.sm,
-    borderBottomRightRadius: theme.borderRadius.sm,
-    transform: [{ scale: 1.1 }],
+    backgroundColor: theme.colors.primary,
+    borderTopRightRadius: theme.borderRadius.full,
+    borderBottomRightRadius: theme.borderRadius.full,
   },
   footer: {
-    marginTop: theme.spacing.md,
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   cancelButton: {
-    padding: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   cancelButtonText: {
-    color: theme.colors.primary,
+    color: theme.colors.textLight,
     fontSize: 16,
-    fontWeight: "600",
   },
   applyButton: {
     backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-  },
-  disabledButton: {
-    backgroundColor: theme.colors.border,
   },
   applyButtonText: {
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: theme.colors.disabled,
   },
   disabledButtonText: {
     color: theme.colors.textLight,
