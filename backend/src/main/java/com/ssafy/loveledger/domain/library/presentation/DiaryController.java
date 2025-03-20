@@ -93,8 +93,6 @@ public class DiaryController {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> getEditHistoryList(
         @PathVariable long diaryId) {
 
-        CompletableFuture<Map<String, Object>> map = diaryService.getEditHistoryList(user, diaryId);
-
         return diaryService.getEditHistoryList(user, diaryId)
             .thenApply(ResponseEntity::ok);
     }
