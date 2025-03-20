@@ -1,6 +1,9 @@
 package com.ssafy.loveledger.domain.history.domain;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
+import com.ssafy.loveledger.domain.statistics.CategoryUtil;
+import com.ssafy.loveledger.domain.statistics.domain.Category;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -12,14 +15,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Setter
 @Builder
 public class History {
 
@@ -43,7 +44,8 @@ public class History {
     private String transactionTarget;
     private String summary;
 
-    private int categoryId;
+    @Convert(converter = CategoryUtil.class) // 변환기 적용
+    private Category category;
 
     private boolean isDeleted = false;
 

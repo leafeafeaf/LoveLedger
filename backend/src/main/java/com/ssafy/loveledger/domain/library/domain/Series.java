@@ -1,15 +1,15 @@
 package com.ssafy.loveledger.domain.library.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @Table
 @Entity
 public class Series {
@@ -23,7 +23,7 @@ public class Series {
     @JoinColumn(name = "collection_id")
     private Library library;
 
-    @OneToMany(mappedBy = "series")
+    @OneToMany(mappedBy = "series", fetch = FetchType.LAZY)
     private List<Fiction> fiction;
 
 
