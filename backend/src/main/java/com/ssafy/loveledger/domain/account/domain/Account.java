@@ -36,8 +36,8 @@ public class Account {
     private LocalDateTime certedAt;
     private Long amount;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    private List<History> historyList;
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    private List<History> history;
 
 
 }

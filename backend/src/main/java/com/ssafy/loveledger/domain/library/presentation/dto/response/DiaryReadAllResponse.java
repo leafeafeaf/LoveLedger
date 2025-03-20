@@ -11,8 +11,9 @@ import lombok.Setter;
 @Setter
 @Builder
 @AllArgsConstructor
-public class DiaryReadDTO {
+public class DiaryReadAllResponse {
 
+    Long id;
     String title;
     String content;
     LocalDate targetDate;

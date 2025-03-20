@@ -1,12 +1,16 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
 import com.ssafy.loveledger.domain.library.domain.Library;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateDTO;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateDTO;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadDTO;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadResponse;
 import com.ssafy.loveledger.domain.library.service.DiaryService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import jakarta.validation.Valid;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +35,11 @@ public class DiaryController {
     User user = User.builder().id(1L).library(Library.builder().id(1L).build()).build();
 
     @PostMapping
-    public ResponseEntity<?> createDiary(@RequestBody @Valid DiaryCreateDTO diaryCreateDTO) {
+    public ResponseEntity<?> createDiary(
+        @RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
         //TODO 유저 객체 인증정보에서 꺼내기
 
-        diaryService.createDiary(user, diaryCreateDTO);
+        diaryService.createDiary(user, diaryCreateRequest);
 
         //TODO 표준 응답처리 및 에러 처리 필요
         return ResponseEntity.ok("생성 성공");
@@ -48,7 +53,7 @@ public class DiaryController {
     ) {
         //TODO 유저 객체 인증정보에서 꺼내기
 
-        Page<DiaryReadDTO> diaries = diaryService.readAllDiary(user, pageno, size, sort);
+        Page<DiaryReadAllResponse> diaries = diaryService.readAllDiary(user, pageno, size, sort);
 
         return ResponseEntity.ok(diaries);
     }
@@ -57,18 +62,18 @@ public class DiaryController {
     public ResponseEntity<?> readDiary(@PathVariable long diaryId) {
         //TODO 유저 객체 인증정보에서 꺼내기
 
-        DiaryReadDTO diaryReadDTO = diaryService.readDiary(user, diaryId);
+        DiaryReadResponse diaryReadResponse = diaryService.readDiary(user, diaryId);
 
         //TODO 표준 응답처리 및 에러 처리 필요
-        return ResponseEntity.ok(diaryReadDTO);
+        return ResponseEntity.ok(diaryReadResponse);
     }
 
     @PatchMapping("/{diaryId}")
     public ResponseEntity<?> updateDiary(@PathVariable long diaryId, @RequestBody @Valid
-    DiaryUpdateDTO diaryUpdateDTO) {
+    DiaryUpdateRequest diaryUpdateRequest) {
         //TODO 유저 객체 인증정보에서 꺼내기
 
-        diaryService.updateDiary(user, diaryId, diaryUpdateDTO);
+        diaryService.updateDiary(user, diaryId, diaryUpdateRequest);
 
         //TODO 표준 응답처리 및 에러 처리 필요
         return ResponseEntity.ok("수정 완료");
@@ -82,5 +87,23 @@ public class DiaryController {
 
         //TODO 표준 응답처리 및 에러 처리 필요
         return ResponseEntity.ok("삭제완료");
+    }
+
+    @PostMapping("/{diaryId}/history")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getEditHistoryList(
+        @PathVariable long diaryId) {
+
+        CompletableFuture<Map<String, Object>> map = diaryService.getEditHistoryList(user, diaryId);
+
+        return diaryService.getEditHistoryList(user, diaryId)
+            .thenApply(ResponseEntity::ok);
+    }
+
+    @PatchMapping("/history")
+    public ResponseEntity<?> editHistory(@RequestBody UpdateHistoryRequest updateHistoryRequest) {
+        //TODO 유저 정보 불러오기
+        diaryService.editHistory(user, updateHistoryRequest);
+
+        return ResponseEntity.ok("수정 완료");
     }
 }
