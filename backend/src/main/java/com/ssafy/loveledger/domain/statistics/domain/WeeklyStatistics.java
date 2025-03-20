@@ -1,0 +1,5 @@
+package com.ssafy.loveledger.domain.statistics.domain;
+
+public class WeeklyStatistics {
+
+}

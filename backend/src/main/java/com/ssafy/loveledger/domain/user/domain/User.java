@@ -2,6 +2,7 @@ package com.ssafy.loveledger.domain.user.domain;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.library.domain.Library;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -41,6 +42,9 @@ public class User {
     private String name;
 
     private Boolean isMarried;
+
+    @Column(unique = true)
+    private String userKey;
 
     @OneToOne(mappedBy = "user")
     private Library library;
