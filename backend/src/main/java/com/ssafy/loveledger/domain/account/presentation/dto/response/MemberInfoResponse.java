@@ -7,12 +7,14 @@ import lombok.Setter;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 public class MemberInfoResponse {
-        private String userId;
-        private String userName;
-        private String institutionCode;
-        private String userKey;
-        private String created;
-        private String modified;
+
+    private String userId;
+    private String userName;
+    private String institutionCode;
+    private String userKey;
+    private String created;
+    private String modified;
 }

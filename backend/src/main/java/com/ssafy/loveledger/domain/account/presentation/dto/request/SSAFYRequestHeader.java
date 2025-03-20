@@ -8,9 +8,11 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SSAFYRequestHeader {
+
     private String apiName;
     private String transmissionDate;
     private String transmissionTime;

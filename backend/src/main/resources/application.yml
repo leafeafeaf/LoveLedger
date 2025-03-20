@@ -34,3 +34,7 @@ spring:
 
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+ssafy:
+  url: https://finopenapi.ssafy.io/ssafy/api/v1
+  apiKey: ${SSAFY_NETWORK_APIKEY}

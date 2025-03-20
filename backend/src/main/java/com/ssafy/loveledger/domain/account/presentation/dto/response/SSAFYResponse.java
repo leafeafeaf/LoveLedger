@@ -9,8 +9,10 @@ import lombok.Setter;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 public class SSAFYResponse {
+
     @JsonProperty("Header")
     private SSAFYResponseHeader header;
 

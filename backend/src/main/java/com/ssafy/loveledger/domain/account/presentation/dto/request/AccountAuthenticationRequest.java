@@ -9,9 +9,11 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AccountAuthenticationRequest {
+
     @JsonProperty("Header")
     private SSAFYRequestHeader header;
 

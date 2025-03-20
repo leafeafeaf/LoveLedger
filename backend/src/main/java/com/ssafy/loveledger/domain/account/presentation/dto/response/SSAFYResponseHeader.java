@@ -1,6 +1,7 @@
 package com.ssafy.loveledger.domain.account.presentation.dto.response;
 
 public class SSAFYResponseHeader {
+
     private String responseCode;
     private String responseMessage;
     private String apiName;

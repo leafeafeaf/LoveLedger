@@ -17,7 +17,8 @@ import lombok.NoArgsConstructor;
 @Table
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 public class History {
 
     @Id

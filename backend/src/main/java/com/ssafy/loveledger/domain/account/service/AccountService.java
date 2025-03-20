@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AccountService {
+
     private final AccountRepository accountRepository;
     private final HistoryRepository historyRepository;
     private final OpenFeignUtil openFeignUtil;
@@ -46,11 +47,13 @@ public class AccountService {
     private String apiKey;
 
     @Transactional(readOnly = true)
-    public Page<HistoryDetailResponse> getAccountHistory(User user, LocalDate date, int size, int pageno, String sort) {
+    public Page<HistoryDetailResponse> getAccountHistory(User user, LocalDate date, int size,
+        int pageno, String sort) {
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
 
-        Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(user.getAccount().get(0), date, pageable);
+        Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(
+            user.getAccount().get(0), date, pageable);
 
         List<HistoryDetailResponse> response = historyPage.getContent().stream()
             .map(history -> HistoryDetailResponse.builder()
@@ -78,11 +81,13 @@ public class AccountService {
     }
 
     @Transactional
-    public void updateHistoryTarget(User user, String transactionId, String accountNo, String updatedTargetName) {
+    public void updateHistoryTarget(User user, String transactionId, String accountNo,
+        String updatedTargetName) {
         Account account = accountRepository.findById(accountNo).orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
-        if (account != null && history != null && user == account.getUser() && history.getAccount() == account) {
+        if (account != null && history != null && user == account.getUser()
+            && history.getAccount() == account) {
             history.updateTargetName(updatedTargetName);
         }
     }
@@ -91,8 +96,7 @@ public class AccountService {
     public void updateListOfHistory(User user) {
         if (user == null) {
             throw new RuntimeException("User Not Found");
-        }
-        else {
+        } else {
             String code = generateCode();
             String apiName = "inquireTransactionHistoryList";
             SSAFYRequestHeader header = SSAFYRequestHeader.builder()
@@ -119,14 +123,16 @@ public class AccountService {
 
             SSAFYResponse response = openFeignUtil.getListOfHistory(request);
 
-            List<Map<String, Object>> rawList = (List<Map<String, Object>>) response.getResultData().get("list");
+            List<Map<String, Object>> rawList = (List<Map<String, Object>>) response.getResultData()
+                .get("list");
 
             List<HistoryResponse> res = rawList.stream()
                 .map(map -> objectMapper.convertValue(map, HistoryResponse.class))
                 .toList();
 
             for (HistoryResponse historyResponse : res) {
-                String dateTimeString = historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
+                String dateTimeString =
+                    historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
                 LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
 
                 int type;
@@ -214,8 +220,7 @@ public class AccountService {
     public void getMemberInfo(User user) {
         if (user == null) {
             throw new RuntimeException("User Not Found");
-        }
-        else {
+        } else {
             MemberInfoRequest request = MemberInfoRequest.builder()
                 .apiKey(apiKey)
                 .userId(user.getEmail())

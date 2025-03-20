@@ -7,8 +7,10 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 public class MemberInfoRequest {
+
     private String apiKey;
     private String userId;
 }

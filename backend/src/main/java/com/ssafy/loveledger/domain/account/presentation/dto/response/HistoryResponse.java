@@ -7,8 +7,10 @@ import lombok.Setter;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 public class HistoryResponse {
+
     private String transactionUniqueNo;
     private String transactionDate;
     private String transactionTime;

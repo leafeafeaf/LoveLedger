@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 public class HistoryDetailResponse {
+
     private String transactionId;
     private LocalDate date;
     private LocalTime time;

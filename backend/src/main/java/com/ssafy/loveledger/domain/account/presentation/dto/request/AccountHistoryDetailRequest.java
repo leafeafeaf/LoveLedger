@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Builder
+@Getter
+@Builder
 public class AccountHistoryDetailRequest {
+
     @JsonProperty("Header")
     private SSAFYRequestHeader header;
     private String accountNo;

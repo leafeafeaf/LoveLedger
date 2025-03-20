@@ -12,6 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AccountAuthenticationResponse {
+
     @JsonProperty("Header")
     private SSAFYResponseHeader header;
 

@@ -8,5 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface HistoryRepository extends JpaRepository<History, String> {
-    Page<History> findByAccountAndCreatedDate(Account account, LocalDate createdDate, Pageable pageable);
+
+    Page<History> findByAccountAndCreatedDate(Account account, LocalDate createdDate,
+        Pageable pageable);
 }

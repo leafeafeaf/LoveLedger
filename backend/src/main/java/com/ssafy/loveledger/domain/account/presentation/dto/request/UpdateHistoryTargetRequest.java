@@ -8,8 +8,10 @@ import lombok.Setter;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 public class UpdateHistoryTargetRequest {
+
     private String accountNo;
     private String updatedTargetName;
 }

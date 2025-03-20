@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "SSAFYFinClient", url = "${ssafy.url}", configuration = FeignClientConfig.class)
 public interface OpenFeignUtil {
+
     @PostMapping("/member/search")
     MemberInfoResponse getMemberInfo(@RequestBody MemberInfoRequest request);
 

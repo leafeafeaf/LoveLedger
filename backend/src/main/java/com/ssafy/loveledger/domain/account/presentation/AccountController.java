@@ -49,7 +49,9 @@ public class AccountController {
         @RequestParam(defaultValue = "asc") String sort
     ) {
         User user = userRepository.findById(1L).orElse(null);
-        return ResponseEntity.ok(accountService.getAccountHistory(user, LocalDate.of(year, month, day), size, pageno, sort));
+        return ResponseEntity.ok(
+            accountService.getAccountHistory(user, LocalDate.of(year, month, day), size, pageno,
+                sort));
     }
 
     @PutMapping("/history/{transactionId}")
