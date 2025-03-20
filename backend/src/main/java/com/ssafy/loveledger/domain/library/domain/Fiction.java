@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @NoArgsConstructor
@@ -20,21 +21,29 @@ public class Fiction {
 
     private LocalDateTime createdAt;
 
-    private String artURL;
-
-    @Lob
-    private String content;
-
-    private String theme;
-
-    private LocalDateTime startDate;
-
-    private LocalDateTime endDate;
-
-    private String Title;
+    private String artURL;//
 
     @ManyToOne
     @JoinColumn(name = "series_id")
     private Series series;
+
+    @ManyToOne
+    @JoinColumn(name = "Theme")
+    private Theme theme;
+
+    @Lob
+    private String content;//
+
+    private LocalDate startDate;//
+
+    private LocalDate endDate;//
+
+    private String Title;
+
+    @PrePersist
+    protected void OnCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
 
 }
