@@ -33,6 +33,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
             ErrorCode.FORBIDDEN_ACCESS.getCode(),
             ErrorCode.FORBIDDEN_ACCESS.getStatus(),
             ErrorCode.FORBIDDEN_ACCESS.getMessage(),
+            ErrorCode.FORBIDDEN_ACCESS.getData(),
             LocalDateTime.now().toString()
         );
 

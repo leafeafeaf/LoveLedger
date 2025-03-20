@@ -16,25 +16,17 @@ public class ErrorResponse {
     private int status;
     private String message;
     private String timestamp;
-//    private Object data;
+    private Object data;
 
     public static ErrorResponse of(ErrorCode errorCode, String... args) {
         return ErrorResponse.builder()
             .code(errorCode.getCode())
             .status(errorCode.getStatus())
+            .data(errorCode.getData())
             .message(String.format(errorCode.getMessage(), (Object[]) args))
             .timestamp(LocalDateTime.now().toString())
             .build();
     }
 
-    public static ErrorResponse success(String message, Object data) {
-        return ErrorResponse.builder()
-            .code("SUCCESS")
-            .status(200)
-            .message(message)
-//                .data(data)
-            .timestamp(LocalDateTime.now().toString())
-            .build();
-    }
 
 }

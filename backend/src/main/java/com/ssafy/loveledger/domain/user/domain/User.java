@@ -2,7 +2,6 @@ package com.ssafy.loveledger.domain.user.domain;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.library.domain.Library;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -11,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,14 +31,16 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    //    @Column(unique = true, nullable = false)
     private String email;
 
     private Boolean gender;
-    private LocalDateTime birthDate;
+    private LocalDate birthDay;
     private String provider;
     private String usercode;
     private String name;
+
+    private Boolean isMarried;
 
     @Column(unique = true)
     private String userKey;

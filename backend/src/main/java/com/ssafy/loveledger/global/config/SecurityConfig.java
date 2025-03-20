@@ -6,7 +6,6 @@ import com.ssafy.loveledger.global.auth.handler.CustomSuccessHandler;
 import com.ssafy.loveledger.global.auth.service.CustomOAuth2UserService;
 import com.ssafy.loveledger.global.auth.util.JWTUtil;
 import com.ssafy.loveledger.global.config.handler.CustomAuthenticationEntryPoint;
-import com.ssafy.loveledger.global.redis.sevice.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,7 +30,6 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomSuccessHandler customSuccessHandler;
     private final JWTUtil jwtUtil;
-    private final TokenBlacklistService blacklistService;
     private final RedisTemplate<String, String> redisTemplate;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
@@ -72,7 +70,7 @@ public class SecurityConfig {
         http.httpBasic((auth) -> auth.disable());
 
         http
-            .addFilterBefore(new JWTFilter(jwtUtil, blacklistService),
+            .addFilterBefore(new JWTFilter(jwtUtil),
                 UsernamePasswordAuthenticationFilter.class);
 
         //oauth2 설정
@@ -88,8 +86,8 @@ public class SecurityConfig {
         //인가
         http.authorizeHttpRequests(
 
-            (auth) -> auth.requestMatchers("/test", "/").permitAll()
-                .anyRequest().permitAll());
+            (auth) -> auth.requestMatchers("/test", "/reissue").permitAll()
+                .anyRequest().authenticated());
 
         // 세션 stateless
         http.sessionManagement(
