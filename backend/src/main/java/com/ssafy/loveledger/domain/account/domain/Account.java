@@ -38,8 +38,7 @@ public class Account {
 
     private LocalDateTime lastUpdated;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    private List<History> historyList;
-
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    private List<History> history;
 
 }

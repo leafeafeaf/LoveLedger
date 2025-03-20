@@ -14,6 +14,7 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.MemberInfoR
 import com.ssafy.loveledger.domain.account.presentation.dto.response.SSAFYResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
+import com.ssafy.loveledger.domain.statistics.domain.Category;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.OpenFeignUtil;
 import java.time.LocalDate;
@@ -49,6 +50,7 @@ public class AccountService {
     @Transactional(readOnly = true)
     public Page<HistoryDetailResponse> getAccountHistory(User user, LocalDate date, int size,
         int pageno, String sort) {
+
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
 
@@ -154,6 +156,7 @@ public class AccountService {
                     .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
                     .transactionType(type)
                     .transactionTypeName(historyResponse.getTransactionTypeName())
+                    .category(Category.NOT_DEFINED)
                     .account(account)
                     .AmountAfterTransaction(
                         Long.valueOf(historyResponse.getTransactionAfterBalance())
@@ -187,13 +190,16 @@ public class AccountService {
             .authText("SSAFY") // 차후 수정 필요
             .accountNo(accountNo)
             .build();
-        SSAFYResponse response = openFeignUtil.sendAccountAuthentication(request);
 
+        SSAFYResponse response = openFeignUtil.sendAccountAuthentication(request);
+        String status = (String) response.getResultData().get("status");
     }
 
     public void doVerification(User user, String accountNo, String authCode) {
         String code = generateCode();
-        String apiName = "checkAccountAuth";
+        String apiName = "checkAuthCode";
+        System.out.println(accountNo);
+
         SSAFYRequestHeader header = SSAFYRequestHeader.builder()
             .apiName(apiName)
             .apiServiceCode(apiName)
@@ -214,7 +220,18 @@ public class AccountService {
             .build();
 
         SSAFYResponse response = openFeignUtil.getAccountAuthentication(request);
+        String status = (String) response.getResultData().get("status");
 
+        if (status.equals("SUCCESS")) {
+            Account account = Account.builder()
+                .accountId(accountNo)
+                .bankCode("00100")
+                .user(user)
+                .certedAt(LocalDateTime.now())
+                .build();
+
+            accountRepository.save(account);
+        }
     }
 
     public void getMemberInfo(User user) {

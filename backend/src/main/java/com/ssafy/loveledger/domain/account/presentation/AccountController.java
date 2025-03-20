@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.account.presentation;
 
+import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthenticationRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistoryTargetRequest;
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -36,7 +37,7 @@ public class AccountController {
         @RequestParam Integer year,
         @RequestParam Integer month
     ) {
-
+        
     }
 
     @GetMapping("/history/detail/list")
@@ -77,15 +78,18 @@ public class AccountController {
     }
 
     @PostMapping("/verify/request")
-    public ResponseEntity<?> getVerification(@RequestBody String accountNo) {
+    public ResponseEntity<?> getVerification(@RequestBody AccountAuthenticationRequest request) {
         User user = userRepository.findById(1L).orElse(null);
 
-        accountService.getVerificationCode(user, accountNo);
+        accountService.getVerificationCode(user, request.getAccountNo());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/verify/confirm")
-    public void doVerification(@RequestBody String accountNo) {
+    public ResponseEntity<?> doVerification(@RequestBody AccountAuthenticationRequest request) {
+        User user = userRepository.findById(1L).orElse(null);
 
+        accountService.doVerification(user, request.getAccountNo(), request.getAuthCode());
+        return ResponseEntity.ok().build();
     }
 }

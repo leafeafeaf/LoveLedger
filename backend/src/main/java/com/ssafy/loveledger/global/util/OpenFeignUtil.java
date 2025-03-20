@@ -22,7 +22,7 @@ public interface OpenFeignUtil {
     @PostMapping("/edu/accountAuth/openAccountAuth")
     SSAFYResponse sendAccountAuthentication(@RequestBody AccountAuthenticationRequest request);
 
-    @PostMapping("/edu/accountAuth/checkAccountAuth")
+    @PostMapping("/edu/accountAuth/checkAuthCode")
     SSAFYResponse getAccountAuthentication(@RequestBody AccountAuthenticationRequest request);
 
 }
