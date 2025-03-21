@@ -25,7 +25,7 @@ public class OpenAiUtil {
     private final String apiKey;
 
     public OpenAiUtil(RestTemplateBuilder restTemplateBuilder,
-        @Value("${spring.open-api.key}") String apiKey) {
+        @Value("${spring.open-ai.key}") String apiKey) {
         this.restTemplate = restTemplateBuilder.build();
         this.apiKey = apiKey;
     }

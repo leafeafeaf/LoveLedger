@@ -15,7 +15,7 @@ public enum ErrorCode {
         null),
 
     // Validation Error Codes
-    INVALID_INPUT_VALUE(400, "V001", "유효하지 않은 입력값입니다", null),
+    INVALID_INPUT_VALUE(400, "V001", "입력값 오류 : %s", null),
     REQUIRED_FIELD_MISSING(400, "V002", "필수 항목이 누락되었습니다: %s", null),
     INVALID_FORMAT(400, "V003", "잘못된 형식입니다: %s", null),
     INVALID_LENGTH(400, "V004", "길이가 유효하지 않습니다: %s", null);
