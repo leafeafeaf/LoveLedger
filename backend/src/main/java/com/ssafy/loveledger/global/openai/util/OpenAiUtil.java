@@ -71,7 +71,7 @@ public class OpenAiUtil {
 
             // OpenAI 응답에서 'choices' 배열의 첫 번째 요소에서 'message' -> 'content' 값 추출
             JsonNode choicesNode = rootNode.path("choices");
-            if (choicesNode.isArray() && choicesNode.size() > 0) {
+            if (choicesNode.isArray() && !choicesNode.isEmpty()) {
                 JsonNode messageNode = choicesNode.get(0).path("message");
                 String content = messageNode.path("content").asText();
 
@@ -85,7 +85,7 @@ public class OpenAiUtil {
                 resultMap.put("error", "No valid content found");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
             resultMap.put("error", "Failed to parse response");
         }
 

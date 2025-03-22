@@ -159,7 +159,7 @@ public class DiaryService {
         //TODO 분류모델로 전환
         //챗지피티 반환
         String prompt = """
-            당신은 사용자의 소비 기록을 분석하는 AI 비서입니다. 
+            당신은 사용자의 소비 기록을 분석하는 AI 비서입니다.
             사용자가 기록한 일기와 같은 날짜의 금융 거래 내역을 참고하여, 거래의 목적과 관련된 `transaction_target` 값을 적절히 수정해주세요.
             
             **규칙**
@@ -288,7 +288,7 @@ public class DiaryService {
                     "        \"time\": \"%sT%s\",\n" +
                     "        \"remittance\": %s,\n" +
                     "        \"targetname\": \"%s\",\n" +
-                    "        \"category_id\": %d,\n" +
+                    "        \"category_id\": %s,\n" +
                     "        \"afterAmount\": %d,\n" +
                     "        \"amount\": %d,\n" +
                     "        \"memo\": \"%s\",\n" +
