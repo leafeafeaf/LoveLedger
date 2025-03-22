@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 //TODO msa 적용
+@Slf4j
 @Service
 public class OpenAiUtil {
 
@@ -58,6 +60,8 @@ public class OpenAiUtil {
 
 
     public Map<String, Object> mapResponseToMap(String response) {
+        log.info("chatgpt 응답 : {}", response);
+
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> resultMap = new HashMap<>();
 
