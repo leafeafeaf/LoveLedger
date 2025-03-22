@@ -49,7 +49,7 @@ pipeline {
                     docker stop loveledger-backend || true
                     docker rm loveledger-backend || true
 
-                    docker run -d --name loveledger-backend -p 8080:8080 loveledger-backend
+                    docker run -d --name loveledger-backend --env-file .env -p 8080:8080 loveledger-backend
                 '''
             }
         }
