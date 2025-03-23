@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.user.service;
 
+
 import com.ssafy.loveledger.domain.couple.domain.Couple;
 import com.ssafy.loveledger.domain.couple.domain.repository.CoupleRepository;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -10,7 +11,6 @@ import com.ssafy.loveledger.domain.user.presentation.dto.response.DetailUserResp
 import com.ssafy.loveledger.domain.user.presentation.dto.response.UserResponse;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -22,73 +22,92 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE; // yyyy-MM-dd 형식
     private final UserRepository userRepository;
     private final CoupleRepository coupleRepository;
 
     @Transactional(readOnly = true)
     public DetailUserResponse getDetailUserInfo(Long userId) {
+        // 1. 사용자 정보 조회
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("해당 ID를 가진 사용자가 없습니다: " + userId));
 
-        // 부부 정보 조회
+        // 2. 부부 정보 조회
         Optional<Couple> coupleOpt = coupleRepository.findByUserId(userId);
 
+        // 기본값 설정
         boolean isMarried = false;
         String marryDate = null;
         String darling = null;
         String darlingName = null;
-        LocalDate darlingBirthday = null;
+        String darlingBirthDay = null;
         int marriageDuration = 0;
 
+        // 3. 부부 정보가 있는 경우 처리
         if (coupleOpt.isPresent()) {
             Couple couple = coupleOpt.get();
             isMarried = couple.isMarried();
 
+            // 결혼 날짜가 있으면 설정 및 기간 계산
             if (couple.getMarryDate() != null) {
                 // 하이픈이 포함된 형식으로 결혼 날짜 변환 (yyyy-MM-dd)
-                marryDate = couple.getMarryDate().format(DateTimeFormatter.ISO_DATE);
+                marryDate = couple.getMarryDate().format(DATE_FORMATTER);
 
                 // ChronoUnit을 사용하여 전체 일수로 결혼 기간 계산
-                marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(), LocalDate.now());
+                marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(),
+                    LocalDate.now());
             }
 
-            // 배우자 정보 조회
+            // 4. 배우자 ID 확인
             Long partnerUserId = null;
+
+            // 현재 사용자가 남편인 경우 -> 아내 정보 가져오기
             if (userId.equals(couple.getHusbandId())) {
                 partnerUserId = couple.getWifeId();
-            } else {
+            }
+            // 현재 사용자가 아내인 경우 -> 남편 정보 가져오기
+            else if (userId.equals(couple.getWifeId())) {
                 partnerUserId = couple.getHusbandId();
             }
 
+            // 5. 배우자 정보 조회 및 설정
             if (partnerUserId != null) {
                 Optional<User> partnerOpt = userRepository.findById(partnerUserId);
                 if (partnerOpt.isPresent()) {
                     User partner = partnerOpt.get();
+
+                    // 배우자의 이메일, 이름 설정
                     darling = partner.getEmail();
                     darlingName = partner.getName();
-                    darlingBirthday = partner.getBirthDay();
+
+                    // 배우자의 생일을 하이픈이 포함된 형식(yyyy-MM-dd)으로 변환
+                    if (partner.getBirthDay() != null) {
+                        darlingBirthDay = partner.getBirthDay().format(DATE_FORMATTER);
+                    }
                 }
             }
         }
 
+        // 6. 현재 사용자의 생일 형식 변환 (yyyy-MM-dd 형식으로)
+        String formattedBirthday = null;
+        if (user.getBirthDay() != null) {
+            formattedBirthday = user.getBirthDay().format(DATE_FORMATTER);
+        }
+
+        // 7. DTO 생성 및 반환
         return DetailUserResponse.builder()
             .email(user.getEmail())
             .name(user.getName())
-            .birthDay(user.getBirthDay())
+            .birthDay(formattedBirthday)
             .gender(user.getGender())
             .isMarried(isMarried)
             .marryDate(marryDate)
             .darling(darling)
             .darlingName(darlingName)
-            .darlingBirthDay(darlingBirthday)
+            .darlingBirthDay(darlingBirthDay)
             .marriageDuration(marriageDuration)
             .build();
     }
-
-
-
-
-
 
     public void saveUserInfo(Long userId, UserInfoRequest request) {
         User user = userRepository.findById(userId)
@@ -134,8 +153,7 @@ public class UserService {
             userBuilder.gender(request.getGender());
         }
         if (request.getBirthday() != null) {
-            LocalDate birthDay = request.getBirthday();
-            userBuilder.birthDay(birthDay);
+            userBuilder.birthDay(request.getBirthday());  // 일관된 필드명 사용
         }
         if (request.getIsMarried() != null) {
             userBuilder.isMarried(request.getIsMarried());
@@ -147,7 +165,7 @@ public class UserService {
         return UserResponse.builder()
             .name(savedUser.getName())
             .gender(savedUser.getGender())
-            .birthday(savedUser.getBirthDay())
+            .birthDay(savedUser.getBirthDay().format(DATE_FORMATTER))  // LocalDate를 문자열로 변환
             .isMarried(savedUser.getIsMarried())
             .build();
     }

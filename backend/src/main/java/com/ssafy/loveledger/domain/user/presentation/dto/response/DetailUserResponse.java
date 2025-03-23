@@ -13,12 +13,12 @@ import lombok.NoArgsConstructor;
 public class DetailUserResponse {
     private String email;
     private String name;
-    private LocalDate birthDay;
+    private String birthDay;
     private boolean gender;
     private boolean isMarried;
     private String marryDate;
     private String darling;
     private String darlingName;
-    private LocalDate darlingBirthDay;
+    private String darlingBirthDay;
     private int marriageDuration;
 }
