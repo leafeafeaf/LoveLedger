@@ -323,7 +323,7 @@ export default function ProfileMainScreen({
               </Text>
             </Pressable>
           </View>
-        </View>{" "}
+        </View>
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>메뉴</Text>
 

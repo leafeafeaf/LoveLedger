@@ -15,6 +15,7 @@ import { RouteProp } from "@react-navigation/native";
 import { theme } from "../../utils/theme";
 import { Transaction } from "../../types";
 import { RootStackScreenProps, RootStackParamList } from "../../types";
+import Header from "../../components/common/Header";
 
 type DailyDetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -239,7 +240,13 @@ const FABComponent = React.memo(
             style={styles.fabMenuItem}
             onPress={() => {
               toggleFabMenu();
-              navigation.navigate("Story");
+              navigation.navigate("Story", {
+                screen: "StorySettings",
+                params: {
+                  themeStyle: undefined,
+                  toneStyle: undefined,
+                },
+              });
             }}
           >
             <MaterialCommunityIcons
@@ -254,7 +261,10 @@ const FABComponent = React.memo(
             style={styles.fabMenuItem}
             onPress={() => {
               toggleFabMenu();
-              navigation.navigate("Diary");
+              navigation.navigate("Diary", {
+                screen: "DiaryCreate",
+                params: undefined,
+              });
             }}
           >
             <MaterialCommunityIcons
@@ -327,32 +337,12 @@ const DailyDetailScreen: FC<RootStackScreenProps<"DailyDetail">> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerButtons}>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.navigate("Diary")}
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        </View>
-        <Text style={styles.title}>Daily Details</Text>
-        <Text style={styles.subtitle}>Transaction History</Text>
-      </View>
+      <Header
+        title="Daily Details"
+        subtitle="Transaction History"
+        showBack={true}
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView style={styles.content}>
         <DailySummary selectedDate={selectedDate} transactions={transactions} />
@@ -483,31 +473,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  header: {
-    backgroundColor: theme.colors.white,
-    paddingTop: theme.spacing.xl * 1.5,
-    paddingBottom: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    ...theme.shadows.small,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing.md,
-  },
-  headerButton: {
-    padding: theme.spacing.sm,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: theme.colors.textLight,
   },
   content: {
     flex: 1,

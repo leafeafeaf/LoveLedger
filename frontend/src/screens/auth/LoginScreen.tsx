@@ -10,16 +10,17 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation, CommonActions } from "@react-navigation/native"; 
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { theme } from "../../utils/theme";
 import { AuthStackParamList, RootStackParamList } from "../../types";
 
 // 네비게이션 타입 정의
 type LoginScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList, 
+  AuthStackParamList,
   "Login"
-> & NativeStackNavigationProp<RootStackParamList>;
+> &
+  NativeStackNavigationProp<RootStackParamList>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -36,25 +37,17 @@ export default function LoginScreen() {
     setIsRegistering(!isRegistering);
   };
 
-  // 첫 번째 방법
+  // 로그인/회원가입 처리
   const handleSubmit = () => {
-    // TODO: Implement actual auth
-    // CommonActions를 사용하여 네비게이션
+    // TODO: 실제 인증 구현
+    // 문제 해결: Auth 네비게이터에서 Main으로 직접 이동할 수 없음
+    // AppRouter.tsx의 구조에 맞게 수정
     navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: "Main" }],
+      CommonActions.navigate({
+        name: "Main",
       })
     );
   };
-  // 두 번째 방법
-  // const handleSubmit = () => {
-  //   // @ts-ignore - 임시 타입 무시
-  //   navigation.reset({
-  //     index: 0,
-  //     routes: [{ name: "Main" }],
-  //   });
-  // };
 
   return (
     <KeyboardAvoidingView

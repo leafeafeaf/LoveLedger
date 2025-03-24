@@ -9,7 +9,11 @@ const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 export function ProfileNavigator() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="ProfileMain" component={ProfileMainScreen} />
       <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="GoalList" component={GoalListScreen} />
