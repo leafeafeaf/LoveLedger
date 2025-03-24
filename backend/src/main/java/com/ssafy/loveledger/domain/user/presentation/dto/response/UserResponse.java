@@ -14,6 +14,6 @@ public class UserResponse {
 
     private String name;
     private Boolean gender;
-    private LocalDate birthday; // YYYYMMDD 형식 문자열
+    private String birthDay; // YYYYMMDD 형식 문자열
     private Boolean isMarried;
 }

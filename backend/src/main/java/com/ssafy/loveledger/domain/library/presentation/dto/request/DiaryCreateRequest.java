@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.library.presentation.dto.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,4 +22,9 @@ public class DiaryCreateRequest {
 
     @NotNull(message = "일기 대상 날짜는 필수 입력 값입니다.")
     LocalDate targetDate;
+
+    @AssertTrue(message = "미래 날짜는 일기를 작성하실 수 없습니다.")
+    public boolean isValidTargetDate() {
+        return targetDate == null || !targetDate.isAfter(LocalDate.now());
+    }
 }

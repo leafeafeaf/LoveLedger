@@ -2,6 +2,7 @@ package com.ssafy.loveledger.domain.user.presentation;
 
 import com.ssafy.loveledger.domain.user.presentation.dto.request.UserInfoRequest;
 import com.ssafy.loveledger.domain.user.presentation.dto.request.UserUpdateRequest;
+import com.ssafy.loveledger.domain.user.presentation.dto.response.DetailUserResponse;
 import com.ssafy.loveledger.domain.user.presentation.dto.response.UserResponse;
 import com.ssafy.loveledger.domain.user.service.UserService;
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
@@ -9,12 +10,11 @@ import com.ssafy.loveledger.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -29,23 +29,41 @@ public class UserController {
 
     private final UserService userService;
 
-
+    /* 유저 상세 정보 */
     @GetMapping
-    public Map<String, String> getMyRoute() {
-        // 단순 문자열 대신 객체 반환
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "my route");
-        response.put("timestamp", String.valueOf(System.currentTimeMillis()));
+    public ResponseEntity<ApiResponse<DetailUserResponse>> detailUserInfo(
+        @AuthenticationPrincipal CustomOAuth2User oAuth2User
+    ) {
+        if (oAuth2User == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<DetailUserResponse>builder()
+                    .status("401")
+                    .message("인증 정보가 올바르지 않습니다")
+                    .timestamp(LocalDateTime.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                    .build());
+        }
 
-        return response;
+        Long userId = oAuth2User.getUserId();
+        DetailUserResponse userInfo = userService.getDetailUserInfo(userId);
+
+        return ResponseEntity.ok()
+            .body(ApiResponse.<DetailUserResponse>builder()
+                .status("200")
+                .message("사용자 정보가 성공적으로 조회되었습니다")
+                .data(userInfo)
+                .timestamp(LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                .build());
     }
+
+
 
     /* 유저 정보 입력 */
     @PutMapping
     public ResponseEntity<?> createUserInfo(
         @Valid @RequestBody UserInfoRequest request,
         Authentication authentication) {
-
         // 인증 객체 검증
         if (authentication == null
             || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
