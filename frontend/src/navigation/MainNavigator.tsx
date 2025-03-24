@@ -20,11 +20,10 @@ const styles = StyleSheet.create({
   },
 });
 
-type Props = NativeStackScreenProps<RootStackParamList, "DailyDetail">;
-
 export function MainNavigator() {
   return (
     <Tab.Navigator
+      initialRouteName="Main" // 여기를 'Main'으로 변경
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap: Record<
@@ -69,6 +68,7 @@ export function MainNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Main" component={MainScreen} />
       <Tab.Screen name="Library" component={LibraryScreen} />
+      <Tab.Screen name="Profile" component={ProfileMainScreen} />
     </Tab.Navigator>
   );
 }

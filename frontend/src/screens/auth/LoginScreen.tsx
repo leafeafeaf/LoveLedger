@@ -10,26 +10,19 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation, CommonActions } from "@react-navigation/native"; 
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { theme } from "../../utils/theme";
+import { AuthStackParamList, RootStackParamList } from "../../types";
 
-type RootStackParamList = {
-  Login: undefined;
-  Main: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
-};
-
+// 네비게이션 타입 정의
 type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
+  AuthStackParamList, 
   "Login"
->;
+> & NativeStackNavigationProp<RootStackParamList>;
 
-interface LoginScreenProps {
-  navigation: LoginScreenNavigationProp;
-}
-
-export default function LoginScreen({ navigation }: LoginScreenProps) {
+export default function LoginScreen() {
+  const navigation = useNavigation<LoginScreenNavigationProp>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -43,10 +36,25 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     setIsRegistering(!isRegistering);
   };
 
+  // 첫 번째 방법
   const handleSubmit = () => {
     // TODO: Implement actual auth
-    navigation.replace("Main");
+    // CommonActions를 사용하여 네비게이션
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Main" }],
+      })
+    );
   };
+  // 두 번째 방법
+  // const handleSubmit = () => {
+  //   // @ts-ignore - 임시 타입 무시
+  //   navigation.reset({
+  //     index: 0,
+  //     routes: [{ name: "Main" }],
+  //   });
+  // };
 
   return (
     <KeyboardAvoidingView
