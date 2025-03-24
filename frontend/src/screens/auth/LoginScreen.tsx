@@ -10,19 +10,14 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation, CommonActions } from "@react-navigation/native"; 
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import { loginStart, loginSuccess, loginFailure } from "../../store/authSlice";
 import { theme } from "../../utils/theme";
-import { AuthStackParamList, RootStackParamList } from "../../types";
-
-// 네비게이션 타입 정의
-type LoginScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList, 
-  "Login"
-> & NativeStackNavigationProp<RootStackParamList>;
 
 export default function LoginScreen() {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector(state => state.auth);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -39,28 +34,35 @@ export default function LoginScreen() {
   // 첫 번째 방법
   const handleSubmit = () => {
     // TODO: Implement actual auth
-    // CommonActions를 사용하여 네비게이션
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: "Main" }],
-      })
-    );
+    if (!email || !password) {
+      return;
+    }
+
+    dispatch(loginStart());
+
+    // 여기서는 실제 로그인 API 호출 대신 성공 시뮬레이션
+    setTimeout(() => {
+      // 실제 앱에서는 API 호출 결과에 따라 분기
+      dispatch(loginSuccess({
+        token: 'dummy-token-123',
+        userInfo: {
+          id: '1',
+          name: '사용자',
+          email
+        }
+      }));
+      
+      // 실패 시에는:
+      dispatch(loginFailure('아이디 또는 비밀번호가 올바르지 않습니다.'));
+    }, 1000);
   };
-  // 두 번째 방법
-  // const handleSubmit = () => {
-  //   // @ts-ignore - 임시 타입 무시
-  //   navigation.reset({
-  //     index: 0,
-  //     routes: [{ name: "Main" }],
-  //   });
-  // };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
+      {/* 헤더 부분 */}
       <View style={styles.header}>
         <MaterialCommunityIcons
           name="heart-multiple"
@@ -73,6 +75,7 @@ export default function LoginScreen() {
         </Text>
       </View>
 
+      {/* 폼 부분 */}
       <Animated.View
         style={[
           styles.form,
@@ -114,10 +117,20 @@ export default function LoginScreen() {
           placeholderTextColor={theme.colors.textLight}
         />
 
-        <Pressable style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>
-            {isRegistering ? "Sign Up" : "Login"}
-          </Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+
+        <Pressable 
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Text style={styles.buttonText}>로딩 중...</Text>
+          ) : (
+            <Text style={styles.buttonText}>
+              {isRegistering ? "Sign Up" : "Login"}
+            </Text>
+          )}
         </Pressable>
 
         <Pressable style={styles.toggleButton} onPress={toggleMode}>
@@ -187,4 +200,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 14,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center'
+  },
+  buttonDisabled: {
+    backgroundColor: theme.colors.disabled,
+  }
 });

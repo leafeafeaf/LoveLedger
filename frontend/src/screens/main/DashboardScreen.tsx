@@ -1,51 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import Header from "../../components/common/Header";
-import {
-  dailyFinanceData,
-  transactionHistoryData,
-  Transaction,
-} from "../../../dummyData";
-import { Transaction as TransactionType } from "../../types";
+import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import { fetchTransactionsStart, fetchTransactionsSuccess, fetchTransactionsFailure } from "../../store/financeSlice";
+import { CategorySummary, IconName, Transaction } from "../../types";
+import { transactionHistoryData } from "../../../dummyData";
 
-// 아이콘 타입 정의
-type CategoryIconType =
-  | "cash"
-  | "food"
-  | "coffee"
-  | "store"
-  | "ticket"
-  | "bank";
-
-// 카테고리 인터페이스
-interface Category {
-  name: string;
-  amount: number;
-  icon: CategoryIconType;
-}
-
-// 최근 거래 인터페이스
-interface RecentTransaction {
-  id: number;
-  title: string;
-  amount: number;
-  isExpense: boolean;
-  date: string;
-  category: string;
-}
-
-// 요약 데이터 인터페이스
-interface SummaryData {
-  totalSpent: number;
-  totalEarned: number;
-  monthlyAverage: number;
-  categories: Category[];
-  recentTransactions: RecentTransaction[];
-}
-
-// Helper function to format currency
+// 통화 포맷 함수
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("ko-KR", {
     style: "currency",
@@ -55,49 +17,64 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+
 export default function DashboardScreen() {
-  const [summaryData, setSummaryData] = useState<SummaryData>({
-    totalSpent: 0,
-    totalEarned: 0,
-    monthlyAverage: 0,
-    categories: [],
-    recentTransactions: [],
-  });
+  const dispatch = useAppDispatch();
+  const { transactions, isLoading } = useAppSelector(state => state.finance);
+  const { activeView } = useAppSelector(state => state.partner);
 
+  // 데이터 로드
   useEffect(() => {
-    // Calculate total spent from daily finance data
-    const totalConsume = dailyFinanceData.data.days.reduce(
-      (total: number, day) => total + day.consume,
-      0
-    );
-    const totalEarn = dailyFinanceData.data.days.reduce(
-      (total: number, day) => total + day.earn,
-      0
-    );
-
-    // Group transactions by category
-    const categoryMap = new Map<string, number>();
-
-    transactionHistoryData.data.history.forEach(
-      (transaction: TransactionType) => {
-        if (transaction.remittance) {
-          const currentAmount =
-            categoryMap.get(transaction.category || "") || 0;
-          categoryMap.set(
-            transaction.category || "",
-            currentAmount + transaction.amount
-          );
-        }
+    dispatch(fetchTransactionsStart());
+    
+    // 더미 데이터에서 activeView에 따라 필터링
+    try {
+      let filteredTransactions;
+      if (activeView === 'you') {
+        filteredTransactions = transactionHistoryData.data.history.filter(t => t.userId === 'user1');
+      } else if (activeView === 'partner') {
+        filteredTransactions = transactionHistoryData.data.history.filter(t => t.userId === 'user2');
+      } else {
+        filteredTransactions = transactionHistoryData.data.history;
       }
+      
+      dispatch(fetchTransactionsSuccess(filteredTransactions));
+    } catch (error) {
+      dispatch(fetchTransactionsFailure('데이터 로드 중 오류가 발생했습니다.'));
+    }
+  }, [activeView, dispatch]);
+  
+
+  // 데이터 계산을 memoize
+  const summaryData = useMemo(() => {
+    // 총 지출 계산
+    const totalSpent = transactions.reduce(
+      (total, transaction) => 
+        transaction.remittance ? total + transaction.amount : total, 
+      0
     );
 
-    // Convert category map to array
-    const categories = Array.from(categoryMap)
-      .map(([name, amount]) => {
-        // 타입 안전한 아이콘 할당
-        let icon: CategoryIconType = "cash";
+    // 총 수입 계산
+    const totalEarned = transactions.reduce(
+      (total, transaction) => 
+        !transaction.remittance ? total + transaction.amount : total, 
+      0
+    );
 
-        // Assign icons based on category name
+    // 카테고리별 지출 계산
+    const categoryMap = new Map<string, number>();
+    transactions.forEach(transaction => {
+      if (transaction.remittance && transaction.category) {
+        const currentAmount = categoryMap.get(transaction.category) || 0;
+        categoryMap.set(transaction.category, currentAmount + transaction.amount);
+      }
+    });
+
+    // 카테고리 정렬 및 상위 4개 추출
+    const categories: CategorySummary[] = Array.from(categoryMap)
+      .map(([name, amount]) => {
+        // 카테고리에 따른 아이콘 지정
+        let icon: IconName = "cash";
         if (name === "식비") icon = "food";
         else if (name === "카페") icon = "coffee";
         else if (name === "마트/편의점") icon = "store";
@@ -107,44 +84,42 @@ export default function DashboardScreen() {
         return { name, amount, icon };
       })
       .sort((a, b) => b.amount - a.amount)
-      .slice(0, 4); // Take top 4 categories
+      .slice(0, 4);
 
-    // Get recent transactions
-    const recentTransactions = transactionHistoryData.data.history
-      .slice()
-      .sort(
-        (a: TransactionType, b: TransactionType) =>
-          new Date(b.time || "").getTime() - new Date(a.time || "").getTime()
+    // 최근 거래 추출
+    const recentTransactions = [...transactions]
+      .sort((a, b) => 
+        new Date(b.time || b.date).getTime() - new Date(a.time || a.date).getTime()
       )
-      .slice(0, 5)
-      .map((transaction: TransactionType) => ({
-        id: Number(transaction.transactionid) || 0,
-        title: transaction.targetname || "",
-        amount: transaction.amount,
-        isExpense: transaction.remittance,
-        date: transaction.time?.split("T")[0] || "",
-        category: transaction.category || "",
-      }));
+      .slice(0, 5);
 
-    setSummaryData({
-      totalSpent: totalConsume,
-      totalEarned: totalEarn,
-      monthlyAverage: Math.round(totalConsume / 30),
+    return {
+      totalSpent,
+      totalEarned,
+      monthlyAverage: Math.round(totalSpent / 30),
       categories,
-      recentTransactions,
-    });
-  }, []);
+      recentTransactions
+    };
+  }, [transactions]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
-      <Header title="지출 분석" showBack={false} showClose={false} />
       <View style={styles.overviewCard}>
         <Text style={styles.overviewTitle}>재정 요약</Text>
         <View style={styles.overviewRow}>
           <View style={styles.overviewColumn}>
             <Text style={styles.overviewLabel}>총 지출</Text>
             <Text
-              style={[styles.amount, { color: theme.colors.error || "red" }]}
+              style={[styles.amount, { color: theme.colors.error }]}
             >
               {formatCurrency(summaryData.totalSpent)}
             </Text>
@@ -155,7 +130,7 @@ export default function DashboardScreen() {
             <Text
               style={[
                 styles.amount,
-                { color: theme.colors.success || "green" },
+                { color: theme.colors.success },
               ]}
             >
               {formatCurrency(summaryData.totalEarned)}
@@ -187,26 +162,33 @@ export default function DashboardScreen() {
       </View>
 
       <Text style={styles.sectionTitle}>최근 거래</Text>
-      {summaryData.recentTransactions.map((transaction) => (
-        <View key={transaction.id} style={styles.transactionCard}>
+      {summaryData.recentTransactions.map((transaction: Transaction) => (
+        <View
+          key={transaction.id}
+          style={styles.transactionCard}
+        >
           <View style={styles.transactionInfo}>
-            <Text style={styles.transactionTitle}>{transaction.title}</Text>
+            <Text style={styles.transactionTitle}>
+              {transaction.targetname || "무제 거래"}
+            </Text>
             <View style={styles.transactionMeta}>
               <Text style={styles.transactionCategory}>
-                {transaction.category}
+                {transaction.category || "기타"}
               </Text>
-              <Text style={styles.transactionDate}>{transaction.date}</Text>
+              <Text style={styles.transactionDate}>
+                {new Date(transaction.date).toLocaleDateString("ko-KR")}
+              </Text>
             </View>
           </View>
           <Text
             style={[
               styles.transactionAmount,
-              transaction.isExpense
+              transaction.remittance
                 ? styles.expenseAmount
                 : styles.incomeAmount,
             ]}
           >
-            {transaction.isExpense ? "- " : "+ "}
+            {transaction.remittance ? "- " : "+ "}
             {formatCurrency(transaction.amount)}
           </Text>
         </View>
@@ -219,6 +201,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: theme.colors.textLight,
   },
   overviewCard: {
     margin: theme.spacing.md,
@@ -344,9 +336,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   expenseAmount: {
-    color: theme.colors.error || "red",
+    color: theme.colors.error,
   },
   incomeAmount: {
-    color: theme.colors.success || "green",
+    color: theme.colors.success,
   },
 });

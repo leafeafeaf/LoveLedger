@@ -1,23 +1,25 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { theme } from "../../utils/theme";
+import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
+import { changeActiveView } from "../../store/partnerSlice";
 
-interface PartnerSwitchProps {
-  activeView: string;
-  onViewChange: (view: string) => void;
-  partnerName?: string;
-}
+const PartnerSwitch: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { activeView } = useAppSelector(state => state.partner);
+  const { partnerInfo } = useAppSelector(state => state.partner);
+  
+  const partnerName = partnerInfo?.name || '파트너';
 
-const PartnerSwitch: React.FC<PartnerSwitchProps> = ({
-  activeView,
-  onViewChange,
-  partnerName = "김민수",
-}) => {
+  const handleViewChange = (view: 'you' | 'partner' | 'combined') => {
+    dispatch(changeActiveView(view));
+  };
+
   return (
     <View style={styles.container}>
       <Pressable
         style={[styles.tabButton, activeView === "you" && styles.activeTab]}
-        onPress={() => onViewChange("you")}
+        onPress={() => handleViewChange("you")}
       >
         <Text
           style={[styles.tabText, activeView === "you" && styles.activeTabText]}
@@ -27,7 +29,7 @@ const PartnerSwitch: React.FC<PartnerSwitchProps> = ({
       </Pressable>
       <Pressable
         style={[styles.tabButton, activeView === "partner" && styles.activeTab]}
-        onPress={() => onViewChange("partner")}
+        onPress={() => handleViewChange("partner")}
       >
         <Text
           style={[
@@ -43,7 +45,7 @@ const PartnerSwitch: React.FC<PartnerSwitchProps> = ({
           styles.tabButton,
           activeView === "combined" && styles.activeTab,
         ]}
-        onPress={() => onViewChange("combined")}
+        onPress={() => handleViewChange("combined")}
       >
         <Text
           style={[
