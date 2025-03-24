@@ -1,17 +1,26 @@
 import React, { useState, FC } from "react";
-import Header from "../../components/common/Header";
 import {
   View,
   Text,
   StyleSheet,
-  Animated,
   ScrollView,
   Pressable,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
+import Header from "../../components/common/Header";
 import BookCard from "../../components/common/BookCard";
-import { NavigationProps, BookItem } from "../../types";
+import { BookItem } from "../../types";
+import { useNavigation, CompositeNavigationProp } from "@react-navigation/native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { MainTabParamList, RootStackParamList } from "../../types";
+
+// Composite navigation prop 타입 정의
+type LibraryScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, "Library">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 type TabButtonProps = {
   title: string;
@@ -19,7 +28,8 @@ type TabButtonProps = {
   onPress: () => void;
 };
 
-const LibraryScreen: FC<NavigationProps<"Library">> = ({ navigation }) => {
+const LibraryScreen: FC = () => {
+  const navigation = useNavigation<LibraryScreenNavigationProp>();
   const [activeTab, setActiveTab] = useState<"diaries" | "stories">("diaries");
 
   const mockDiaries: BookItem[] = [
