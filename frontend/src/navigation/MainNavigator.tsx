@@ -4,7 +4,6 @@ import { MainTabParamList } from "./navigation";
 import { theme } from "../utils/theme";
 import LibraryScreen from "../screens/library/LibraryScreen";
 import DashboardScreen from "../screens/main/DashboardScreen";
-import ProfileMainScreen from "../screens/profile/ProfileMainScreen";
 import MainScreen from "../screens/main/MainScreen";
 import { StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -23,7 +22,7 @@ const styles = StyleSheet.create({
 export function MainNavigator() {
   return (
     <Tab.Navigator
-      initialRouteName="Main" // 여기를 'Main'으로 변경
+      initialRouteName="Main"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap: Record<
@@ -41,10 +40,6 @@ export function MainNavigator() {
             Library: {
               outline: "book-open-page-variant-outline",
               filled: "book-open-page-variant",
-            },
-            Profile: {
-              outline: "account-outline",
-              filled: "account",
             },
           };
 
@@ -68,7 +63,6 @@ export function MainNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Main" component={MainScreen} />
       <Tab.Screen name="Library" component={LibraryScreen} />
-      <Tab.Screen name="Profile" component={ProfileMainScreen} />
     </Tab.Navigator>
   );
 }

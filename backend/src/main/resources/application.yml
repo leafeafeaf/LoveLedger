@@ -37,7 +37,7 @@ spring:
 
   open-ai:
     key: ${OPENAI_API_KEY}
-    
+
 cloud:
   aws:
     credentials:
@@ -53,3 +53,9 @@ cloud:
 ssafy:
   url: ${SSAFY_NETWORK_URL}
   apiKey: ${SSAFY_NETWORK_APIKEY}
+
+app:
+  base-url: ${BASE_URL}
+  deep-link-uri-scheme: ${DEEPLINK_URL}
+  invite-expiry-hours: ${INVITE_EXPIRE_HOURS}
+  android-package-name: ${ANDROID_PACKAGE_NAME}

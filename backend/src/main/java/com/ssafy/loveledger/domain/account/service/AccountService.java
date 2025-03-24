@@ -8,10 +8,12 @@ import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthe
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountHistoryDetailRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.MemberInfoRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.SSAFYRequestHeader;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MemberInfoResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.SSAFYResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.statistics.domain.Category;
@@ -19,6 +21,7 @@ import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.OpenFeignUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -48,14 +51,14 @@ public class AccountService {
     private String apiKey;
 
     @Transactional(readOnly = true)
-    public Page<HistoryDetailResponse> getAccountHistory(User user, LocalDate date, int size,
-        int pageno, String sort) {
+    public Page<HistoryDetailResponse> getAccountHistory(User user, int year, int month, int day,
+        int size, int pageno, String sort) {
 
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
 
         Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(
-            user.getAccount().get(0), date, pageable);
+            user.getAccount().get(0), LocalDate.of(year, month, day), pageable);
 
         List<HistoryDetailResponse> response = historyPage.getContent().stream()
             .map(history -> HistoryDetailResponse.builder()
@@ -72,6 +75,30 @@ public class AccountService {
             .toList();
 
         return new PageImpl<>(response, pageable, historyPage.getTotalElements());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailyStatisticsResponse> getAccountHistoryByMonth(User user, int year, int month,
+        int size, int pageno, String sort) {
+        Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
+        Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        List<DailyStatisticsResponse> responses = historyRepository.findByUserAndMonth(
+            user, startDate, endDate, pageable
+        );
+
+        return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<WeekStatisticsResponse> getAccountHistoryByWeek(User user, int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        return historyRepository.findWeeklyStatistics(user, year, month, startDate);
     }
 
     @Transactional

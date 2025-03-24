@@ -31,7 +31,7 @@ export default function LoginScreen() {
     setIsRegistering(!isRegistering);
   };
 
-  // 첫 번째 방법
+  // 로그인/회원가입 처리
   const handleSubmit = () => {
     // TODO: Implement actual auth
     if (!email || !password) {

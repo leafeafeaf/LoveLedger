@@ -59,12 +59,7 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <Header
-        title="Write Diary"
-        subtitle="Capture your memories"
-        onBack={() => navigation.goBack()}
-        onClose={() => navigation.navigate("DiaryList")}
-      />
+      <Header title="일기" showBack={true} onBack={() => navigation.goBack()} />
       <DatePicker
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}

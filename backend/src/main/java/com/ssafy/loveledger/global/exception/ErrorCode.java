@@ -13,6 +13,20 @@ public enum ErrorCode {
     //Permission
     FORBIDDEN_ACCESS(403, "P001", "Forbidden: You do not have permission to access this resource",
         null),
+    //User
+    USER_NOT_FOUND(404, "U001", "해당 계정이 존재하지 않습니다.", null),
+
+    //Account
+    ACCOUNT_NOT_FOUND(404, "A001", "해당 사용자의 계좌 정보를 찾을 수 없습니다.", null),
+
+    //History
+    HISTORY_NOT_FOUND(404, "H001", "거래 내역을 찾을 수 없습니다.", null),
+    TRANSACTION_SIZE_MISMATCH(400, "T001", "거래 IDs와 TargetName 의 개수가 일치해야 합니다.", null),
+
+
+    //Diary
+    DIARY_NOT_FOUND(404, "D001", "해당 일기(ID: %s)를 찾을 수 없습니다.", null),
+
 
     // Validation Error Codes
     INVALID_INPUT_VALUE(400, "V001", "입력값 오류 : %s", null),

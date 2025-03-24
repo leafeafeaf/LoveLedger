@@ -13,6 +13,7 @@ import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { StoryScreenProps } from "../../types";
+import Header from "../../components/common/Header";
 
 // 아이콘 타입 정의
 type IconName =
@@ -49,7 +50,12 @@ interface FontItem {
 type RootStackParamList = {
   Main: undefined;
   StorySettings: undefined;
-  SeriesSelection: undefined;
+  SeriesSelection: {
+    settings: {
+      themeStyle: string;
+      period: string;
+    };
+  };
 };
 
 type StorySettingsScreenNavigationProp = NativeStackNavigationProp<
@@ -186,7 +192,14 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
       return;
     }
 
-    navigation.navigate("SeriesSelection");
+    navigation.navigate("SeriesSelection", {
+      settings: {
+        themeStyle: selectedTheme.label,
+        toneStyle: "default",
+        lengthStyle: "default",
+        period: selectedPeriod.label,
+      },
+    });
   };
 
   // 날짜 선택 핸들러
@@ -197,35 +210,11 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
 
   return (
     <View style={styles.container}>
-      {" "}
-      <View style={styles.header}>
-        <View style={styles.headerButtons}>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-          <Text style={styles.headerTitle}>Story Settings</Text>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.navigate("StorySelection")}
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        </View>
-        <View style={styles.subtitleContainer}>
-          <Text style={styles.subtitle}>Customize your story</Text>
-        </View>
-      </View>{" "}
+      <Header
+        title="스토리 설정"
+        showBack={true}
+        onBack={() => navigation.goBack()}
+      />
       <DatePicker
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
@@ -271,38 +260,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    backgroundColor: theme.colors.white,
-    paddingTop: theme.spacing.xl * 1.5,
-    paddingBottom: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    ...theme.shadows.small,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  headerButton: {
-    padding: theme.spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  subtitleContainer: {
-    alignItems: "center",
-    marginTop: -theme.spacing.xs,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: theme.colors.textLight,
-    textAlign: "center",
-  },
   content: {
     flex: 1,
+    padding: theme.spacing.md,
   },
   section: {
     padding: theme.spacing.md,

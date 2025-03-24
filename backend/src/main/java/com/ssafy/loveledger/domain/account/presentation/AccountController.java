@@ -5,7 +5,6 @@ import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistor
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
-import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/account")
+@RequestMapping("/account")
 @RequiredArgsConstructor
 public class AccountController {
 
@@ -27,17 +26,24 @@ public class AccountController {
     private final UserRepository userRepository;
 
     @GetMapping("/saveus")
-    public void saveAccount() {
+    public ResponseEntity<?> saveAccount() {
         User user = userRepository.findById(1L).orElse(null);
-        accountService.updateListOfHistory(user);
+        // accountService.updateListOfHistory(user);
+        return ResponseEntity.ok(accountService.getAccountHistoryByWeek(user, 2025, 3));
     }
 
     @GetMapping("/history/sum/list")
-    public void getDailyStatistics(
+    public ResponseEntity<?> getDailyStatisticsByMonth(
         @RequestParam Integer year,
-        @RequestParam Integer month
+        @RequestParam Integer month,
+        @RequestParam(defaultValue = "1") Integer pageno,
+        @RequestParam(defaultValue = "15") Integer size,
+        @RequestParam(defaultValue = "asc") String sort
     ) {
-        
+        User user = userRepository.findById(1L).orElse(null);
+        return ResponseEntity.ok(
+            accountService.getAccountHistoryByMonth(user, year, month, size, pageno, sort)
+        );
     }
 
     @GetMapping("/history/detail/list")
@@ -51,7 +57,7 @@ public class AccountController {
     ) {
         User user = userRepository.findById(1L).orElse(null);
         return ResponseEntity.ok(
-            accountService.getAccountHistory(user, LocalDate.of(year, month, day), size, pageno,
+            accountService.getAccountHistory(user, year, month, day, size, pageno,
                 sort));
     }
 

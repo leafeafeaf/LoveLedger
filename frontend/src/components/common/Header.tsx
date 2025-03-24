@@ -7,9 +7,7 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
-  showClose?: boolean;
   onBack?: () => void;
-  onClose?: () => void;
   rightElement?: React.ReactNode;
 }
 
@@ -17,9 +15,7 @@ export default function Header({
   title,
   subtitle,
   showBack = true,
-  showClose = true,
   onBack,
-  onClose,
   rightElement,
 }: HeaderProps) {
   return (
@@ -29,15 +25,6 @@ export default function Header({
           <Pressable style={styles.headerButton} onPress={onBack}>
             <MaterialCommunityIcons
               name="arrow-left"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        )}
-        {showClose && (
-          <Pressable style={styles.headerButton} onPress={onClose}>
-            <MaterialCommunityIcons
-              name="close"
               size={28}
               color={theme.colors.text}
             />

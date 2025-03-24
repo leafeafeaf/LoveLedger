@@ -5,18 +5,19 @@ import { useAppSelector } from './hooks/reduxHooks';
 import { RootStackParamList } from './types';
 
 // 네비게이터 임포트
-import { AuthNavigator } from './navigation/AuthNavigator';
-import { MainNavigator } from './navigation/MainNavigator';
-import { StoryNavigator } from './navigation/StoryNavigator';
-import { DiaryNavigator } from './navigation/DiaryNavigator';
+import { AuthNavigator } from "./navigation/AuthNavigator";
+import { MainNavigator } from "./navigation/MainNavigator";
+import { StoryNavigator } from "./navigation/StoryNavigator";
+import { DiaryNavigator } from "./navigation/DiaryNavigator";
+import { ProfileNavigator } from "./navigation/ProfileNavigator";
 
 // 개별 화면 임포트
-import TransactionEditScreen from './screens/transaction/TransactionEditScreen';
-import LinkGenerationScreen from './screens/link/LinkGenerationScreen';
-import LinkConfirmScreen from './screens/link/LinkConfirmScreen';
-import LinkSuccessScreen from './screens/link/LinkSuccessScreen';
-import LinkErrorScreen from './screens/link/LinkErrorScreen';
-import DailyDetailScreen from './screens/diary/DailyDetailScreen';
+import TransactionEditScreen from "./screens/transaction/TransactionEditScreen";
+import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
+import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
+import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
+import LinkErrorScreen from "./screens/link/LinkErrorScreen";
+import DailyDetailScreen from "./screens/diary/DailyDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

@@ -1,6 +1,7 @@
 package com.ssafy.loveledger.domain.user.domain;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
+import com.ssafy.loveledger.domain.couple.domain.Couple;
 import com.ssafy.loveledger.domain.library.domain.Library;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,6 +9,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -52,8 +55,10 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Account> account;
 
-//    @Column(nullable = false)
-//    private Integer coupleId;\
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "couple_id")
+    private Couple couple;
+
 //    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
 //    private List<DailyStatistics> dailyStatistics;
 //
