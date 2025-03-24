@@ -102,30 +102,6 @@ public class AccountService {
     }
 
     @Transactional
-    public List<DailyStatisticsResponse> getAccountHistoryByMonth(User user, int year, int month,
-        int size, int pageno, String sort) {
-        Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
-        Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
-
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate startDate = yearMonth.atDay(1);
-        LocalDate endDate = yearMonth.atEndOfMonth();
-
-        List<DailyStatisticsResponse> responses = historyRepository.findByUserAndMonth(
-            user, startDate, endDate, pageable
-        );
-
-        return responses;
-    }
-
-    @Transactional
-    public List<WeekStatisticsResponse> getAccountHistoryByWeek(User user, int year, int month) {
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate startDate = yearMonth.atDay(1);
-        return historyRepository.findWeeklyStatistics(user, year, month, startDate);
-    }
-
-    @Transactional
     public void deleteHistory(User user, String transactionId) {
         History history = historyRepository.findById(transactionId).orElse(null);
         if (history != null && history.getAccount().getUser() == user) {
