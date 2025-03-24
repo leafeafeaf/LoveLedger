@@ -14,7 +14,6 @@ export type MainTabParamList = {
   Dashboard: {};
   Main: {};
   Library: {};
-  Profile: {};
 };
 
 // 스토리 관련 스택 파라미터 타입

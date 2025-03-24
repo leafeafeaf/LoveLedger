@@ -532,7 +532,6 @@ export default function MainScreen({ navigation }: MainScreenProps) {
       <Header
         title="Love Ledger"
         showBack={false}
-        showClose={false}
         rightElement={
           <Pressable
             style={styles.settingsButton}
@@ -545,7 +544,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
           >
             <MaterialCommunityIcons
               name="cog"
-              size={24}
+              size={28}
               color={theme.colors.text}
             />
           </Pressable>

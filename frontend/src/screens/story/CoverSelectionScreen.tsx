@@ -18,6 +18,7 @@ import {
   NewSeries,
   StorySettings,
 } from "../../types";
+import Header from "../../components/common/Header";
 
 const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
   navigation,
@@ -98,7 +99,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
     navigation.navigate("CoverPreview", {
       settings: storySettings,
       series: {
-        title: series.name,
+        title: "title" in series ? series.title : series.name,
         episodes: 1,
         lastUpdated: new Date().toISOString(),
       },
@@ -110,34 +111,11 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
 
   return (
     <View style={styles.container}>
-      {" "}
-      <View style={styles.header}>
-        <View style={styles.headerButtons}>
-          {" "}
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>{" "}
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        </View>
-        <Text style={styles.title}>Cover Selection</Text>
-        <Text style={styles.subtitle}>Choose your book cover</Text>
-      </View>
+      <Header
+        title="커버 선택"
+        showBack={true}
+        onBack={() => navigation.goBack()}
+      />
       <ScrollView style={styles.content}>
         <Text style={styles.sectionTitle}>Select Cover Style</Text>
 
@@ -189,7 +167,9 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
               />
               <View style={styles.coverOverlay}>
                 <Text style={styles.storyTitle}>{story.title}</Text>
-                <Text style={styles.seriesTitle}>{series.name}</Text>
+                <Text style={styles.seriesTitle}>
+                  {"title" in series ? series.title : series.name}
+                </Text>
               </View>
             </View>
           )}
@@ -226,31 +206,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  header: {
-    backgroundColor: theme.colors.white,
-    paddingTop: theme.spacing.xl * 1.5,
-    paddingBottom: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    ...theme.shadows.small,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing.md,
-  },
-  headerButton: {
-    padding: theme.spacing.sm,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: theme.colors.textLight,
   },
   content: {
     flex: 1,
