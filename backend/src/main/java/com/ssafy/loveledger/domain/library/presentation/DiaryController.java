@@ -1,19 +1,20 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.domain.Library;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.UpdateHistoryRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadResponse;
 import com.ssafy.loveledger.domain.library.service.DiaryService;
-import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
+import com.ssafy.loveledger.global.common.ApiResponse;
 import jakarta.validation.Valid;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/diary")
 @RequiredArgsConstructor
@@ -31,77 +33,84 @@ public class DiaryController {
 
     private final DiaryService diaryService;
 
-    //테스트 유저 객체
-    User user = User.builder().id(1L).library(Library.builder().id(1L).build()).build();
-
     @PostMapping
-    public ResponseEntity<?> createDiary(
-        @RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
-        //TODO 유저 객체 인증정보에서 꺼내기
+    public ResponseEntity<ApiResponse> createDiary(
+        @RequestBody @Valid DiaryCreateRequest diaryCreateRequest,
+        @AuthenticationPrincipal CustomOAuth2User user) {
 
-        diaryService.createDiary(user, diaryCreateRequest);
+        log.info("user {} creates diary", user.getUserId());
 
-        //TODO 표준 응답처리 및 에러 처리 필요
-        return ResponseEntity.ok("생성 성공");
+        diaryService.createDiary(user.getLibraryId(), diaryCreateRequest);
+
+        return ResponseEntity.ok(ApiResponse.success("일기가 정상적으로 작성되었습니다.", null));
     }
 
     @GetMapping
-    public ResponseEntity<?> readAllDiary(
+    public ResponseEntity<ApiResponse> readAllDiary(
         @RequestParam(defaultValue = "1") int pageno,
         @RequestParam(defaultValue = "15") int size,
-        @RequestParam(defaultValue = "DESC") String sort
+        @RequestParam(defaultValue = "DESC") String sort,
+        @AuthenticationPrincipal CustomOAuth2User user
     ) {
-        //TODO 유저 객체 인증정보에서 꺼내기
+        log.info("user {} reads all diary", user.getUserId());
 
-        Page<DiaryReadAllResponse> diaries = diaryService.readAllDiary(user, pageno, size, sort);
+        Page<DiaryReadAllResponse> diaries = diaryService.readAllDiary(user.getLibraryId(), pageno,
+            size, sort);
 
-        return ResponseEntity.ok(diaries);
+        return ResponseEntity.ok(ApiResponse.success("일기가 정상적으로 반환되었습니다.", diaries));
     }
 
+
     @GetMapping("/{diaryId}")
-    public ResponseEntity<?> readDiary(@PathVariable long diaryId) {
-        //TODO 유저 객체 인증정보에서 꺼내기
+    public ResponseEntity<ApiResponse> readDiary(@PathVariable long diaryId,
+        @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("user {} reads diary {}", user.getUserId(), diaryId);
 
-        DiaryReadResponse diaryReadResponse = diaryService.readDiary(user, diaryId);
+        DiaryReadResponse diaryReadResponse = diaryService.readDiary(user.getLibraryId(), diaryId);
 
-        //TODO 표준 응답처리 및 에러 처리 필요
-        return ResponseEntity.ok(diaryReadResponse);
+        return ResponseEntity.ok(ApiResponse.success("일기가 정상적으로 반환되었습니다.", diaryReadResponse));
     }
 
     @PatchMapping("/{diaryId}")
-    public ResponseEntity<?> updateDiary(@PathVariable long diaryId, @RequestBody @Valid
-    DiaryUpdateRequest diaryUpdateRequest) {
-        //TODO 유저 객체 인증정보에서 꺼내기
+    public ResponseEntity<ApiResponse> updateDiary(@PathVariable long diaryId, @RequestBody @Valid
+    DiaryUpdateRequest diaryUpdateRequest, @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("user {} updates diary {}", user.getUserId(), diaryId);
 
-        diaryService.updateDiary(user, diaryId, diaryUpdateRequest);
+        diaryService.updateDiary(user.getLibraryId(), diaryId, diaryUpdateRequest);
 
-        //TODO 표준 응답처리 및 에러 처리 필요
-        return ResponseEntity.ok("수정 완료");
+        return ResponseEntity.ok(ApiResponse.success("일기가 정상적으로 수정되었습니다.", null));
     }
 
     @DeleteMapping("/{diaryId}")
-    public ResponseEntity<?> deleteDiary(@PathVariable long diaryId) {
-        //TODO 유저 객체 인증정보에서 꺼내기
+    public ResponseEntity<ApiResponse> deleteDiary(@PathVariable long diaryId,
+        @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("user {} removes diary {}", user.getUserId(), diaryId);
 
-        diaryService.deleteDiary(user, diaryId);
+        diaryService.deleteDiary(user.getLibraryId(), diaryId);
 
-        //TODO 표준 응답처리 및 에러 처리 필요
-        return ResponseEntity.ok("삭제완료");
+        return ResponseEntity.ok(ApiResponse.success("일기가 정상적으로 삭제되었습니다.", null));
     }
 
     @PostMapping("/{diaryId}/history")
-    public CompletableFuture<ResponseEntity<Map<String, Object>>> getEditHistoryList(
-        @PathVariable long diaryId) {
+    public CompletableFuture<ResponseEntity<ApiResponse>> getEditHistoryList(
+        @PathVariable long diaryId,
+        @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("user {} starts edit history with diary {}", user.getUserId(), diaryId);
 
-        return diaryService.getEditHistoryList(user, diaryId)
-            .thenApply(ResponseEntity::ok);
+        return diaryService.getEditHistoryList(user.getUserId(), user.getLibraryId(), diaryId)
+            .thenApply(historyList ->
+                ResponseEntity.ok(ApiResponse.success("수정 내역을 성공적으로 가져왔습니다.", historyList))
+            );
     }
 
     @PatchMapping("/history")
-    public ResponseEntity<?> editHistory(@RequestBody UpdateHistoryRequest updateHistoryRequest) {
-        //TODO 유저 정보 불러오기
-        diaryService.editHistory(user, updateHistoryRequest);
+    public ResponseEntity<ApiResponse> editHistory(
+        @RequestBody @Valid UpdateHistoryRequest updateHistoryRequest,
+        @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("user {} edits histories", user.getUserId());
 
-        return ResponseEntity.ok("수정 완료");
+        diaryService.editHistory(user.getUserId(), updateHistoryRequest);
+
+        return ResponseEntity.ok(ApiResponse.success("수정 내역이 성공적으로 반영되었습니디.", null));
     }
 }
