@@ -1,17 +1,20 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.domain.Series;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.SeriesCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.SeriesReadResponse;
 import com.ssafy.loveledger.domain.library.service.SeriesService;
+import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
+import com.ssafy.loveledger.global.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/series")
 @RequiredArgsConstructor
@@ -21,39 +24,30 @@ public class SeriesController {
 
     //시리즈 생성
     @PostMapping
-    public ResponseEntity<?> createSeries(@RequestBody SeriesCreateReq seriesCreateReq) {
+    public ResponseEntity<ApiResponse> createSeries(@RequestBody @Valid SeriesCreateReq seriesCreateReq, @AuthenticationPrincipal CustomOAuth2User user) {
 
-        // 토큰에서 유저 iD 추출
-        Long userId = 1L;
+        log.info("user {} create series", user.getUserId());
 
-        // 시리즈 생성
-        seriesService.createSeries(seriesCreateReq.getTitle(), userId);
-        return ResponseEntity.ok("시리즈 생성완료");
+        seriesService.createSeries(user.getLibraryId(), seriesCreateReq);
+        return ResponseEntity.ok(ApiResponse.success("시리즈 생성완료", null));
     }
 
     //시리즈 삭제
     @DeleteMapping("/{seriesId}")
-    public ResponseEntity<?> deleteSeries(@PathVariable Long seriesId) {
-        seriesService.deleteSeries(seriesId);
-        return ResponseEntity.ok("시리즈 삭제완료 {seriesId} : " + seriesId);
+    public ResponseEntity<ApiResponse> deleteSeries(@PathVariable Long seriesId, @AuthenticationPrincipal CustomOAuth2User user) {
+
+        log.info("user {} delete series {}", user.getUserId(), seriesId);
+
+        seriesService.deleteSeries(user.getLibraryId(), seriesId);
+        return ResponseEntity.ok(ApiResponse.success("시리즈 정상적으로 삭제되었습니다", null));
     }
 
     // 시리즈(제목만) 조회
     @GetMapping
-    public ResponseEntity<?> getSeriesName() {
+    public List<SeriesReadResponse> getSeriesName(@AuthenticationPrincipal CustomOAuth2User user) {
 
-        List<Series> seriesList = seriesService.getSeriesNames();
+        log.info("user {} get series names", user.getUserId());
 
-        List<Map<String, Object>> seriesData = new ArrayList<>();
-
-        for (Series series : seriesList) {
-            Map<String, Object> seriesDataMap = new HashMap<>();
-            seriesDataMap.put("seriesid", series.getId());
-            seriesDataMap.put("seriesname", series.getSeriesTitle());
-            seriesData.add(seriesDataMap);
-        }
-
-        return ResponseEntity.ok(seriesData);
+        return seriesService.getSeriesNames(user.getLibraryId());
     }
-
 }

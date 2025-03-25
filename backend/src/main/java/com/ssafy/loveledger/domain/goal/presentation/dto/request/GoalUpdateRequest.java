@@ -12,10 +12,10 @@ import java.time.LocalDate;
 @Setter
 public class GoalUpdateRequest {
 
-    @NotBlank(message = "목표 금액은 필수 사항입니다.")
+    @NotNull(message = "목표 금액은 필수 사항입니다.")
     public Long goalAmount;
 
-    @NotBlank(message = "현재 소지 금액은 필수 사항입니다.")
+    @NotNull(message = "현재 소지 금액은 필수 사항입니다.")
     public Long currentAmount;
 
     @NotNull(message = "시작 날짜는 필수 사항입니다.")

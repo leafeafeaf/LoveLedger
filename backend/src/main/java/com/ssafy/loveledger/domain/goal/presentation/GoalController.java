@@ -5,6 +5,8 @@ import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalUpdateReque
 import com.ssafy.loveledger.domain.goal.presentation.dto.response.GoalReadResponse;
 import com.ssafy.loveledger.domain.goal.service.GoalService;
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
+import com.ssafy.loveledger.global.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,37 +21,36 @@ public class GoalController {
 
     // 목표 생성
     @PostMapping
-    public ResponseEntity<?> createGoal(@RequestBody GoalCreateRequest goalCreateRequest, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+    public ResponseEntity<ApiResponse> createGoal(@RequestBody @Valid GoalCreateRequest goalCreateRequest, @AuthenticationPrincipal CustomOAuth2User user) {
 
-        goalService.createGoal(goalCreateRequest, customOAuth2User.getUserId());
+        goalService.createGoal(goalCreateRequest, user.getUserId());
 
-        return ResponseEntity.ok("목표 생성 완료");
+        return ResponseEntity.ok(ApiResponse.success("목표 생성 완료", null));
     }
 
     // 목표 삭제
     @DeleteMapping
-    public ResponseEntity<?> deleteGoal(@AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+    public ResponseEntity<ApiResponse> deleteGoal(@AuthenticationPrincipal CustomOAuth2User user) {
 
-        goalService.deleteGoal(customOAuth2User.getUserId());
+        goalService.deleteGoal(user.getUserId());
 
-        return ResponseEntity.ok("목표 삭제 완료");
+        return ResponseEntity.ok(ApiResponse.success("목표 삭제 완료", null));
     }
 
     // 목표 수정
     @PatchMapping
-    public ResponseEntity<?> updateGoal(@RequestBody GoalUpdateRequest goalUpdateRequest, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+    public ResponseEntity<ApiResponse> updateGoal(@RequestBody @Valid GoalUpdateRequest goalUpdateRequest, @AuthenticationPrincipal CustomOAuth2User user) {
 
-        goalService.updateGoal(goalUpdateRequest, customOAuth2User.getUserId());
+        goalService.updateGoal(goalUpdateRequest, user.getUserId());
 
-        return ResponseEntity.ok("목표 수정 완료");
+        return ResponseEntity.ok(ApiResponse.success("목표 수정 완료", null));
     }
 
     // 목표 조회
     @GetMapping
-    public ResponseEntity<?> getGoals(@AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+    public GoalReadResponse getGoals(@AuthenticationPrincipal CustomOAuth2User user) {
 
-        GoalReadResponse goalReadResponse = goalService.readGoal(customOAuth2User.getUserId());
+        return goalService.readGoal(user.getUserId());
 
-        return ResponseEntity.ok(goalReadResponse);
     }
 }
