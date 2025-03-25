@@ -14,15 +14,20 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { theme } from "../../utils/theme";
 import { Transaction } from "../../types";
-import { RootStackScreenProps, RootStackParamList } from "../../types";
-import Header from "../../components/common/Header";
-
-type DailyDetailScreenNavigationProp = NativeStackNavigationProp<
+import {
   RootStackParamList,
-  "DailyDetail"
+  DailyScreenProps,
+  DailyStackParamList,
+} from "../../types";
+import Header from "../../components/common/Header";
+import { CompositeNavigationProp } from "@react-navigation/native";
+
+type DailyDetailScreenNavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<DailyStackParamList, "DailyDetail">,
+  NativeStackNavigationProp<RootStackParamList>
 >;
 
-type DailyDetailScreenRouteProp = RouteProp<RootStackParamList, "DailyDetail">;
+type DailyDetailScreenRouteProp = RouteProp<DailyStackParamList, "DailyDetail">;
 
 interface DailyDetailScreenProps {
   navigation: DailyDetailScreenNavigationProp;
@@ -108,7 +113,7 @@ const DailySummary = React.memo(
 );
 
 interface FABComponentProps {
-  navigation: NativeStackNavigationProp<RootStackParamList>;
+  navigation: DailyDetailScreenNavigationProp;
   showFabMenu: boolean;
   toggleFabMenu: () => void;
   fabAnimation: Animated.Value;
@@ -304,7 +309,7 @@ const FABComponent = React.memo(
   }
 );
 
-const DailyDetailScreen: FC<RootStackScreenProps<"DailyDetail">> = ({
+const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   navigation,
   route,
 }) => {
@@ -334,6 +339,8 @@ const DailyDetailScreen: FC<RootStackScreenProps<"DailyDetail">> = ({
   };
 
   const { selectedDate, transactions } = route.params;
+  // ISO 문자열을 Date 객체로 변환
+  const selectedDateObj = new Date(selectedDate);
 
   return (
     <View style={styles.container}>
@@ -345,12 +352,19 @@ const DailyDetailScreen: FC<RootStackScreenProps<"DailyDetail">> = ({
       />
 
       <ScrollView style={styles.content}>
-        <DailySummary selectedDate={selectedDate} transactions={transactions} />
+        <DailySummary
+          selectedDate={selectedDateObj}
+          transactions={transactions}
+        />
         {transactions.length > 0 ? (
           <View style={styles.transactionsContainer}>
             {transactions.map((transaction: Transaction) => (
               <View
-                key={transaction.transactionid}
+                key={
+                  transaction.id ||
+                  transaction.transactionid ||
+                  `transaction-${Math.random().toString(36).substr(2, 9)}`
+                }
                 style={styles.transactionItem}
               >
                 <Pressable
