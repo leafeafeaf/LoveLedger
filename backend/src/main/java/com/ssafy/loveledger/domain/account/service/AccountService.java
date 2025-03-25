@@ -18,6 +18,8 @@ import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.statistics.domain.Category;
 import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import com.ssafy.loveledger.global.util.OpenFeignUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -50,11 +52,13 @@ public class AccountService {
     @Value("${ssafy.apikey}")
     private String apiKey;
 
-    @Transactional(readOnly = true)
+    @Transactional//(readOnly = true)
     public Page<HistoryDetailResponse> getAccountHistory(User user, int year, int month, int day,
         int size, int pageno, String sort) {
 
-        Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
+        updateListOfHistory(user);
+
+        Direction direction = sort.equalsIgnoreCase("ASC") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
 
         Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(
@@ -67,7 +71,7 @@ public class AccountService {
                 .time(history.getCreatedTime())
                 .remittance(history.getTransactionType() < 3)
                 .targetName(history.getTransactionTarget())
-                //.CategoryName(history.getCategoryId())
+                .CategoryName(history.getCategory().getName())
                 .afterAmount(history.getAmountAfterTransaction())
                 .amount(history.getTransactionAmount())
                 .build()
@@ -77,21 +81,19 @@ public class AccountService {
         return new PageImpl<>(response, pageable, historyPage.getTotalElements());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional//(readOnly = true)
     public List<DailyStatisticsResponse> getAccountHistoryByMonth(User user, int year, int month,
         int size, int pageno, String sort) {
+
+        updateListOfHistory(user);
+
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
-        Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
+        Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "dayId.targetDay"));
 
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-
-        List<DailyStatisticsResponse> responses = historyRepository.findByUserAndMonth(
-            user, startDate, endDate, pageable
-        );
-
-        return responses;
+        return historyRepository.findByUserAndMonth(user, startDate, endDate, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -125,73 +127,62 @@ public class AccountService {
     public void updateListOfHistory(User user) {
         if (user == null) {
             throw new RuntimeException("User Not Found");
-        } else {
-            String code = generateCode();
-            String apiName = "inquireTransactionHistoryList";
-            SSAFYRequestHeader header = SSAFYRequestHeader.builder()
-                .apiName(apiName)
-                .apiServiceCode(apiName)
-                .transmissionDate(code.substring(0, 8))
-                .transmissionTime(code.substring(8, 14))
-                .institutionCode("00100")
-                .fintechAppNo("001")
-                .institutionTransactionUniqueNo(code)
-                .apiKey(apiKey)
-                .userKey(user.getUserKey())
+        }
+
+        String code = generateCode();
+        String apiName = "inquireTransactionHistoryList";
+        SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
+
+        Account account = user.getAccount().get(0);
+        AccountHistoryDetailRequest request = AccountHistoryDetailRequest.builder()
+            .header(header)
+            .accountNo(account.getAccountId())
+            .startDate(account.getLastUpdated().format(formatter).substring(0, 8))
+            .endDate(code.substring(0, 8))
+            .transactionType("A")
+            .orderByType("ASC")
+            .build();
+
+        SSAFYResponse response = openFeignUtil.getListOfHistory(request);
+
+        List<Map<String, Object>> rawList = (List<Map<String, Object>>) response.getResultData()
+            .get("list");
+
+        List<HistoryResponse> res = rawList.stream()
+            .map(map -> objectMapper.convertValue(map, HistoryResponse.class))
+            .toList();
+
+        for (HistoryResponse historyResponse : res) {
+            String dateTimeString =
+                historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
+            LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
+
+            String transactionType = historyResponse.getTransactionTypeName();
+            int type = switch (transactionType) {
+                case "입금" -> 1;
+                case "입금(수시입출금)" -> 2;
+                case "출금" -> 3;
+                case "출금(수시입출금)" -> 4;
+                default -> 0;
+            };
+
+            History history = History.builder()
+                .transactionId(historyResponse.getTransactionUniqueNo())
+                .createdDate(dateTime.toLocalDate())
+                .createdTime(dateTime.toLocalTime())
+                .transactionAccount(historyResponse.getTransactionAccountNo())
+                .transactionTarget(historyResponse.getTransactionSummary())
+                .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
+                .transactionType(type)
+                .transactionTypeName(historyResponse.getTransactionTypeName())
+                .category(Category.NOT_DEFINED) // TODO : 카테고리 분류 모델 적용 할 것
+                .account(account)
+                .AmountAfterTransaction(
+                    Long.valueOf(historyResponse.getTransactionAfterBalance())
+                )
+                .memo(historyResponse.getTransactionMemo())
                 .build();
-
-            Account account = user.getAccount().get(0);
-            AccountHistoryDetailRequest request = AccountHistoryDetailRequest.builder()
-                .header(header)
-                .accountNo(account.getAccountId())
-                .startDate(account.getLastUpdated().format(formatter).substring(0, 8))
-                .endDate(code.substring(0, 8))
-                .transactionType("A")
-                .orderByType("ASC")
-                .build();
-
-            SSAFYResponse response = openFeignUtil.getListOfHistory(request);
-
-            List<Map<String, Object>> rawList = (List<Map<String, Object>>) response.getResultData()
-                .get("list");
-
-            List<HistoryResponse> res = rawList.stream()
-                .map(map -> objectMapper.convertValue(map, HistoryResponse.class))
-                .toList();
-
-            for (HistoryResponse historyResponse : res) {
-                String dateTimeString =
-                    historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
-                LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
-
-                int type;
-                String transactionType = historyResponse.getTransactionTypeName();
-                type = switch (transactionType) {
-                    case "입금" -> 1;
-                    case "입금(수시입출금)" -> 2;
-                    case "출금" -> 3;
-                    case "출금(수시입출금)" -> 4;
-                    default -> 0;
-                };
-
-                History history = History.builder()
-                    .transactionId(historyResponse.getTransactionUniqueNo())
-                    .createdDate(dateTime.toLocalDate())
-                    .createdTime(dateTime.toLocalTime())
-                    .transactionAccount(historyResponse.getTransactionAccountNo())
-                    .transactionTarget(historyResponse.getTransactionSummary())
-                    .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
-                    .transactionType(type)
-                    .transactionTypeName(historyResponse.getTransactionTypeName())
-                    .category(Category.NOT_DEFINED)
-                    .account(account)
-                    .AmountAfterTransaction(
-                        Long.valueOf(historyResponse.getTransactionAfterBalance())
-                    )
-                    .memo(historyResponse.getTransactionMemo())
-                    .build();
-                historyRepository.save(history);
-            }
+            historyRepository.save(history);
 
             account.setLastUpdated(LocalDateTime.now());
         }
@@ -201,25 +192,21 @@ public class AccountService {
     public void getVerificationCode(User user, String accountNo) {
         String code = generateCode();
         String apiName = "openAccountAuth";
-        SSAFYRequestHeader header = SSAFYRequestHeader.builder()
-            .apiName(apiName)
-            .apiServiceCode(apiName)
-            .transmissionDate(code.substring(0, 8))
-            .transmissionTime(code.substring(8, 14))
-            .institutionCode("00100")
-            .fintechAppNo("001")
-            .institutionTransactionUniqueNo(code)
-            .apiKey(apiKey)
-            .userKey(user.getUserKey())
-            .build();
+        SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
+
         AccountAuthenticationRequest request = AccountAuthenticationRequest.builder()
             .header(header)
-            .authText("SSAFY") // 차후 수정 필요
+            .authText("SSAFY") // TODO : 차후 수정 필요
             .accountNo(accountNo)
             .build();
 
-        SSAFYResponse response = openFeignUtil.sendAccountAuthentication(request);
-        String status = (String) response.getResultData().get("status");
+        try {
+            SSAFYResponse response = openFeignUtil.sendAccountAuthentication(request);
+        } catch (Exception e) {
+            throw new LoveLedgerException(
+                ErrorCode.OPENFEIGN_FAILED
+            );
+        }
     }
 
     @Transactional
@@ -227,17 +214,7 @@ public class AccountService {
         String code = generateCode();
         String apiName = "checkAuthCode";
 
-        SSAFYRequestHeader header = SSAFYRequestHeader.builder()
-            .apiName(apiName)
-            .apiServiceCode(apiName)
-            .transmissionDate(code.substring(0, 8))
-            .transmissionTime(code.substring(8, 14))
-            .institutionCode("00100")
-            .fintechAppNo("001")
-            .institutionTransactionUniqueNo(code)
-            .apiKey(apiKey)
-            .userKey(user.getUserKey())
-            .build();
+        SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
 
         AccountAuthenticationRequest request = AccountAuthenticationRequest.builder()
             .header(header)
@@ -248,7 +225,6 @@ public class AccountService {
 
         SSAFYResponse response = openFeignUtil.getAccountAuthentication(request);
         String status = (String) response.getResultData().get("status");
-
         if (status.equals("SUCCESS")) {
             Account account = Account.builder()
                 .accountId(accountNo)
@@ -256,9 +232,22 @@ public class AccountService {
                 .user(user)
                 .certedAt(LocalDateTime.now())
                 .build();
-
             accountRepository.save(account);
         }
+    }
+
+    private SSAFYRequestHeader createRequestHeader(User user, String apiName, String code) {
+        return SSAFYRequestHeader.builder()
+            .apiName(apiName)
+            .apiServiceCode(apiName)
+            .transmissionDate(code.substring(0, 8))
+            .transmissionTime(code.substring(8, 14))
+            .institutionCode("00100")
+            .fintechAppNo("001")
+            .institutionTransactionUniqueNo(code)
+            .apiKey(apiKey)
+            .userKey(user.getUserKey())
+            .build();
     }
 
     public void getMemberInfo(User user) {

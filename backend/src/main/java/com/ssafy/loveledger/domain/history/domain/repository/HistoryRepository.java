@@ -28,8 +28,7 @@ public interface HistoryRepository extends JpaRepository<History, String> {
             "FROM DailyStatistics d " +
             "WHERE d.dayId.user = :user " +
             "AND d.dayId.targetDay BETWEEN :startDate AND :endDate " +
-            "GROUP BY d.dayId.targetDay " +
-            "ORDER BY d.dayId.targetDay ASC"
+            "GROUP BY d.dayId.targetDay "
     )
     List<DailyStatisticsResponse> findByUserAndMonth(User user, LocalDate startDate,
         LocalDate endDate, Pageable pageable);

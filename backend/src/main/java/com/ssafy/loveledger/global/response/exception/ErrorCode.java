@@ -23,6 +23,7 @@ public enum ErrorCode {
     HISTORY_NOT_FOUND(404, "H001", "거래 내역을 찾을 수 없습니다.", null),
     TRANSACTION_SIZE_MISMATCH(400, "T001", "거래 IDs와 TargetName 의 개수가 일치해야 합니다.", null),
 
+    OPENFEIGN_FAILED(402, "F001", "알 수 없는 오류가 발생했습니다.", null),
 
     //Diary
     DIARY_NOT_FOUND(404, "D001", "해당 일기(ID: %s)를 찾을 수 없습니다.", null),
