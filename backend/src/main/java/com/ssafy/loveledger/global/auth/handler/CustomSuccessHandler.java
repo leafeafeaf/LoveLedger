@@ -32,11 +32,11 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long libraryId = customUserDetail.getLibraryId();
         Long userId = customUserDetail.getUserId();
 
-        String access = jwtUtil.createJwt(userId, libraryId, "access", username, 600000L);
+        String access = jwtUtil.createJwt(userId, libraryId, "access", username, 1_800_000L);
         String refresh = jwtUtil.createJwt(userId, libraryId, "refresh", username, 86400000L);
 
         // Redis에 refresh 토큰 저장
-        String redisKey = "token";  // 요청한 대로 키를 'token'으로 설정
+        String redisKey = "token"+ userId;
         redisTemplate.opsForValue().set(redisKey, refresh);
         redisTemplate.expire(redisKey, 24 * 60 * 60, TimeUnit.SECONDS); // 24시간 유효
 

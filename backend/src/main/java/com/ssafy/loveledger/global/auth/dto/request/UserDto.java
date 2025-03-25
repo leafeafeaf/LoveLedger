@@ -13,5 +13,5 @@ public class UserDto {
     private String name;
     private String username;
     private Long libraryId;
-
+    private String picture;
 }
