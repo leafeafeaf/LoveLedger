@@ -222,10 +222,10 @@ public class AccountService {
         String status = (String) response.getResultData().get("status");
     }
 
+    @Transactional
     public void doVerification(User user, String accountNo, String authCode) {
         String code = generateCode();
         String apiName = "checkAuthCode";
-        System.out.println(accountNo);
 
         SSAFYRequestHeader header = SSAFYRequestHeader.builder()
             .apiName(apiName)

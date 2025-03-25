@@ -2,9 +2,11 @@ package com.ssafy.loveledger.domain.account.presentation;
 
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthenticationRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistoryTargetRequest;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
+import com.ssafy.loveledger.global.util.UserUtil;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,13 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
     private final AccountService accountService;
-    private final UserRepository userRepository;
+    private final UserUtil userUtil;
 
     @GetMapping("/saveus")
-    public ResponseEntity<?> saveAccount() {
-        User user = userRepository.findById(1L).orElse(null);
-        // accountService.updateListOfHistory(user);
-        return ResponseEntity.ok(accountService.getAccountHistoryByWeek(user, 2025, 3));
+    public List<WeekStatisticsResponse> saveAccount() {
+        User user = userUtil.getCurrentUser();
+        return accountService.getAccountHistoryByWeek(user, 2025, 3);
     }
 
     @GetMapping("/history/sum/list")
@@ -40,10 +41,9 @@ public class AccountController {
         @RequestParam(defaultValue = "15") Integer size,
         @RequestParam(defaultValue = "asc") String sort
     ) {
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
         return ResponseEntity.ok(
-            accountService.getAccountHistoryByMonth(user, year, month, size, pageno, sort)
-        );
+            accountService.getAccountHistoryByMonth(user, year, month, size, pageno, sort));
     }
 
     @GetMapping("/history/detail/list")
@@ -55,7 +55,7 @@ public class AccountController {
         @RequestParam(defaultValue = "15") Integer size,
         @RequestParam(defaultValue = "asc") String sort
     ) {
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
         return ResponseEntity.ok(
             accountService.getAccountHistory(user, year, month, day, size, pageno,
                 sort));
@@ -66,7 +66,7 @@ public class AccountController {
         @PathVariable String transactionId,
         @RequestBody UpdateHistoryTargetRequest request
     ) {
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
         accountService.updateHistoryTarget(user, transactionId,
             request.getAccountNo(),
             request.getUpdatedTargetName()
@@ -78,14 +78,14 @@ public class AccountController {
     public ResponseEntity<?> deleteHistory(
         @PathVariable String transactionId
     ) {
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
         accountService.deleteHistory(user, transactionId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/verify/request")
     public ResponseEntity<?> getVerification(@RequestBody AccountAuthenticationRequest request) {
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
 
         accountService.getVerificationCode(user, request.getAccountNo());
         return ResponseEntity.ok().build();
@@ -93,8 +93,7 @@ public class AccountController {
 
     @PostMapping("/verify/confirm")
     public ResponseEntity<?> doVerification(@RequestBody AccountAuthenticationRequest request) {
-        User user = userRepository.findById(1L).orElse(null);
-
+        User user = userUtil.getCurrentUser();
         accountService.doVerification(user, request.getAccountNo(), request.getAuthCode());
         return ResponseEntity.ok().build();
     }

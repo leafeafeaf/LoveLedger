@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.global.exception;
+package com.ssafy.loveledger.global.response.exception;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
