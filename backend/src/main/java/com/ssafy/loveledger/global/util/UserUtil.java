@@ -4,6 +4,8 @@ import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.auth.util.JWTUtil;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,7 +21,9 @@ public class UserUtil {
     public User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth.getPrincipal().equals("anonymousUser")) {
-            throw new RuntimeException();
+            throw new LoveLedgerException(
+                ErrorCode.FORBIDDEN_ACCESS
+            );
         }
 
         CustomOAuth2User user = (CustomOAuth2User) auth.getPrincipal();
