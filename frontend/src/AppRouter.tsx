@@ -10,14 +10,14 @@ import { MainNavigator } from "./navigation/MainNavigator";
 import { StoryNavigator } from "./navigation/StoryNavigator";
 import { DiaryNavigator } from "./navigation/DiaryNavigator";
 import { ProfileNavigator } from "./navigation/ProfileNavigator";
-import { DailyNavigator } from "./navigation/DailyNavigator";
 
 // 개별 화면 임포트
-import TransactionEditScreen from "./screens/daily/DailyEditScreen";
+import TransactionEditScreen from "./screens/transaction/TransactionEditScreen";
 import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
 import LinkErrorScreen from "./screens/link/LinkErrorScreen";
+import DailyDetailScreen from "./screens/diary/DailyDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -50,17 +50,17 @@ const AppRouter = () => {
               options={{ presentation: "modal" }}
             />
 
-            {/* Daily 스택 */}
-            <Stack.Screen
-              name="Daily"
-              component={DailyNavigator}
-              options={{ presentation: "modal" }}
-            />
-
             {/* 프로필 스택 */}
             <Stack.Screen
               name="Profile"
               component={ProfileNavigator}
+              options={{ presentation: "modal" }}
+            />
+
+            {/* DailyDetail 화면 (루트 레벨에 위치) */}
+            <Stack.Screen
+              name="DailyDetail"
+              component={DailyDetailScreen}
               options={{ presentation: "modal" }}
             />
 

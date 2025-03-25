@@ -30,8 +30,11 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   Story: NavigatorScreenParams<StoryStackParamList>;
   Diary: NavigatorScreenParams<DiaryStackParamList>;
-  Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
+  DailyDetail: {
+    selectedDate: Date;
+    transactions: Transaction[];
+  };
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: undefined;
   LinkConfirm: { linkCode: string };
@@ -88,20 +91,16 @@ export type StoryStackParamList = {
 // 다이어리 스택 파라미터 타입
 export type DiaryStackParamList = {
   DiaryCreate: undefined;
+  DailyDetail: {
+    selectedDate: Date;
+    transactions: Transaction[];
+  };
   DiaryEdit: {
     id: string;
     date: string;
     title: string;
     content: string;
     mood?: string;
-  };
-};
-
-// Daily 스택 파라미터 타입
-export type DailyStackParamList = {
-  DailyDetail: {
-    selectedDate: string;
-    transactions: Transaction[];
   };
 };
 
@@ -147,13 +146,6 @@ export type DiaryScreenProps<T extends keyof DiaryStackParamList> =
     NativeStackScreenProps<RootStackParamList>
   >;
 
-// Daily 스크린 Props
-export type DailyScreenProps<T extends keyof DailyStackParamList> =
-  CompositeScreenProps<
-    NativeStackScreenProps<DailyStackParamList, T>,
-    NativeStackScreenProps<RootStackParamList>
-  >;
-
 // 트랜잭션 스크린 Props
 export type TransactionStackScreenProps<
   T extends keyof TransactionStackParamList
@@ -173,15 +165,13 @@ export type PartnerSwitchProps = {
 
 // 헤더 컴포넌트 Props
 export type HeaderProps = {
-  title?: string;
+  title: string;
   subtitle?: string;
   showBack?: boolean;
   showClose?: boolean;
   onBack?: () => void;
-  onClose?: () => void;
+  onClose: () => void;
   rightElement?: React.ReactNode;
-  leftElement?: React.ReactNode;
-  centerElement?: React.ReactNode;
 };
 
 // DatePicker 컴포넌트 Props
