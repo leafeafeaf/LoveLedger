@@ -6,12 +6,12 @@ import { changeActiveView } from "../../store/partnerSlice";
 
 const PartnerSwitch: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { activeView } = useAppSelector((state) => state.partner);
-  const { partnerInfo } = useAppSelector((state) => state.partner);
+  const { activeView } = useAppSelector(state => state.partner);
+  const { partnerInfo } = useAppSelector(state => state.partner);
+  
+  const partnerName = partnerInfo?.name || '파트너';
 
-  const partnerName = partnerInfo?.name || "파트너";
-
-  const handleViewChange = (view: "you" | "partner" | "combined") => {
+  const handleViewChange = (view: 'you' | 'partner' | 'combined') => {
     dispatch(changeActiveView(view));
   };
 
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     padding: theme.spacing.xs,
     borderRadius: theme.borderRadius.lg,
+    ...theme.shadows.small,
   },
   tabButton: {
     flex: 1,

@@ -11,9 +11,6 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { CommonActions } from "@react-navigation/native";
-import { useAppDispatch } from "../../hooks/reduxHooks";
-import { logout } from "../../store/authSlice";
 
 type RootStackParamList = {
   ProfileMain: undefined;
@@ -54,8 +51,7 @@ type IconName =
   | "account"
   | "pencil"
   | "chevron-right"
-  | "delete"
-  | "logout";
+  | "delete";
 
 interface Partner {
   name: string;
@@ -91,8 +87,6 @@ interface ProfileMainScreenProps {
 export default function ProfileMainScreen({
   navigation,
 }: ProfileMainScreenProps) {
-  const dispatch = useAppDispatch();
-
   // This would typically come from a database or state management
   const [profileData, setProfileData] = useState<ProfileData>({
     couple: {
@@ -386,55 +380,6 @@ export default function ProfileMainScreen({
           ))}
 
           <Pressable
-            style={styles.menuItem}
-            onPress={() => {
-              Alert.alert("로그아웃", "정말로 로그아웃하시겠습니까?", [
-                { text: "취소", style: "cancel" },
-                {
-                  text: "로그아웃",
-                  onPress: () => {
-                    Alert.alert(
-                      "로그아웃 성공",
-                      "성공적으로 로그아웃되었습니다.",
-                      [
-                        {
-                          text: "확인",
-                          onPress: () => {
-                            dispatch(logout());
-                          },
-                        },
-                      ]
-                    );
-                  },
-                },
-              ]);
-            }}
-          >
-            <View
-              style={[
-                styles.menuIconContainer,
-                { backgroundColor: `${theme.colors.textLight}20` },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="logout"
-                size={24}
-                color={theme.colors.textLight}
-              />
-            </View>
-            <Text
-              style={[styles.menuItemText, { color: theme.colors.textLight }]}
-            >
-              로그아웃
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              color={theme.colors.textLight}
-            />
-          </Pressable>
-
-          <Pressable
             style={[styles.menuItem, styles.dangerMenuItem]}
             onPress={() => {
               Alert.alert(
@@ -445,20 +390,7 @@ export default function ProfileMainScreen({
                   {
                     text: "삭제",
                     style: "destructive",
-                    onPress: () => {
-                      Alert.alert(
-                        "계정 삭제 완료",
-                        "계정이 성공적으로 삭제되었습니다.",
-                        [
-                          {
-                            text: "확인",
-                            onPress: () => {
-                              dispatch(logout());
-                            },
-                          },
-                        ]
-                      );
-                    },
+                    onPress: () => navigation.navigate("Login"),
                   },
                 ]
               );
