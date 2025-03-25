@@ -58,7 +58,6 @@ public class UserController {
     }
 
 
-
     /* 유저 정보 입력 */
     @PutMapping
     public ResponseEntity<?> createUserInfo(
@@ -78,10 +77,6 @@ public class UserController {
 
         CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
         Long userId = oAuth2User.getUserId();
-
-        // 디버깅 코드 추가
-        System.out.println("컨트롤러에서 받은 userId: " + userId);
-        System.out.println("인증 객체 정보: " + oAuth2User);
 
         // userId가 null인지 확인
         if (userId == null) {

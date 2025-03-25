@@ -28,13 +28,4 @@ public class ApiResponse<T> {
             .build();
     }
 
-    public static <T> ApiResponse<T> error(String status, String message, T data) {
-        return ApiResponse.<T>builder()
-            .status(status)
-            .message(message)
-            .data(data)
-            .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
-            .build();
-    }
-
 }

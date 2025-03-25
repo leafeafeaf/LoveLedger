@@ -1,8 +1,8 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAppSelector } from './hooks/reduxHooks';
-import { RootStackParamList } from './types';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAppSelector } from "./hooks/reduxHooks";
+import { RootStackParamList } from "./types";
 
 // 네비게이터 임포트
 import { AuthNavigator } from "./navigation/AuthNavigator";
@@ -10,14 +10,14 @@ import { MainNavigator } from "./navigation/MainNavigator";
 import { StoryNavigator } from "./navigation/StoryNavigator";
 import { DiaryNavigator } from "./navigation/DiaryNavigator";
 import { ProfileNavigator } from "./navigation/ProfileNavigator";
+import { DailyNavigator } from "./navigation/DailyNavigator";
 
 // 개별 화면 임포트
-import TransactionEditScreen from "./screens/transaction/TransactionEditScreen";
+import TransactionEditScreen from "./screens/daily/DailyEditScreen";
 import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
 import LinkErrorScreen from "./screens/link/LinkErrorScreen";
-import DailyDetailScreen from "./screens/diary/DailyDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -35,7 +35,7 @@ const AppRouter = () => {
           // 인증된 상태
           <>
             <Stack.Screen name="Main" component={MainNavigator} />
-            
+
             {/* 스토리 스택 */}
             <Stack.Screen
               name="Story"
@@ -50,10 +50,17 @@ const AppRouter = () => {
               options={{ presentation: "modal" }}
             />
 
-            {/* DailyDetail 화면 (루트 레벨에 위치) */}
+            {/* Daily 스택 */}
             <Stack.Screen
-              name="DailyDetail"
-              component={DailyDetailScreen}
+              name="Daily"
+              component={DailyNavigator}
+              options={{ presentation: "modal" }}
+            />
+
+            {/* 프로필 스택 */}
+            <Stack.Screen
+              name="Profile"
+              component={ProfileNavigator}
               options={{ presentation: "modal" }}
             />
 

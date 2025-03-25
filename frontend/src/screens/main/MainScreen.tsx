@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,14 @@ import {
   Animated,
   useWindowDimensions,
   ScrollView,
-  PanResponder,
+  Image,
 } from "react-native";
+import {
+  PanGestureHandler,
+  PanGestureHandlerGestureEvent,
+  State,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   CompositeNavigationProp,
@@ -89,6 +95,17 @@ const getTransactionsForDate = (date: Date): Transaction[] => {
   );
 };
 
+// Helper function to safely get value from Animated.Value
+const getValueFromAnimated = (animatedValue: Animated.Value): number => {
+  let currentValue = 0;
+  animatedValue.addListener(({ value }) => {
+    currentValue = value;
+  });
+  const valueToReturn = currentValue;
+  animatedValue.removeAllListeners();
+  return valueToReturn;
+};
+
 interface FABComponentProps {
   navigation: MainScreenNavigationProp & NavigateType;
   showFabMenu: boolean;
@@ -123,161 +140,163 @@ const FABComponent = React.memo(
       pan.setValue(position);
     }, [position]);
 
-    const panResponder = useRef(
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          // 현재 상태를 오프셋으로 설정
-          pan.extractOffset();
-        },
-        onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-          useNativeDriver: false,
-        }),
-        onPanResponderRelease: (_, gesture) => {
-          pan.flattenOffset();
-
-          // 현재 위치 가져오기 (안전한 방법)
-          let newPosition = { x: 0, y: 0 };
-          pan.x.addListener((value) => (newPosition.x = value.value));
-          pan.y.addListener((value) => (newPosition.y = value.value));
-
-          // Calculate bounds
-          const maxX = width - 80;
-          const maxY = height - 200;
-          const minX = 0;
-          const minY = 0;
-
-          // Check if FAB is dragged too far
-          const isOffScreenX = newPosition.x < minX || newPosition.x > maxX;
-          const isOffScreenY = newPosition.y < minY || newPosition.y > maxY;
-
-          let finalX = newPosition.x;
-          let finalY = newPosition.y;
-
-          // If off screen, snap to nearest edge
-          if (isOffScreenX) {
-            finalX = newPosition.x < minX ? minX : maxX;
-          }
-          if (isOffScreenY) {
-            finalY = newPosition.y < minY ? minY : maxY;
-          }
-
-          // Snap to edges if close
-          const snapThreshold = 40;
-          if (Math.abs(newPosition.x - maxX) < snapThreshold) finalX = maxX;
-          if (Math.abs(newPosition.x - minX) < snapThreshold) finalX = minX;
-          if (Math.abs(newPosition.y - maxY) < snapThreshold) finalY = maxY;
-          if (Math.abs(newPosition.y - minY) < snapThreshold) finalY = minY;
-
-          const finalPosition = { x: finalX, y: finalY };
-
-          // 리스너 제거
-          pan.x.removeAllListeners();
-          pan.y.removeAllListeners();
-
-          Animated.spring(pan, {
-            toValue: finalPosition,
-            useNativeDriver: false,
-            friction: 7,
-            tension: 40,
-          }).start(() => {
-            setPosition(finalPosition);
-            setPanPosition(finalPosition);
-          });
-        },
-      })
-    ).current;
-
     return (
-      <Animated.View
-        style={[
-          styles.fabContainer,
-          {
-            transform: pan.getTranslateTransform(),
-            zIndex: 1000,
-          },
-        ]}
-        {...panResponder.panHandlers}
+      <PanGestureHandler
+        onGestureEvent={(event) => {
+          // 드래그 중 위치 업데이트
+          pan.x.setValue(event.nativeEvent.translationX);
+          pan.y.setValue(event.nativeEvent.translationY);
+        }}
+        onHandlerStateChange={(event) => {
+          if (event.nativeEvent.state === State.BEGAN) {
+            // 제스처 시작 시
+            const xValue = getValueFromAnimated(pan.x);
+            const yValue = getValueFromAnimated(pan.y);
+
+            pan.setOffset({
+              x: xValue,
+              y: yValue,
+            });
+            pan.x.setValue(0);
+            pan.y.setValue(0);
+          } else if (event.nativeEvent.state === State.END) {
+            // 제스처 종료 시
+            pan.flattenOffset();
+
+            // 현재 위치 가져오기
+            const newX = getValueFromAnimated(pan.x);
+            const newY = getValueFromAnimated(pan.y);
+
+            // Calculate bounds
+            const maxX = width - 80;
+            const maxY = height - 200;
+            const minX = 0;
+            const minY = 0;
+
+            // Check if FAB is dragged too far
+            const isOffScreenX = newX < minX || newX > maxX;
+            const isOffScreenY = newY < minY || newY > maxY;
+
+            let finalX = newX;
+            let finalY = newY;
+
+            // If off screen, snap to nearest edge
+            if (isOffScreenX) {
+              finalX = newX < minX ? minX : maxX;
+            }
+            if (isOffScreenY) {
+              finalY = newY < minY ? minY : maxY;
+            }
+
+            // Snap to edges if close
+            const snapThreshold = 40;
+            if (Math.abs(newX - maxX) < snapThreshold) finalX = maxX;
+            if (Math.abs(newX - minX) < snapThreshold) finalX = minX;
+            if (Math.abs(newY - maxY) < snapThreshold) finalY = maxY;
+            if (Math.abs(newY - minY) < snapThreshold) finalY = minY;
+
+            const finalPosition = { x: finalX, y: finalY };
+
+            Animated.spring(pan, {
+              toValue: finalPosition,
+              useNativeDriver: false,
+              friction: 7,
+              tension: 40,
+            }).start(() => {
+              setPosition(finalPosition);
+              setPanPosition(finalPosition);
+            });
+          }
+        }}
       >
         <Animated.View
           style={[
-            styles.fabMenu,
+            styles.fabContainer,
             {
-              opacity: menuAnimation,
-              transform: [
-                { scale: menuAnimation },
-                {
-                  translateY: menuAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
+              transform: pan.getTranslateTransform(),
+              zIndex: 1000,
             },
           ]}
         >
-          <Pressable
-            style={styles.fabMenuItem}
-            onPress={() => {
-              toggleFabMenu();
-              navigation.navigate("Story", {
-                screen: "StorySettings",
-                params: {},
-              });
-            }}
+          <Animated.View
+            style={[
+              styles.fabMenu,
+              {
+                opacity: menuAnimation,
+                transform: [
+                  { scale: menuAnimation },
+                  {
+                    translateY: menuAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            <MaterialCommunityIcons
-              name="book-open-variant"
-              size={20}
-              color={theme.colors.white}
-            />
-            <Text style={styles.fabMenuText}>Create Story</Text>
-          </Pressable>
+            <Pressable
+              style={styles.fabMenuItem}
+              onPress={() => {
+                toggleFabMenu();
+                navigation.navigate("Story", {
+                  screen: "StorySettings",
+                  params: {},
+                });
+              }}
+            >
+              <MaterialCommunityIcons
+                name="book-open-variant"
+                size={20}
+                color={theme.colors.white}
+              />
+              <Text style={styles.fabMenuText}>Create Story</Text>
+            </Pressable>
 
-          <Pressable
-            style={styles.fabMenuItem}
-            onPress={() => {
-              toggleFabMenu();
-              navigation.navigate("Diary", {
-                screen: "DiaryCreate",
-                params: {},
-              });
-            }}
+            <Pressable
+              style={styles.fabMenuItem}
+              onPress={() => {
+                toggleFabMenu();
+                navigation.navigate("Diary", {
+                  screen: "DiaryCreate",
+                  params: {},
+                });
+              }}
+            >
+              <MaterialCommunityIcons
+                name="notebook"
+                size={20}
+                color={theme.colors.white}
+              />
+              <Text style={styles.fabMenuText}>Write Diary</Text>
+            </Pressable>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.fab,
+              {
+                transform: [
+                  {
+                    rotate: fabAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0deg", "45deg"],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            <MaterialCommunityIcons
-              name="notebook"
-              size={20}
-              color={theme.colors.white}
-            />
-            <Text style={styles.fabMenuText}>Write Diary</Text>
-          </Pressable>
+            <Pressable onPress={toggleFabMenu} style={styles.fabButton}>
+              <MaterialCommunityIcons
+                name="pencil"
+                size={24}
+                color={theme.colors.white}
+              />
+            </Pressable>
+          </Animated.View>
         </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.fab,
-            {
-              transform: [
-                {
-                  rotate: fabAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0deg", "45deg"],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Pressable onPress={toggleFabMenu} style={styles.fabButton}>
-            <MaterialCommunityIcons
-              name="pencil"
-              size={24}
-              color={theme.colors.white}
-            />
-          </Pressable>
-        </Animated.View>
-      </Animated.View>
+      </PanGestureHandler>
     );
   }
 );
@@ -434,11 +453,25 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const [activeView, setActiveView] = useState("you");
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
+  const [isAnimating, setIsAnimating] = useState(false);
   const dimensions = useWindowDimensions();
 
   const translateX = useRef(new Animated.Value(0)).current;
   const fabAnimation = useRef(new Animated.Value(0)).current;
   const menuAnimation = useRef(new Animated.Value(0)).current;
+
+  // 이전 달과 다음 달 계산
+  const prevMonth = useMemo(() => {
+    const date = new Date(displayedMonth);
+    date.setMonth(date.getMonth() - 1);
+    return date;
+  }, [displayedMonth]);
+
+  const nextMonth = useMemo(() => {
+    const date = new Date(displayedMonth);
+    date.setMonth(date.getMonth() + 1);
+    return date;
+  }, [displayedMonth]);
 
   useEffect(() => {
     const transactions = getTransactionsForDate(selectedDate);
@@ -475,10 +508,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const generateCalendarDays = (): CalendarDayItem[] => {
+  const generateCalendarDays = (date: Date): CalendarDayItem[] => {
     const days: CalendarDayItem[] = [];
-    const totalDays = getDaysInMonth(displayedMonth);
-    const firstDay = getFirstDayOfMonth(displayedMonth);
+    const totalDays = getDaysInMonth(date);
+    const firstDay = getFirstDayOfMonth(date);
 
     // 빈 날짜 추가
     for (let i = 0; i < firstDay; i++) {
@@ -487,16 +520,12 @@ export default function MainScreen({ navigation }: MainScreenProps) {
 
     // 실제 날짜 추가
     for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(
-        displayedMonth.getFullYear(),
-        displayedMonth.getMonth(),
-        i
-      );
-      const isToday = date.toDateString() === new Date().toDateString();
-      const financeData = getFinanceForDate(date, activeView);
+      const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
+      const isToday = calendarDate.toDateString() === new Date().toDateString();
+      const financeData = getFinanceForDate(calendarDate, activeView);
 
       days.push({
-        date,
+        date: calendarDate,
         isToday,
         financeData,
       });
@@ -504,6 +533,20 @@ export default function MainScreen({ navigation }: MainScreenProps) {
 
     return days;
   };
+
+  // 이전 달, 현재 달, 다음 달 캘린더 데이터 미리 계산
+  const prevMonthCalendar = useMemo(
+    () => generateCalendarDays(prevMonth),
+    [prevMonth, activeView]
+  );
+  const currentMonthCalendar = useMemo(
+    () => generateCalendarDays(displayedMonth),
+    [displayedMonth, activeView]
+  );
+  const nextMonthCalendar = useMemo(
+    () => generateCalendarDays(nextMonth),
+    [nextMonth, activeView]
+  );
 
   const handleSelectDate = (date: Date) => {
     const currentDate = new Date().toISOString().split("T")[0];
@@ -521,106 +564,217 @@ export default function MainScreen({ navigation }: MainScreenProps) {
       } as Transaction;
     });
 
-    navigation.navigate("DailyDetail", {
-      selectedDate: date,
-      transactions,
+    navigation.navigate("Daily", {
+      screen: "DailyDetail",
+      params: {
+        selectedDate: date.toISOString(),
+        transactions,
+      },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <Header
-        title="Love Ledger"
-        showBack={false}
-        rightElement={
-          <Pressable
-            style={styles.settingsButton}
-            onPress={() =>
-              navigation.navigate("Profile", {
-                screen: "ProfileMain",
-                params: {},
-              })
-            }
-          >
-            <MaterialCommunityIcons
-              name="cog"
-              size={28}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        }
-      />
-      <View style={styles.partnerSwitchContainer}>
-        <PartnerSwitch activeView={activeView} onViewChange={setActiveView} />
-      </View>
-      <View style={styles.monthSelector}>
-        <Pressable
-          onPress={() => {
-            const newDate = new Date(displayedMonth);
-            newDate.setMonth(displayedMonth.getMonth() - 1);
-            setDisplayedMonth(newDate);
-          }}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={24}
-            color={theme.colors.text}
-          />
-        </Pressable>
-        <Text style={styles.monthText}>
-          {`${displayedMonth.getFullYear()}년 ${
-            displayedMonth.getMonth() + 1
-          }월`}
-        </Text>
-        <Pressable
-          onPress={() => {
-            const newDate = new Date(displayedMonth);
-            newDate.setMonth(displayedMonth.getMonth() + 1);
-            setDisplayedMonth(newDate);
-          }}
-        >
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={24}
-            color={theme.colors.text}
-          />
-        </Pressable>
-      </View>
-      <View style={styles.weekdayHeader}>
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <Text key={day} style={styles.weekdayText}>
-            {day}
-          </Text>
-        ))}
-      </View>
-      <View style={styles.calendarContainer}>
-        <View style={styles.calendar}>
-          {generateCalendarDays().map((day, index) => (
-            <CalendarDay
-              key={day.isEmpty ? `empty-${index}` : day.date?.toString()}
-              day={day}
-              navigation={navigation}
-              onSelectDate={handleSelectDate}
-              isSelected={
-                selectedDate &&
-                day.date &&
-                selectedDate.toDateString() === day.date.toDateString()
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <Header
+          showBack={false}
+          rightElement={
+            <Pressable
+              style={styles.settingsButton}
+              onPress={() =>
+                navigation.navigate("Profile", {
+                  screen: "ProfileMain",
+                  params: {},
+                })
               }
+            >
+              <MaterialCommunityIcons
+                name="account-heart"
+                size={28}
+                color={theme.colors.text}
+              />
+            </Pressable>
+          }
+          centerElement={
+            <Image
+              source={require("../../../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
             />
+          }
+        />
+        <View style={styles.partnerSwitchContainer}>
+          <PartnerSwitch />
+        </View>
+        <View style={styles.monthSelector}>
+          <Text style={styles.monthText}>
+            {`${displayedMonth.getFullYear()}년 ${
+              displayedMonth.getMonth() + 1
+            }월`}
+          </Text>
+        </View>
+        <View style={styles.weekdayHeader}>
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <Text key={day} style={styles.weekdayText}>
+              {day}
+            </Text>
           ))}
         </View>
+        <PanGestureHandler
+          onGestureEvent={(event) => {
+            if (!isAnimating) {
+              translateX.setValue(event.nativeEvent.translationX);
+            }
+          }}
+          onHandlerStateChange={(event) => {
+            if (event.nativeEvent.state === State.END) {
+              if (isAnimating) return;
+
+              const threshold = dimensions.width * 0.15;
+              const distance = event.nativeEvent.translationX;
+
+              if (Math.abs(distance) > threshold) {
+                const direction = distance > 0 ? 1 : -1;
+                const newDate = new Date(displayedMonth);
+                newDate.setMonth(displayedMonth.getMonth() - direction);
+
+                setDisplayedMonth(newDate);
+                translateX.setValue(0);
+              } else {
+                Animated.spring(translateX, {
+                  toValue: 0,
+                  useNativeDriver: true,
+                  friction: 10,
+                  tension: 60,
+                }).start();
+              }
+            }
+          }}
+          enabled={true}
+        >
+          <View style={styles.calendarWrapper}>
+            {/* 이전 달 캘린더 */}
+            <Animated.View
+              style={[
+                styles.calendarContainer,
+                styles.adjacentCalendar,
+                {
+                  transform: [
+                    {
+                      translateX: translateX.interpolate({
+                        inputRange: [-dimensions.width, 0, dimensions.width],
+                        outputRange: [
+                          -dimensions.width * 2,
+                          -dimensions.width,
+                          0,
+                        ],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <View style={styles.calendar}>
+                {prevMonthCalendar.map((day, index) => (
+                  <CalendarDay
+                    key={`prev-${
+                      day.isEmpty ? `empty-${index}` : day.date?.toString()
+                    }`}
+                    day={day}
+                    navigation={navigation}
+                    onSelectDate={handleSelectDate}
+                    isSelected={
+                      selectedDate &&
+                      day.date &&
+                      selectedDate.toDateString() === day.date.toDateString()
+                    }
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* 현재 달 캘린더 */}
+            <Animated.View
+              style={[
+                styles.calendarContainer,
+                {
+                  transform: [{ translateX }],
+                  zIndex: 1,
+                },
+              ]}
+            >
+              <View style={styles.calendar}>
+                {currentMonthCalendar.map((day, index) => (
+                  <CalendarDay
+                    key={`current-${
+                      day.isEmpty ? `empty-${index}` : day.date?.toString()
+                    }`}
+                    day={day}
+                    navigation={navigation}
+                    onSelectDate={handleSelectDate}
+                    isSelected={
+                      selectedDate &&
+                      day.date &&
+                      selectedDate.toDateString() === day.date.toDateString()
+                    }
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* 다음 달 캘린더 */}
+            <Animated.View
+              style={[
+                styles.calendarContainer,
+                styles.adjacentCalendar,
+                {
+                  transform: [
+                    {
+                      translateX: translateX.interpolate({
+                        inputRange: [-dimensions.width, 0, dimensions.width],
+                        outputRange: [
+                          0,
+                          dimensions.width,
+                          dimensions.width * 2,
+                        ],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <View style={styles.calendar}>
+                {nextMonthCalendar.map((day, index) => (
+                  <CalendarDay
+                    key={`next-${
+                      day.isEmpty ? `empty-${index}` : day.date?.toString()
+                    }`}
+                    day={day}
+                    navigation={navigation}
+                    onSelectDate={handleSelectDate}
+                    isSelected={
+                      selectedDate &&
+                      day.date &&
+                      selectedDate.toDateString() === day.date.toDateString()
+                    }
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          </View>
+        </PanGestureHandler>
+        <View style={{ flex: 1 }} />
+        <FABComponent
+          navigation={navigation}
+          showFabMenu={showFabMenu}
+          toggleFabMenu={toggleFabMenu}
+          fabAnimation={fabAnimation}
+          menuAnimation={menuAnimation}
+          position={fabPosition}
+          setPosition={setFabPosition}
+        />
       </View>
-      <View style={{ flex: 1 }} />
-      <FABComponent
-        navigation={navigation}
-        showFabMenu={showFabMenu}
-        toggleFabMenu={toggleFabMenu}
-        fabAnimation={fabAnimation}
-        menuAnimation={menuAnimation}
-        position={fabPosition}
-        setPosition={setFabPosition}
-      />
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -634,61 +788,80 @@ const styles = StyleSheet.create({
   },
   partnerSwitchContainer: {
     paddingHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
   monthSelector: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
   monthText: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: "700",
     color: theme.colors.text,
     letterSpacing: -0.5,
+    textAlign: "center",
+    // 폰트 수정하고 싶으면 여기서 수정, 지금 마음에 안들긴 하는데 나중에 같이 수정보자자
+    fontFamily: "OTEnjoystoriesBA",
   },
   weekdayHeader: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingHorizontal: theme.spacing.md,
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.xl,
     marginBottom: theme.spacing.sm,
   },
   weekdayText: {
     width: "13.28%",
     textAlign: "center",
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     color: theme.colors.textLight,
   },
-  calendarContainer: {
-    paddingHorizontal: theme.spacing.md,
+  calendarWrapper: {
     height: "70%",
+    position: "relative",
+    overflow: "hidden",
+  },
+  calendarContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  adjacentCalendar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
   },
   calendar: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "flex-start",
+    gap: 4,
   },
   emptyDay: {
     width: "13.28%",
-    aspectRatio: 1,
+    aspectRatio: 0.85,
     padding: 2,
   },
   dayCard: {
     width: "13.28%",
-    aspectRatio: 1,
+    aspectRatio: 0.85,
     padding: 2,
-    margin: 1,
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.borderRadius.md,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   dayCardWithEntry: {
     backgroundColor: theme.colors.secondary,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.primary,
   },
   todayCard: {
@@ -696,7 +869,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.05 }],
   },
   dayNumber: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text,
   },
@@ -704,16 +877,16 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
   },
   financeIndicator: {
-    marginTop: 2,
+    marginTop: 3,
     alignItems: "center",
   },
   earnText: {
-    fontSize: 9,
+    fontSize: 10,
     color: theme.colors.success || "green",
     fontWeight: "600",
   },
   consumeText: {
-    fontSize: 9,
+    fontSize: 10,
     color: theme.colors.error || "red",
     fontWeight: "600",
   },
@@ -870,5 +1043,9 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.md,
     fontSize: 13,
     flexShrink: 1,
+  },
+  logo: {
+    width: 600,
+    height: 200,
   },
 });

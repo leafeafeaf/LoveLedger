@@ -3,6 +3,8 @@ package com.ssafy.loveledger.domain.couple.presentation;
 import com.ssafy.loveledger.domain.couple.service.CoupleService;
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.common.ApiResponse;
+import com.ssafy.loveledger.global.exception.ErrorCode;
+import com.ssafy.loveledger.global.exception.LoveLedgerException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,75 +39,50 @@ public class CoupleController {
         @AuthenticationPrincipal CustomOAuth2User oAuth2User) {
 
         if (oAuth2User == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.builder()
-                    .status("401")
-                    .message("인증 정보가 올바르지 않습니다")
-                    .data(null)
-                    .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build());
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS, "인증 정보가 올바르지 않습니다.");
         }
 
         Long userId = oAuth2User.getUserId();
 
-        try {
-            // 사용자가 이미 커플 관계인지 확인
-            boolean isAlreadyCoupled = coupleService.isUserAlreadyCoupled(userId);
-            if (isAlreadyCoupled) {
-                // 커플 등록 시간 조회
-                LocalDateTime registeredAt = coupleService.getCoupleRegisteredTime(userId);
+        // 이미 커플인지 체크하고, 커플이면 예외처리
+        coupleService.validateUserNotAlreadyCoupled(userId);
+        // 커플 연동 처리
+        coupleService.createCouple(inviteCode, userId);
 
-                Map<String, String> data = new HashMap<>();
-                data.put("registeredAt", registeredAt.format(DateTimeFormatter.ISO_DATE_TIME));
+        ApiResponse<Object> response = ApiResponse.builder()
+            .status("200")
+            .message("연동 완료")
+            .data(null)
+            .timestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
+            .build();
 
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.builder()
-                        .status("409")
-                        .message("이미 연동되어 있는 계정입니다.")
-                        .data(data)
-                        .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                        .build());
-            }
-
-            // 커플 연동 처리
-            coupleService.createCouple(inviteCode, userId);
-
-            return ResponseEntity.ok(
-                ApiResponse.builder()
-                    .status("200")
-                    .message("연동 완료")
-                    .data(null)
-                    .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build()
-            );
-
-        } catch (IllegalArgumentException e) {
-            // 잘못된 초대 코드
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.builder()
-                    .status("400")
-                    .message(e.getMessage())
-                    .data(null)
-                    .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build());
-        } catch (IllegalStateException e) {
-            // 이미 사용된 초대 코드 등 상태 오류
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.builder()
-                    .status("409")
-                    .message(e.getMessage())
-                    .data(null)
-                    .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build());
-        } catch (Exception e) {
-            // 기타 서버 오류
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.builder()
-                    .status("500")
-                    .message("서버 오류가 발생했습니다: " + e.getMessage())
-                    .data(null)
-                    .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build());
-        }
+        return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{coupleId}")
+    public ResponseEntity<ApiResponse<Object>> deleteCouple(
+        @PathVariable Long coupleId,
+        @AuthenticationPrincipal CustomOAuth2User oAuth2User
+    ) {
+        /*
+            해당 커플 Id값을 가져와서 해당 커플에 DB를 지우고, 연동 되어있는 유저에 값을 지우면된다.
+        */
+        if (oAuth2User == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS, "인증 정보가 없습니다.");
+        }
+        Long userId = oAuth2User.getUserId();
+
+        coupleService.deleteCouple(coupleId, userId);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .status("200")
+                .message("커플 연동 해제가 완료되었습니다.")
+                .data(null)
+                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
+                .build()
+        );
+
+    }
+
 }

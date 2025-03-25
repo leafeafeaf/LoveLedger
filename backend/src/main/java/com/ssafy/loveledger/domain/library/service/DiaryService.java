@@ -4,18 +4,16 @@ import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.library.domain.Diary;
-import com.ssafy.loveledger.domain.library.domain.Library;
 import com.ssafy.loveledger.domain.library.domain.repository.DiaryRepository;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.UpdateHistoryRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
-import com.ssafy.loveledger.global.openai.util.OpenAiUtil;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.util.GeminiUtil;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -39,13 +37,13 @@ public class DiaryService {
 
     private final DiaryRepository diaryRepository;
     private final HistoryRepository historyRepository;
-    private final UserRepository userRepository;
-    private final OpenAiUtil openAiUtil;
+    private final GeminiUtil geminiUtil;
 
-    public void createDiary(Long libraryId, @Valid DiaryCreateRequest diaryCreateRequest) {
+    @Transactional
+    public void createDiary(User user, @Valid DiaryCreateRequest diaryCreateRequest) {
         //Diary 생성
         Diary diary = Diary.builder()
-            .library(Library.builder().id(libraryId).build())
+            .library(user.getLibrary())
             .targetDate(diaryCreateRequest.getTargetDate())
             .title(diaryCreateRequest.getTitle())
             .content(diaryCreateRequest.getContent())
@@ -55,7 +53,8 @@ public class DiaryService {
         diaryRepository.save(diary);
     }
 
-    public Page<DiaryReadAllResponse> readAllDiary(Long libraryId, int pageno, int size,
+    @Transactional(readOnly = true)
+    public Page<DiaryReadAllResponse> readAllDiary(User user, int pageno, int size,
         String sort) {
         // 정렬 방식 결정 (DESC 기본값)
         Sort.Direction direction =
@@ -65,16 +64,17 @@ public class DiaryService {
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdAt"));
 
         // 페이징 처리된 결과 반환
-        return diaryRepository.findByLibrary(Library.builder().id(libraryId).build(), pageable);
+        return diaryRepository.findByLibrary(user.getLibrary(), pageable);
     }
 
-    public DiaryReadResponse readDiary(Long libraryId, long diaryId) {
+    @Transactional(readOnly = true)
+    public DiaryReadResponse readDiary(User user, long diaryId) {
         //다이어리를 기반으로 diary 검색
         Diary diary = diaryRepository.findById(diaryId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.DIARY_NOT_FOUND, String.valueOf(diaryId)));
 
         //유저 서재인지 확인
-        if (!diary.getLibrary().getId().equals(libraryId)) {
+        if (!diary.getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -87,14 +87,15 @@ public class DiaryService {
             .build();
     }
 
-    public void updateDiary(Long libraryId, long diaryId,
+    @Transactional
+    public void updateDiary(User user, long diaryId,
         @Valid DiaryUpdateRequest diaryUpdateRequest) {
         //다이어리를 기반으로 diary 검색
         Diary diary = diaryRepository.findById(diaryId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.DIARY_NOT_FOUND, String.valueOf(diaryId)));
 
         //유저 서재인지 확인
-        if (!diary.getLibrary().getId().equals(libraryId)) {
+        if (!diary.getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -105,28 +106,29 @@ public class DiaryService {
         diaryRepository.save(diary);
     }
 
-    public void deleteDiary(Long libraryId, long diaryId) {
+    @Transactional
+    public void deleteDiary(User user, long diaryId) {
         //다이어리를 기반으로 diary 검색
         Diary diary = diaryRepository.findById(diaryId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.DIARY_NOT_FOUND, String.valueOf(diaryId)));
 
         //유저 서재인지 확인
-        if (!diary.getLibrary().getId().equals(libraryId)) {
+        if (!diary.getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
         diaryRepository.delete(diary);
     }
 
-    //TODO 분류 모델로 대체
-    public CompletableFuture<Map<String, Object>> getEditHistoryList(Long userId, Long libraryId,
+    @Transactional(readOnly = true)
+    public CompletableFuture<Map<String, Object>> getEditHistoryList(User user,
         long diaryId) {
         //다이어리를 기반으로 diary 검색
         Diary diary = diaryRepository.findById(diaryId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.DIARY_NOT_FOUND, String.valueOf(diaryId)));
 
         //유저 서재인지 확인
-        if (!diary.getLibrary().getId().equals(libraryId)) {
+        if (!diary.getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -134,10 +136,6 @@ public class DiaryService {
         LocalDate targetDate = diary.getTargetDate();
 
         log.info("대상일자 : {}", targetDate);
-
-        //유저와 계좌 리스트 불러오기
-        User user = userRepository.findWithAccountsById(userId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND));
 
         //계좌 불러오기
         List<Account> accounts = user.getAccount();
@@ -156,7 +154,6 @@ public class DiaryService {
 
         log.info("계좌 개수 : {}  내역 개수 : {}", accounts.size(), histories.size());
 
-        //TODO 분류모델로 전환
         //챗지피티 반환
         String prompt = """
             당신은 사용자의 소비 기록을 분석하는 AI 비서입니다.
@@ -223,14 +220,16 @@ public class DiaryService {
             
             """.formatted(diary.getContent(), formatHistoryList(histories));
 
-        return openAiUtil.askChatGpt(prompt)
-            .thenApply(openAiUtil::mapResponseToMap);
+//        return openAiUtil.askChatGpt(prompt)
+//            .thenApply(openAiUtil::mapResponseToMap);
+        return geminiUtil.askGemini(prompt)
+            .thenApply(geminiUtil::mapResponseToMap);
     }
 
 
     //트랜잭션 하나라도 실패하면 전부 롤백
     @Transactional
-    public void editHistory(Long userId, UpdateHistoryRequest updateHistoryRequest) {
+    public void editHistory(User user, UpdateHistoryRequest updateHistoryRequest) {
 
         List<String> transactionIds = updateHistoryRequest.getTransactionId();
         List<String> updatedTargetNames = updateHistoryRequest.getUpdatedTargetNames();
@@ -239,11 +238,6 @@ public class DiaryService {
         if (transactionIds.size() != updatedTargetNames.size()) {
             throw new LoveLedgerException(ErrorCode.TRANSACTION_SIZE_MISMATCH);
         }
-
-        //유저와 계좌 리스트 불러오기
-        User user = userRepository.findWithAccountsById(userId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND));
-
         //계좌 불러오기
         List<Account> accounts = user.getAccount();
 
