@@ -11,9 +11,9 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.Update
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.global.openai.util.OpenAiUtil;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.util.GeminiUtil;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -37,7 +37,7 @@ public class DiaryService {
 
     private final DiaryRepository diaryRepository;
     private final HistoryRepository historyRepository;
-    private final OpenAiUtil openAiUtil;
+    private final GeminiUtil geminiUtil;
 
     @Transactional
     public void createDiary(User user, @Valid DiaryCreateRequest diaryCreateRequest) {
@@ -220,8 +220,10 @@ public class DiaryService {
             
             """.formatted(diary.getContent(), formatHistoryList(histories));
 
-        return openAiUtil.askChatGpt(prompt)
-            .thenApply(openAiUtil::mapResponseToMap);
+//        return openAiUtil.askChatGpt(prompt)
+//            .thenApply(openAiUtil::mapResponseToMap);
+        return geminiUtil.askGemini(prompt)
+            .thenApply(geminiUtil::mapResponseToMap);
     }
 
 
