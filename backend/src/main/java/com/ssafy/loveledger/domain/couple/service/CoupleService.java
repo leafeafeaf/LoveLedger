@@ -8,15 +8,15 @@ import com.ssafy.loveledger.domain.couple.domain.repository.CoupleRepository;
 import com.ssafy.loveledger.domain.invite.service.InviteService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -73,7 +73,7 @@ public class CoupleService {
 
             // 초대자 ID 가져오기
             Long inviterId = inviteData.get("inviterId").asLong();
-            log.info("###########{}",inviterId);
+            log.info("###########{}", inviterId);
 
 
             // 자기 자신과의 연동 방지 체크

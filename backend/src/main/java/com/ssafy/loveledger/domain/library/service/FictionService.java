@@ -11,8 +11,8 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCr
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.*;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +87,7 @@ public class FictionService {
     // 소설 생성
     @Transactional
     public void createFiction(FictionAllCreateRequest fictionCreateReq) {
-        
+
         Fiction fiction = Fiction.builder()
             .series(Series.builder().id(fictionCreateReq.getSereisId()).build())
             .Title(fictionCreateReq.getTitle())
