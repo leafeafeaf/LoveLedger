@@ -1,10 +1,10 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryCreateRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.DiaryUpdateRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.UpdateHistoryRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.library.service.DiaryService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.UserUtil;

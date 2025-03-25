@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto.request;
+package com.ssafy.loveledger.domain.library.presentation.dto.request.diary;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

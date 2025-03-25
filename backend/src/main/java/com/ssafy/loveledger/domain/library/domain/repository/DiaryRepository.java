@@ -2,7 +2,7 @@ package com.ssafy.loveledger.domain.library.domain.repository;
 
 import com.ssafy.loveledger.domain.library.domain.Diary;
 import com.ssafy.loveledger.domain.library.domain.Library;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +15,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     // Library 객체를 기반으로 DTO 변환하여 조회
     @Query(
-        "SELECT new com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAllResponse("
+        "SELECT new com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse("
             +
             "d.id ,d.title, d.content, d.targetDate, d.createdAt, d.updatedAt) " +
             "FROM Diary d WHERE d.library = :library")
