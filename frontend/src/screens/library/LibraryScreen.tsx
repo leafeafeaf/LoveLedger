@@ -10,17 +10,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import BookCard from "../../components/common/BookCard";
-import { BookItem } from "../../types";
-import { useNavigation, CompositeNavigationProp } from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { MainTabParamList, RootStackParamList } from "../../types";
-
-// Composite navigation prop 타입 정의
-type LibraryScreenNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, "Library">,
-  NativeStackNavigationProp<RootStackParamList>
->;
+import { BookItem, LibraryScreenProps } from "../../types";
 
 type TabButtonProps = {
   title: string;
@@ -28,8 +18,7 @@ type TabButtonProps = {
   onPress: () => void;
 };
 
-const LibraryScreen: FC = () => {
-  const navigation = useNavigation<LibraryScreenNavigationProp>();
+const LibraryScreen: FC<LibraryScreenProps<"LibraryMain">> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<"diaries" | "stories">("diaries");
 
   const mockDiaries: BookItem[] = [
@@ -122,9 +111,12 @@ const LibraryScreen: FC = () => {
                   key={item.id}
                   item={item}
                   onPress={() =>
-                    navigation.navigate("DailyDetail", {
-                      selectedDate: new Date(item.date),
-                      transactions: [],
+                    navigation.navigate("Daily", {
+                      screen: "DailyDetail",
+                      params: {
+                        selectedDate: new Date(item.date).toISOString(),
+                        transactions: [],
+                      }
                     })
                   }
                 />
@@ -134,7 +126,10 @@ const LibraryScreen: FC = () => {
                   key={item.id}
                   item={item}
                   onPress={() =>
-                    navigation.navigate("StoryDetail", { id: item.id })
+                    navigation.navigate("Story", {
+                      screen: "StoryDetail",
+                      params: { id: item.id }
+                    })
                   }
                 />
               ))}
@@ -145,6 +140,7 @@ const LibraryScreen: FC = () => {
 };
 
 const styles = StyleSheet.create({
+  // 기존 스타일 코드 유지
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

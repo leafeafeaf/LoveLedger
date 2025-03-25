@@ -24,6 +24,13 @@ export type AuthStackParamList = {
   Login: undefined;
 };
 
+// Library 스택 파라미터 타입
+export type LibraryStackParamList = {
+  LibraryMain: undefined;
+  DiaryDetail: { id: string; date: string; mood?: string };
+  StoryDetail: { id: string };
+};
+
 // 루트 스택 파라미터 타입
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
@@ -32,6 +39,7 @@ export type RootStackParamList = {
   Diary: NavigatorScreenParams<DiaryStackParamList>;
   Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
+  Library: NavigatorScreenParams<LibraryStackParamList>;
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: undefined;
   LinkConfirm: { linkCode: string };
@@ -151,6 +159,13 @@ export type DiaryScreenProps<T extends keyof DiaryStackParamList> =
 export type DailyScreenProps<T extends keyof DailyStackParamList> =
   CompositeScreenProps<
     NativeStackScreenProps<DailyStackParamList, T>,
+    NativeStackScreenProps<RootStackParamList>
+  >;
+
+// Library 스크린 Props도 추가
+export type LibraryScreenProps<T extends keyof LibraryStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<LibraryStackParamList, T>,
     NativeStackScreenProps<RootStackParamList>
   >;
 

@@ -11,6 +11,7 @@ import { StoryNavigator } from "./navigation/StoryNavigator";
 import { DiaryNavigator } from "./navigation/DiaryNavigator";
 import { ProfileNavigator } from "./navigation/ProfileNavigator";
 import { DailyNavigator } from "./navigation/DailyNavigator";
+import { LibraryNavigator } from "./navigation/LibraryNavigator"; // 추가
 
 // 개별 화면 임포트
 import TransactionEditScreen from "./screens/daily/DailyEditScreen";
@@ -61,6 +62,13 @@ const AppRouter = () => {
             <Stack.Screen
               name="Profile"
               component={ProfileNavigator}
+              options={{ presentation: "modal" }}
+            />
+
+            {/* Library 스택 추가 */}
+            <Stack.Screen
+              name="Library"
+              component={LibraryNavigator}
               options={{ presentation: "modal" }}
             />
 

@@ -1,18 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../navigation/navigation";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
+import { ProfileScreenProps } from "../../types";
 
-type GoalListScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "GoalList"
->;
-
-interface GoalListScreenProps {
-  navigation: GoalListScreenNavigationProp;
-}
+// 타입 정의를 ProfileScreenProps를 활용하여 수정
+type GoalListScreenProps = ProfileScreenProps<"GoalList">;
 
 interface Goal {
   id: number;
@@ -41,7 +34,18 @@ const goals: Goal[] = [
 
 export default function GoalListScreen({ navigation }: GoalListScreenProps) {
   const handleGoalPress = (goalId: number) => {
-    navigation.navigate("GoalDetail", { goalId });
+    // Goal 객체에 맞는 형태로 파라미터 전달
+    navigation.navigate("GoalDetail", { 
+      goal: {
+        id: goalId.toString(),
+        title: goals.find(g => g.id === goalId)?.title || "목표",
+        description: "목표 설명",
+        target: goals.find(g => g.id === goalId)?.targetAmount || 0,
+        current: goals.find(g => g.id === goalId)?.currentAmount || 0,
+        deadline: goals.find(g => g.id === goalId)?.deadline || new Date().toISOString(),
+        icon: "flag-checkered" // IconName 타입의 값
+      }
+    });
   };
 
   return (

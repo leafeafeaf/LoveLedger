@@ -2,12 +2,11 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MainTabParamList } from "./navigation";
 import { theme } from "../utils/theme";
-import LibraryScreen from "../screens/library/LibraryScreen";
+// 새로 만든 브릿지 컴포넌트 사용
+import LibraryTabScreen from "../screens/library/LibraryTabScreen"; 
 import DashboardScreen from "../screens/main/DashboardScreen";
 import MainScreen from "../screens/main/MainScreen";
 import { StyleSheet } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/navigation";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -62,7 +61,7 @@ export function MainNavigator() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Main" component={MainScreen} />
-      <Tab.Screen name="Library" component={LibraryScreen} />
+      <Tab.Screen name="Library" component={LibraryTabScreen} />
     </Tab.Navigator>
   );
 }
