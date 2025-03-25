@@ -8,7 +8,9 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatist
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.UserUtil;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,7 +38,7 @@ public class AccountController {
     }
 
     @GetMapping("/history/sum/list")
-    public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
+    public Map<String, Object> getDailyStatisticsByMonth(
         @RequestParam Integer year,
         @RequestParam Integer month,
         @RequestParam(defaultValue = "1") Integer pageno,
@@ -44,7 +46,17 @@ public class AccountController {
         @RequestParam(defaultValue = "asc") String sort
     ) {
         User user = userUtil.getCurrentUser();
-        return accountService.getAccountHistoryByMonth(user, year, month, size, pageno, sort);
+        Map<String, Object> content = new HashMap<>();
+
+        List<WeekStatisticsResponse> weekStat = accountService.getAccountHistoryByWeek(user, year,
+            month);
+        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month, size, pageno, sort);
+
+        content.put("weekStat", weekStat);
+        content.put("monthStat", monthStat);
+
+        return content;
     }
 
     @GetMapping("/history/detail/list")

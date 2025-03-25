@@ -90,7 +90,10 @@ public class AccountService {
 
         if (user == null) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        } else if (user.getAccount() == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
         }
+        
         updateListOfHistory(user);
 
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
@@ -107,6 +110,8 @@ public class AccountService {
 
         if (user == null) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        } else if (user.getAccount() == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
         }
 
         YearMonth yearMonth = YearMonth.of(year, month);
@@ -217,7 +222,7 @@ public class AccountService {
         if (user == null || user.getUserKey() == null || user.getUserKey().isEmpty()) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
-        
+
         String code = generateCode();
         String apiName = "openAccountAuth";
         SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
