@@ -5,7 +5,6 @@ import com.ssafy.loveledger.domain.goal.domain.repository.GoalRepository;
 import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalCreateRequest;
 import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalUpdateRequest;
 import com.ssafy.loveledger.domain.goal.presentation.dto.response.GoalReadResponse;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.exception.ErrorCode;
 import com.ssafy.loveledger.global.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Service;
 public class GoalService {
 
     private final GoalRepository goalRepository;
-    private final UserRepository userRepository;
 
     // 목표 생성
     @Transactional
@@ -59,7 +57,7 @@ public class GoalService {
         // 유저에게 목표가 존재하는지 확인
         Goal goal = goalRepository.findById(userId)
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND));
-        
+
         goal.setGoalAmount(goalUpdateRequest.getGoalAmount());
         goal.setCurrentAmount(goalUpdateRequest.getCurrentAmount());
         goal.setStartDate(goalUpdateRequest.getStartDate());

@@ -8,7 +8,6 @@ import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionArtR
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionContentReadRes;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
-import com.ssafy.loveledger.domain.library.service.SeriesService;
 import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 public class FictionController {
 
     private final FictionService fictionService;
-    private final SeriesService seriesService;
 
     // 소설 내용 생성
     @PostMapping("/content")

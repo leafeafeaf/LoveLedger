@@ -55,7 +55,7 @@ public class SeriesService {
     @Transactional
     public List<SeriesReadResponse> getSeriesNames(Long LibraryId) {
 
-        Library library = libraryRepository.findById(LibraryId).orElseThrow(
+        libraryRepository.findById(LibraryId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
         List<Series> seriesList = seriesRepository.findAll();
