@@ -18,7 +18,7 @@ public enum ErrorCode {
 
     //Account
     ACCOUNT_NOT_FOUND(404, "A001", "해당 사용자의 계좌 정보를 찾을 수 없습니다.", null),
-
+    ACCOUNT_CANT_CREATED(409, "A002", "해당 계좌를 추가할 수 없습니다.", null),
     //History
     HISTORY_NOT_FOUND(404, "H001", "거래 내역을 찾을 수 없습니다.", null),
     TRANSACTION_SIZE_MISMATCH(400, "T001", "거래 IDs와 TargetName 의 개수가 일치해야 합니다.", null),

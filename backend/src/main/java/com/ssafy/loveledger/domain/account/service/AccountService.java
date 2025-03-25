@@ -56,6 +56,9 @@ public class AccountService {
     public Page<HistoryDetailResponse> getAccountHistory(User user, int year, int month, int day,
         int size, int pageno, String sort) {
 
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
         updateListOfHistory(user);
 
         Direction direction = sort.equalsIgnoreCase("ASC") ? Direction.ASC : Direction.DESC;
@@ -85,6 +88,9 @@ public class AccountService {
     public List<DailyStatisticsResponse> getAccountHistoryByMonth(User user, int year, int month,
         int size, int pageno, String sort) {
 
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
         updateListOfHistory(user);
 
         Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
@@ -98,6 +104,11 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public List<WeekStatisticsResponse> getAccountHistoryByWeek(User user, int year, int month) {
+
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         return historyRepository.findWeeklyStatistics(user, year, month, startDate);
@@ -105,6 +116,10 @@ public class AccountService {
 
     @Transactional
     public void deleteHistory(User user, String transactionId) {
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         History history = historyRepository.findById(transactionId).orElse(null);
         if (history != null && history.getAccount().getUser() == user) {
             history.delete();
@@ -114,6 +129,11 @@ public class AccountService {
     @Transactional
     public void updateHistoryTarget(User user, String transactionId, String accountNo,
         String updatedTargetName) {
+
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         Account account = accountRepository.findById(accountNo).orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
@@ -126,7 +146,7 @@ public class AccountService {
     @Transactional
     public void updateListOfHistory(User user) {
         if (user == null) {
-            throw new RuntimeException("User Not Found");
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
         String code = generateCode();
@@ -134,6 +154,10 @@ public class AccountService {
         SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
 
         Account account = user.getAccount().get(0);
+        if (account == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
         AccountHistoryDetailRequest request = AccountHistoryDetailRequest.builder()
             .header(header)
             .accountNo(account.getAccountId())
@@ -190,6 +214,10 @@ public class AccountService {
     }
 
     public void getVerificationCode(User user, String accountNo) {
+        if (user == null || user.getUserKey() == null || user.getUserKey().isEmpty()) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+        
         String code = generateCode();
         String apiName = "openAccountAuth";
         SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
@@ -225,7 +253,7 @@ public class AccountService {
 
         SSAFYResponse response = openFeignUtil.getAccountAuthentication(request);
         String status = (String) response.getResultData().get("status");
-        if (status.equals("SUCCESS")) {
+        if (status.equals("SUCCESS") && accountRepository.findById(accountNo).isEmpty()) {
             Account account = Account.builder()
                 .accountId(accountNo)
                 .bankCode("00100")
@@ -233,6 +261,10 @@ public class AccountService {
                 .certedAt(LocalDateTime.now())
                 .build();
             accountRepository.save(account);
+        } else {
+            throw new LoveLedgerException(
+                ErrorCode.ACCOUNT_CANT_CREATED
+            );
         }
     }
 
