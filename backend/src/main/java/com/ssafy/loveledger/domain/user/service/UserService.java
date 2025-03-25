@@ -9,15 +9,16 @@ import com.ssafy.loveledger.domain.user.presentation.dto.request.UserInfoRequest
 import com.ssafy.loveledger.domain.user.presentation.dto.request.UserUpdateRequest;
 import com.ssafy.loveledger.domain.user.presentation.dto.response.DetailUserResponse;
 import com.ssafy.loveledger.domain.user.presentation.dto.response.UserResponse;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

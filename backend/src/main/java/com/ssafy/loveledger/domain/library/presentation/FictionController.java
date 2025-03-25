@@ -1,20 +1,22 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
+import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionAllReadResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionArtReadRes;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionContentReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
-import com.ssafy.loveledger.domain.library.service.SeriesService;
+import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
+import com.ssafy.loveledger.global.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -23,74 +25,74 @@ import java.util.Map;
 public class FictionController {
 
     private final FictionService fictionService;
-    private final SeriesService seriesService;
 
     // 소설 내용 생성
     @PostMapping("/content")
-    public ResponseEntity<?> createFictionContent(@RequestBody FictionContentCreateReq fictionContentCreateReq) {
+    public FictionContentReadRes createFictionContent(
+        @AuthenticationPrincipal CustomOAuth2User user,
+        @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
 
-        FictionContentReadRes fictionReadDTO = fictionService.createFictionContent(fictionContentCreateReq);
+        log.info("user {} creates fiction content", user.getUserId());
 
-        return ResponseEntity.ok(fictionReadDTO);
+        return fictionService.createFictionContent(fictionContentCreateReq);
     }
 
     // 소설 그림 생성
     @PostMapping("/art")
-    public ResponseEntity<?> createFictionArt(@RequestBody FictionArtCreateReq fictionContentArtReq) {
+    public FictionArtReadRes createFictionArt(
+        @AuthenticationPrincipal CustomOAuth2User user,
+        @RequestBody @Valid FictionArtCreateReq fictionContentArtReq) {
 
-        FictionArtReadRes fictionArtReadDTO = fictionService.createFictionArt(fictionContentArtReq);
+        log.info("user {} creates fiction image", user.getUserId());
 
-        return ResponseEntity.ok(fictionArtReadDTO);
+        return fictionService.createFictionArt(fictionContentArtReq);
     }
 
     // 소설 전체 생성
     @PostMapping
-    public ResponseEntity<?> createFiction(@RequestBody FictionCreateReq fictionCreateReq) {
+    public ResponseEntity<ApiResponse> createFiction(
+        @AuthenticationPrincipal CustomOAuth2User user,
+        @RequestBody @Valid FictionAllCreateRequest fictionCreateReq) {
+
+        log.info("user {} creates fiction all", user.getUserId());
 
         fictionService.createFiction(fictionCreateReq);
 
-        return ResponseEntity.ok("소설 생성 완료");
+        return ResponseEntity.ok(ApiResponse.success("소설 생성 완료", null));
     }
 
     //소설 삭제
     @DeleteMapping("/{fictionId}")
-    public ResponseEntity<?> deleteSeries(@PathVariable Long fictionId) {
-        fictionService.deleteSeries(fictionId);
-        return ResponseEntity.ok("소설 삭제완료 {fictionId} : " + fictionId);
+    public ResponseEntity<ApiResponse> deleteSeries(@AuthenticationPrincipal CustomOAuth2User user, @PathVariable Long fictionId) {
+
+        log.info("user {} delete fiction", user.getLibraryId());
+
+        fictionService.deleteSeries(user.getLibraryId(), fictionId);
+        return ResponseEntity.ok(ApiResponse.success("소설 삭제 완료 {fictionId} : " + fictionId, null));
     }
 
     //시리즈 전체(소설 포함) 조회
     @GetMapping
-    public ResponseEntity<?> getFictions(
+    public Page<FictionAllReadResponse> readFictions(
+        @AuthenticationPrincipal CustomOAuth2User user,
         @RequestParam(defaultValue = "1") int pageNo,
         @RequestParam(defaultValue = "15") int size,
         @RequestParam(defaultValue = "ASC") String sort
     ) {
-        Map<String, Object> data = fictionService.readSeries(pageNo, size, sort);
+        log.info("user {} read fictions", user.getUserId());
 
-        // TODO : 응답 메세지 복구
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "시리즈 정보가 성공적으로 조회되었습니다.");
-        response.put("data", data);
-        response.put("timestamp", LocalDateTime.now());
+        return fictionService.readAllFiction(user.getLibraryId(), pageNo, size, sort);
 
-        return ResponseEntity.ok(response);
     }
 
     // 소설 상세 조회
     @GetMapping("/{fictionId}")
-    public ResponseEntity<?> getFiction(@PathVariable Long fictionId) {
+    public FictionDetailReadResponse readFiction(
+        @AuthenticationPrincipal CustomOAuth2User user,
+        @PathVariable Long fictionId) {
 
-        Map<String, Object> data = fictionService.readFiction(fictionId);
+        log.info("user {} read fiction", user.getUserId());
 
-        // TODO : 응답 메세지 복구
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "정상적으로 반환하였습니다.");
-        response.put("data", data);
-        response.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.ok(response);
+        return fictionService.readFiction(user.getLibraryId(), fictionId);
     }
 }

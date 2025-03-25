@@ -39,6 +39,18 @@ public enum ErrorCode {
     //invite
     INVALID_REQUEST(400, "I001", "자기자신과 연동은 안됩니다.", null),
 
+    //Series
+    SERIES_NOT_FOUND(404, "S001", "해당 시리즈(ID: %s)를 찾을 수 없습니다.", null),
+
+    //Theme
+    THEME_NOT_FOUND(404, "T001", "해당 테마(ID: %s)를 찾을 수 없습니다.", null),
+
+    // Fiction
+    FICTION_NOT_FOUND(404, "F001", "해당 소설(ID: %s)를 찾을 수 없습니다.", null),
+
+    // Goal
+    GOAL_NOT_FOUND(409, "G001", "사용자의 목표를 찾을 수 없습니다.", null),
+    GOAL_Exist(409, "G002", "사용자의 목표가 존재합니다.", null),
 
     // Validation Error Codes
     INVALID_INPUT_VALUE(400, "V001", "입력값 오류 : %s", null),

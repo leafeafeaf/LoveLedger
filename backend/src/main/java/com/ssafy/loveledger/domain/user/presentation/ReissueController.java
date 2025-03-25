@@ -2,20 +2,19 @@ package com.ssafy.loveledger.domain.user.presentation;
 
 import com.ssafy.loveledger.global.auth.util.JWTUtil;
 import com.ssafy.loveledger.global.common.ApiResponse;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
-import io.jsonwebtoken.ExpiredJwtException;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequiredArgsConstructor
@@ -68,6 +67,7 @@ public class ReissueController {
         cookie.setHttpOnly(true);
         return cookie;
     }
+
     private String extractRefreshToken(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
 
@@ -83,6 +83,7 @@ public class ReissueController {
 
         throw new LoveLedgerException(ErrorCode.INVALID_INPUT_VALUE, "refresh token null");
     }
+
     private void validateRefreshToken(String refreshToken) {
         Long userId = jwtUtil.getUserId(refreshToken);
 
