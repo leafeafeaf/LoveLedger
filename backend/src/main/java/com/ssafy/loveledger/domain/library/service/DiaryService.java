@@ -13,9 +13,9 @@ import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadAl
 import com.ssafy.loveledger.domain.library.presentation.dto.response.DiaryReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
 import com.ssafy.loveledger.global.openai.util.OpenAiUtil;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;

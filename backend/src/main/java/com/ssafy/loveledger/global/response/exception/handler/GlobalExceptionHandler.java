@@ -1,9 +1,9 @@
-package com.ssafy.loveledger.global.exception.handler;
+package com.ssafy.loveledger.global.response.exception.handler;
 
 
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.ErrorResponse;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.ErrorResponse;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
