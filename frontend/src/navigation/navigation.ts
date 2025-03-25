@@ -63,8 +63,12 @@ export type ProfileStackParamList = {
 // 다이어리 관련 스택 파라미터 타입
 export type DiaryStackParamList = {
   DiaryCreate: {};
+};
+
+// Daily 관련 스택 파라미터 타입
+export type DailyStackParamList = {
   DailyDetail: {
-    selectedDate: Date;
+    selectedDate: string;
     transactions: Transaction[];
   };
 };
@@ -82,11 +86,8 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   Story: NavigatorScreenParams<StoryStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
-  DailyDetail: {
-    selectedDate: Date;
-    transactions: Transaction[];
-  };
   Diary: NavigatorScreenParams<DiaryStackParamList>;
+  Daily: NavigatorScreenParams<DailyStackParamList>;
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: {};
   LinkConfirm: { linkCode: string };
