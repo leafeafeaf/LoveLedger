@@ -1,8 +1,8 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAppSelector } from './hooks/reduxHooks';
-import { RootStackParamList } from './types';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAppSelector } from "./hooks/reduxHooks";
+import { RootStackParamList } from "./types";
 
 // 네비게이터 임포트
 import { AuthNavigator } from "./navigation/AuthNavigator";
@@ -35,7 +35,7 @@ const AppRouter = () => {
           // 인증된 상태
           <>
             <Stack.Screen name="Main" component={MainNavigator} />
-            
+
             {/* 스토리 스택 */}
             <Stack.Screen
               name="Story"
@@ -47,6 +47,13 @@ const AppRouter = () => {
             <Stack.Screen
               name="Diary"
               component={DiaryNavigator}
+              options={{ presentation: "modal" }}
+            />
+
+            {/* 프로필 스택 */}
+            <Stack.Screen
+              name="Profile"
+              component={ProfileNavigator}
               options={{ presentation: "modal" }}
             />
 

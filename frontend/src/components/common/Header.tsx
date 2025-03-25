@@ -7,6 +7,7 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  showClose?: boolean;
   onBack?: () => void;
   rightElement?: React.ReactNode;
 }
