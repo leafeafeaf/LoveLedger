@@ -12,7 +12,6 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import {
-  NavigationProps,
   Goal,
   Transaction,
   ProfileScreenProps,
