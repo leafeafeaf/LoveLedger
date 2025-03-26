@@ -11,6 +11,7 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCr
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.*;
+import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
@@ -103,13 +104,13 @@ public class FictionService {
 
     // 소설 삭제
     @Transactional
-    public void deleteSeries(Long LibraryId, Long fictionId) {
+    public void deleteSeries(User user, Long fictionId) {
 
         // 소설 Id로 소설 존재 여부 확인
         Fiction fiction = fictionRepository.findById(fictionId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND, String.valueOf(fictionId)));
 
-        if (!fiction.getSeries().getLibrary().getId().equals(LibraryId)) {
+        if (!fiction.getSeries().getLibrary().getId().equals(user.getLibrary().getId())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -118,10 +119,10 @@ public class FictionService {
 
     // 시리즈별 소설 전부 조회
     @Transactional
-    public Page<FictionAllReadResponse> readAllFiction(Long libraryId, int pageNo, int size, String sort) {
+    public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size, String sort) {
 
         // 사용자 체크
-        libraryRepository.findById(libraryId).orElseThrow(
+        libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
         // 정렬 방식 설정
@@ -131,7 +132,7 @@ public class FictionService {
         // Pageable 객체 생성 (페이지 번호는 0부터 시작해야 하므로 pageno - 1)
         Pageable pageable = PageRequest.of(pageNo - 1, size, Sort.by(direction, "id"));
 
-        Page<Series> seriesPage = seriesRepository.findByLibraryId(libraryId, pageable);
+        Page<Series> seriesPage = seriesRepository.findByLibraryId(user.getLibrary().getId(), pageable);
 
         return seriesPage.map(series -> {
             List<FictionReadResponse> fictionDtos = series.getFiction().stream()
@@ -153,10 +154,10 @@ public class FictionService {
 
     // 소설 상세 조회
     @Transactional
-    public FictionDetailReadResponse readFiction(Long libraryId, Long fictionId) {
+    public FictionDetailReadResponse readFiction(User user, Long fictionId) {
 
         // 사용자 체크
-        Library library = libraryRepository.findById(libraryId).orElseThrow(
+        Library library = libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
         // 소설 여부 체크

@@ -1,22 +1,24 @@
 package com.ssafy.loveledger.domain.library.service;
 
-import com.ssafy.loveledger.domain.library.domain.Library;
 import com.ssafy.loveledger.domain.library.domain.Series;
 import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
 import com.ssafy.loveledger.domain.library.domain.repository.SeriesRepository;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.SeriesCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.SeriesReadResponse;
+import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SeriesService {
 
     private final SeriesRepository seriesRepository;
@@ -24,11 +26,11 @@ public class SeriesService {
 
     // 시리즈 생성
     @Transactional
-    public void createSeries(Long libraryId, @Valid SeriesCreateReq seriesCreateReq) {
+    public void createSeries(User user, @Valid SeriesCreateReq seriesCreateReq) {
 
         // series 생성
         Series series = Series.builder()
-            .library(Library.builder().id(libraryId).build())
+            .library(user.getLibrary())
             .title(seriesCreateReq.getTitle())
             .build();
 
@@ -38,14 +40,14 @@ public class SeriesService {
 
     //시리즈 삭제
     @Transactional
-    public void deleteSeries(Long LibraryId, Long seriesId) {
+    public void deleteSeries(User user, Long seriesId) {
 
         // 삭제하려는 시리즈가 있는지 검색
         Series series = seriesRepository.findById(seriesId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND, String.valueOf(seriesId)));
 
         // 유저 서재인지 확인
-        if (!series.getLibrary().getId().equals(LibraryId)) {
+        if (!series.getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
         seriesRepository.deleteById(seriesId);
@@ -53,9 +55,9 @@ public class SeriesService {
 
     // 시리즈 제목만 조회
     @Transactional
-    public List<SeriesReadResponse> getSeriesNames(Long LibraryId) {
+    public List<SeriesReadResponse> getSeriesNames(User user) {
 
-        libraryRepository.findById(LibraryId).orElseThrow(
+        libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
         List<Series> seriesList = seriesRepository.findAll();
