@@ -4,6 +4,7 @@ import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthe
 import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistoryTargetRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -31,6 +32,20 @@ public class AccountController {
     private final AccountService accountService;
     private final UserUtil userUtil;
 
+    @GetMapping("/history/stat")
+    public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
+        @RequestParam Integer year,
+        @RequestParam Integer month,
+        @RequestParam(defaultValue = "1") Integer pageno,
+        @RequestParam(defaultValue = "15") Integer size,
+        @RequestParam(defaultValue = "asc") String sort
+    ) {
+        User user = userUtil.getCurrentUser();
+        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month, pageno, size, sort);
+        return monthStat;
+    }
+
     @GetMapping("/saveus")
     public List<WeekStatisticsResponse> saveAccount() {
         User user = userUtil.getCurrentUser();
@@ -40,18 +55,15 @@ public class AccountController {
     @GetMapping("/history/sum/list")
     public Map<String, Object> getDailyStatisticsByMonth(
         @RequestParam Integer year,
-        @RequestParam Integer month,
-        @RequestParam(defaultValue = "1") Integer pageno,
-        @RequestParam(defaultValue = "15") Integer size,
-        @RequestParam(defaultValue = "asc") String sort
+        @RequestParam Integer month
     ) {
         User user = userUtil.getCurrentUser();
         Map<String, Object> content = new HashMap<>();
 
         List<WeekStatisticsResponse> weekStat = accountService.getAccountHistoryByWeek(user, year,
             month);
-        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
-            year, month, size, pageno, sort);
+        List<MonthlyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month);
 
         content.put("weekStat", weekStat);
         content.put("monthStat", monthStat);

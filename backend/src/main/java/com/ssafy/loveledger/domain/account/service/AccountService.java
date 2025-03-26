@@ -12,6 +12,7 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatis
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MemberInfoResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.SSAFYResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
@@ -93,10 +94,10 @@ public class AccountService {
         } else if (user.getAccount() == null) {
             throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
         }
-        
+
         updateListOfHistory(user);
 
-        Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
+        Direction direction = sort.equalsIgnoreCase("asc") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "dayId.targetDay"));
 
         YearMonth yearMonth = YearMonth.of(year, month);
@@ -117,6 +118,16 @@ public class AccountService {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         return historyRepository.findWeeklyStatistics(user, year, month, startDate);
+    }
+
+    @Transactional
+    public List<MonthlyStatisticsResponse> getAccountHistoryByMonth(User user, int year,
+        int month) {
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        return historyRepository.findMonthlyStatistics(user, year, month);
     }
 
     @Transactional
