@@ -5,6 +5,8 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCr
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionAllReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionArtReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionContentReadRes;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -29,7 +31,7 @@ public class FictionController {
 
     // 소설 내용 생성
     @PostMapping("/content")
-    public void createFictionContent(
+    public FictionContentReadRes createFictionContent(
         @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
         User user = userUtil.getCurrentUser();
 
@@ -38,12 +40,12 @@ public class FictionController {
 
         log.info("user {} creates fiction content", user.getId());
 
-        fictionService.createFictionContent(fictionContentCreateReq);
+        return fictionService.createFictionContent(fictionContentCreateReq);
     }
 
     // 소설 그림 생성
     @PostMapping("/art")
-    public void createFictionArt(
+    public FictionArtReadRes createFictionArt(
         @RequestBody @Valid FictionArtCreateReq fictionContentArtReq) {
         User user = userUtil.getCurrentUser();
 
@@ -52,7 +54,7 @@ public class FictionController {
 
         log.info("user {} creates fiction image", user.getId());
 
-        fictionService.createFictionArt(fictionContentArtReq);
+        return fictionService.createFictionArt(fictionContentArtReq);
     }
 
     // 소설 전체 생성
