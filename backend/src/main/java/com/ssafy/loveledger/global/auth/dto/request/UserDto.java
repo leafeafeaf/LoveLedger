@@ -14,4 +14,5 @@ public class UserDto {
     private String username;
     private Long libraryId;
     private String picture;
+    private boolean isRegistered; // 회원가입 완료 여부를 나타내는 필드 추가
 }
