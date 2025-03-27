@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+    environment {
+        GRADLE_USER_HOME = "/home/ubuntu/jenkins/.gradle"
+        REMOTE_DIR = "/home/ubuntu/app"
+        DOCKER_IMAGE = "loveledger-backend"
+        CONTAINER_NAME_BLUE = "loveledger-backend-blue"
+        CONTAINER_NAME_GREEN = "loveledger-backend-green"
+    }
+    stages {
+        // stage('Secrets Setup') {
+        //     steps {
+        //         withCredentials([
+        //             file(credentialsId: 'env-file', variable: 'EnvFile'),
+        //         ]) {
+        //             sh '''
+        //                 cp "$EnvFile" .env
+        //                 chmod 644 .env
+        //             '''
+        //         }
+        //     }
+        // }
+
+        // stage('Build Backend') {
+        //     steps {
+        //         sh '''
+        //             cd ./backend
+        //             chmod +x ./gradlew
+        //             ./gradlew clean build -x test --no-daemon
+        //         '''
+        //     }
+        // }
+
+        stage('Deploy to Main EC2') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
+                        sh '''
+                            ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST "echo '접속 성공!'"
+                            '''
+                }
+            }
+        }
+    }
+}
