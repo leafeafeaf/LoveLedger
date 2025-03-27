@@ -2,12 +2,10 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MainTabParamList } from "./navigation";
 import { theme } from "../utils/theme";
-import LibraryScreen from "../screens/library/LibraryScreen";
 import DashboardScreen from "../screens/main/DashboardScreen";
 import MainScreen from "../screens/main/MainScreen";
+import LibraryScreen from "../screens/library/LibraryScreen"; // 직접 임포트
 import { StyleSheet } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/navigation";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
