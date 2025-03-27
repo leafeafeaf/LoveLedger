@@ -38,7 +38,7 @@ pipeline {
                     string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
                         sh '''
                             ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST "echo '접속 성공!'"
-                            '''
+                        '''
                 }
             }
         }
