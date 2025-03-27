@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import DatePicker from "../../components/common/DatePicker";
+// screens/diary/DiaryEditScreen.tsx
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,32 +7,28 @@ import {
   TextInput,
   ScrollView,
   Pressable,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
+  ImageBackground,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import Header from "../../components/common/Header";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DiaryStackParamList } from "../../types";
+import WoodHeader from "../../components/common/WoodHeader";
+import DatePicker from "../../components/common/DatePicker";
 
 type DiaryEditScreenProps = NativeStackScreenProps<
   DiaryStackParamList,
   "DiaryEdit"
 >;
 
-// 감정 아이콘 타입 정의
-type MoodIconType =
-  | "emoticon-happy"
-  | "emoticon-excited"
-  | "emoticon-cool"
-  | "emoticon-sad";
+// 기분 타입 정의
+type MoodType = 'happy' | 'excited' | 'peaceful' | 'sad';
 
-interface Mood {
-  id: string;
-  icon: MoodIconType;
+interface MoodOption {
+  id: MoodType;
   label: string;
+  icon: string;
 }
 
 export default function DiaryEditScreen({
@@ -49,7 +45,7 @@ export default function DiaryEditScreen({
 
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent || "");
-  const [selectedMood, setSelectedMood] = useState(initialMood || "happy");
+  const [selectedMood, setSelectedMood] = useState<MoodType>((initialMood as MoodType) || "happy");
   const [expense, setExpense] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
     try {
@@ -60,7 +56,8 @@ export default function DiaryEditScreen({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const moods: Mood[] = [
+  // 기분 옵션
+  const moods: MoodOption[] = [
     { id: "happy", icon: "emoticon-happy", label: "행복함" },
     { id: "excited", icon: "emoticon-excited", label: "설렘" },
     { id: "peaceful", icon: "emoticon-cool", label: "평온함" },
@@ -81,7 +78,7 @@ export default function DiaryEditScreen({
 
     // TODO: 실제 저장 로직 구현
     Alert.alert("저장 완료", "다이어리가 수정되었습니다.", [
-      { text: "확인", onPress: () => navigation.navigate("DiaryCreate") },
+      { text: "확인", onPress: () => navigation.goBack() },
     ]);
   };
 
@@ -95,7 +92,7 @@ export default function DiaryEditScreen({
         onPress: () => {
           // TODO: 실제 삭제 로직 구현
           Alert.alert("삭제 완료", "다이어리가 삭제되었습니다.", [
-            { text: "확인", onPress: () => navigation.navigate("DiaryCreate") },
+            { text: "확인", onPress: () => navigation.goBack() },
           ]);
         },
       },
@@ -103,124 +100,134 @@ export default function DiaryEditScreen({
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <Header
+    <View style={styles.container}>
+      <WoodHeader
         title="일기 수정"
         showBack={true}
         onBack={() => navigation.goBack()}
       />
+      
       <DatePicker
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         onSelectDate={setSelectedDate}
         selectedDate={selectedDate}
       />
-      <ScrollView style={styles.content}>
-        <Pressable
-          style={styles.dateSelector}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <MaterialCommunityIcons
-            name="calendar"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.dateText}>
-            {selectedDate.toLocaleDateString("ko-KR", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              weekday: "long",
-            })}
-          </Text>
-          <MaterialCommunityIcons
-            name="chevron-down"
-            size={20}
-            color={theme.colors.primary}
-          />
-        </Pressable>
-        <TextInput
-          style={styles.titleInput}
-          placeholder="제목을 입력하세요..."
-          value={title}
-          onChangeText={setTitle}
-          placeholderTextColor={theme.colors.textLight}
-        />
-        <View style={styles.moodSelector}>
-          <Text style={styles.sectionTitle}>기분은 어땠나요?</Text>
-          <View style={styles.moodOptions}>
-            {moods.map((mood) => (
-              <Pressable
-                key={mood.id}
-                style={[
-                  styles.moodOption,
-                  selectedMood === mood.id && styles.selectedMoodOption,
-                ]}
-                onPress={() => setSelectedMood(mood.id)}
-              >
-                <MaterialCommunityIcons
-                  name={mood.icon}
-                  size={24}
-                  color={
-                    selectedMood === mood.id
-                      ? theme.colors.white
-                      : theme.colors.primary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.moodLabel,
-                    selectedMood === mood.id && styles.selectedMoodLabel,
-                  ]}
-                >
-                  {mood.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-        <View style={styles.expenseInput}>
-          <Text style={styles.sectionTitle}>지출 금액</Text>
+      
+      <ImageBackground
+        source={require('../../../assets/images/library/library_bg.png')}
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={styles.content}>
+          <Pressable
+            style={styles.dateSelector}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <MaterialCommunityIcons
+              name="calendar"
+              size={20}
+              color="#F6C324"
+            />
+            <Text style={styles.dateText}>
+              {selectedDate.toLocaleDateString("ko-KR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={20}
+              color="#F6C324"
+            />
+          </Pressable>
+          
           <TextInput
-            style={styles.amountInput}
-            placeholder="금액 입력"
-            value={expense}
-            onChangeText={setExpense}
-            keyboardType="numeric"
+            style={styles.titleInput}
+            placeholder="다이어리 제목"
+            value={title}
+            onChangeText={setTitle}
             placeholderTextColor={theme.colors.textLight}
           />
+          
+          <View style={styles.moodSelector}>
+            <Text style={styles.sectionTitle}>기분은 어땠나요?</Text>
+            <View style={styles.moodOptions}>
+              {moods.map((mood) => (
+                <Pressable
+                  key={mood.id}
+                  style={[
+                    styles.moodOption,
+                    selectedMood === mood.id && styles.selectedMoodOption,
+                  ]}
+                  onPress={() => setSelectedMood(mood.id)}
+                >
+                  <MaterialCommunityIcons
+                    name={mood.icon as any}
+                    size={24}
+                    color={
+                      selectedMood === mood.id
+                        ? "white"
+                        : "#F6C324"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.moodLabel,
+                      selectedMood === mood.id && styles.selectedMoodLabel,
+                    ]}
+                  >
+                    {mood.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          
+          <View style={styles.expenseInput}>
+            <Text style={styles.sectionTitle}>지출 금액</Text>
+            <TextInput
+              style={styles.amountInput}
+              placeholder="금액 입력"
+              value={expense}
+              onChangeText={setExpense}
+              keyboardType="numeric"
+              placeholderTextColor={theme.colors.textLight}
+            />
+          </View>
+          
+          <TextInput
+            style={styles.contentInput}
+            placeholder="내용을 입력하세요..."
+            value={content}
+            onChangeText={setContent}
+            multiline
+            textAlignVertical="top"
+            placeholderTextColor={theme.colors.textLight}
+          />
+        </ScrollView>
+        
+        <View style={styles.footer}>
+          <Pressable style={styles.deleteButton} onPress={handleDelete}>
+            <MaterialCommunityIcons
+              name="delete"
+              size={24}
+              color="red"
+            />
+          </Pressable>
+          
+          <Pressable style={styles.saveButton} onPress={handleSave}>
+            <MaterialCommunityIcons
+              name="content-save"
+              size={24}
+              color="white"
+            />
+            <Text style={styles.saveButtonText}>저장하기</Text>
+          </Pressable>
         </View>
-        <TextInput
-          style={styles.contentInput}
-          placeholder="내용을 입력하세요..."
-          value={content}
-          onChangeText={setContent}
-          multiline
-          textAlignVertical="top"
-          placeholderTextColor={theme.colors.textLight}
-        />
-      </ScrollView>
-      <View style={styles.footer}>
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <MaterialCommunityIcons
-            name="delete"
-            size={24}
-            color={theme.colors.error}
-          />
-        </Pressable>
-        <Pressable style={styles.saveButton} onPress={handleSave}>
-          <MaterialCommunityIcons
-            name="content-save"
-            size={24}
-            color={theme.colors.white}
-          />
-          <Text style={styles.saveButtonText}>저장</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      </ImageBackground>
+    </View>
   );
 }
 
@@ -229,39 +236,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+  },
   content: {
     flex: 1,
-    padding: theme.spacing.md,
+    padding: 16,
   },
   dateSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.small,
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   dateText: {
     flex: 1,
     fontSize: 16,
     color: theme.colors.text,
-    marginLeft: theme.spacing.md,
+    marginLeft: 8,
   },
   titleInput: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: theme.spacing.xl,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: "white",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   moodSelector: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 16,
   },
   moodOptions: {
     flexDirection: "row",
@@ -269,67 +292,95 @@ const styles = StyleSheet.create({
   },
   moodOption: {
     alignItems: "center",
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.small,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "white",
+    width: '23%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   selectedMoodOption: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#F6C324",
   },
   moodLabel: {
     fontSize: 12,
     color: theme.colors.text,
-    marginTop: theme.spacing.xs,
+    marginTop: 4,
   },
   selectedMoodLabel: {
-    color: theme.colors.white,
+    color: "white",
   },
   expenseInput: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 16,
   },
   amountInput: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
     fontSize: 16,
     color: theme.colors.text,
-    ...theme.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   contentInput: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
     fontSize: 16,
     color: theme.colors.text,
     minHeight: 200,
-    ...theme.shadows.small,
+    marginBottom: 16,
+    textAlignVertical: 'top',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   footer: {
     flexDirection: "row",
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.medium,
+    padding: 16,
+    marginBottom: 16,
   },
   deleteButton: {
     justifyContent: "center",
     alignItems: "center",
-    padding: theme.spacing.md,
-    marginRight: theme.spacing.md,
+    padding: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#EEECE9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   saveButton: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    backgroundColor: "#F6C324",
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.white,
+    color: "white",
   },
 });

@@ -11,7 +11,7 @@ import { StoryNavigator } from "./navigation/StoryNavigator";
 import { DiaryNavigator } from "./navigation/DiaryNavigator";
 import { ProfileNavigator } from "./navigation/ProfileNavigator";
 import { DailyNavigator } from "./navigation/DailyNavigator";
-import { LibraryNavigator } from "./navigation/LibraryNavigator"; // 추가
+import { LibraryNavigator } from "./navigation/LibraryNavigator";
 
 // 개별 화면 임포트
 import TransactionEditScreen from "./screens/daily/DailyEditScreen";
@@ -19,6 +19,8 @@ import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
 import LinkErrorScreen from "./screens/link/LinkErrorScreen";
+import DiaryDetailScreen from "./screens/diary/DiaryDetailScreen";
+import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -65,10 +67,21 @@ const AppRouter = () => {
               options={{ presentation: "modal" }}
             />
 
-            {/* Library 스택 추가 */}
+            {/* Library 스택 */}
             <Stack.Screen
               name="Library"
               component={LibraryNavigator}
+            />
+
+            {/* Library 관련 상세 화면들 - 모달로 표시 */}
+            <Stack.Screen 
+              name="DiaryDetail" 
+              component={DiaryDetailScreen} 
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen 
+              name="StoryDetail" 
+              component={StoryDetailScreen} 
               options={{ presentation: "modal" }}
             />
 

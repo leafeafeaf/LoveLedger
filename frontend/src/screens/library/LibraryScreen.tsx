@@ -1,27 +1,36 @@
-import React, { useState, FC } from "react";
+// screens/library/LibraryScreen.tsx
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Pressable,
+  FlatList,
+  ImageBackground,
+  Image,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MainTabScreenProps } from "../../types";
+import { BookItem as BookItemType } from "../../types";
+import SearchBar from "../../components/library/SearchBar";
+import ViewToggle from "../../components/library/ViewToggle";
+import ContentToggle from "../../components/library/ContentToggle";
+import BookShelf from "../../components/library/BookShelf";
+import BookListItem from "../../components/library/BookListItem";
 import { theme } from "../../utils/theme";
-import Header from "../../components/common/Header";
-import BookCard from "../../components/common/BookCard";
-import { BookItem, LibraryScreenProps } from "../../types";
 
-type TabButtonProps = {
-  title: string;
-  isActive: boolean;
-  onPress: () => void;
-};
+type Props = MainTabScreenProps<"Library">;
 
-const LibraryScreen: FC<LibraryScreenProps<"LibraryMain">> = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState<"diaries" | "stories">("diaries");
+const LibraryScreen: React.FC<Props> = ({ navigation }) => {
+  const [activeView, setActiveView] = useState<"album" | "list">("album");
+  const [activeContent, setActiveContent] = useState<"diaries" | "stories">("stories");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { width } = Dimensions.get("window");
 
-  const mockDiaries: BookItem[] = [
+  // Mock data
+  const mockDiaries: BookItemType[] = [
     {
       id: "1",
       title: "Our First Date",
@@ -43,144 +52,244 @@ const LibraryScreen: FC<LibraryScreenProps<"LibraryMain">> = ({ navigation }) =>
       type: "diary",
       mood: "peaceful",
     },
+    {
+      id: "4",
+      title: "Our First Trade",
+      date: "2024-02-15",
+      type: "diary",
+      mood: "peaceful",
+    },
+    {
+      id: "5",
+      title: "Anything",
+      date: "2024-02-10",
+      type: "diary",
+      mood: "happy",
+    },
   ];
 
-  const mockStories: BookItem[] = [
+  const mockStories: BookItemType[] = [
     {
       id: "1",
       title: "Our Love Story",
       date: "2024-03-13",
       type: "story",
-      theme: "romance",
+      theme: "Series 1",
     },
     {
       id: "2",
       title: "Future Dreams",
       date: "2024-03-10",
       type: "story",
-      theme: "fantasy",
+      theme: "Series 1",
+    },
+    {
+      id: "3",
+      title: "The Vacation",
+      date: "2024-03-05",
+      type: "story",
+      theme: "Series 1",
+    },
+    {
+      id: "4",
+      title: "The Concert",
+      date: "2024-02-20",
+      type: "story",
+      theme: "Series 2",
+    },
+    {
+      id: "5",
+      title: "First Meeting",
+      date: "2024-02-15",
+      type: "story",
+      theme: "Series 2",
     },
   ];
 
-  const TabButton = ({ title, isActive, onPress }: TabButtonProps) => (
-    <Pressable
-      style={[styles.tabButton, isActive && styles.activeTabButton]}
-      onPress={onPress}
+  // Filter books by search query
+  const filteredBooks = 
+    activeContent === "diaries" 
+      ? mockDiaries.filter(item => 
+          item.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : mockStories.filter(item => 
+          item.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+  // Group books by month (for diaries) or series (for stories)
+  const groupedBooks = filteredBooks.reduce((acc, item) => {
+    let key;
+    
+    if (activeContent === "diaries") {
+      const date = new Date(item.date);
+      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      key = item.theme || "Default Series";
+    }
+    
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    
+    acc[key].push(item);
+    return acc;
+  }, {} as Record<string, BookItemType[]>);
+
+  // Sort groups
+  const sortedGroupKeys = Object.keys(groupedBooks).sort().reverse();
+
+  // Handle book selection
+  const handleSelectBook = (book: BookItemType) => {
+    if (book.type === "diary") {
+      navigation.navigate("DiaryDetail", {
+        id: book.id,
+        date: book.date,
+        mood: book.mood,
+      });
+    } else {
+      navigation.navigate("StoryDetail", {
+        id: book.id,
+      });
+    }
+  };
+
+  // 헤더 렌더링
+  const renderHeader = () => (
+    <ImageBackground
+      source={require("../../../assets/images/common/wood.jpg")}
+      style={styles.header}
     >
-      <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-        {title}
-      </Text>
-    </Pressable>
+      <StatusBar barStyle="light-content" />
+      <Text style={styles.headerTitle}>Library</Text>
+    </ImageBackground>
+  );
+
+  // 컨트롤 영역 렌더링
+  const renderControls = () => (
+    <View style={styles.controlsContainer}>
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <ViewToggle
+          activeView={activeView}
+          onToggle={setActiveView}
+        />
+      </View>
+      
+      <ContentToggle
+        activeContent={activeContent}
+        onToggle={setActiveContent}
+      />
+    </View>
+  );
+
+  // 앨범 뷰 렌더링
+  const renderAlbumView = () => (
+    <ScrollView 
+      style={styles.content}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      {sortedGroupKeys.map((key) => (
+        <BookShelf
+          key={key}
+          title={key}
+          books={groupedBooks[key]}
+          onSelectBook={handleSelectBook}
+          type={activeContent === 'stories' ? 'story' : 'diary'}
+        />
+      ))}
+    </ScrollView>
+  );
+
+  // 리스트 뷰 렌더링
+  const renderListView = () => (
+    <FlatList
+      style={[styles.content, styles.listContent]}
+      data={filteredBooks}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <BookListItem
+          item={item}
+          onPress={() => handleSelectBook(item)}
+          type={activeContent === 'stories' ? 'story' : 'diary'}
+        />
+      )}
+    />
   );
 
   return (
     <View style={styles.container}>
-      <Header
-        title="Library"
-        showBack={false}
-        showClose={false}
-        rightElement={
-          <Pressable style={styles.searchButton}>
-            <MaterialCommunityIcons
-              name="book-search"
-              size={24}
-              color={theme.colors.primary}
-            />
-          </Pressable>
-        }
-      />
-
-      <View style={styles.tabContainer}>
-        <TabButton
-          title="Diaries"
-          isActive={activeTab === "diaries"}
-          onPress={() => setActiveTab("diaries")}
-        />
-        <TabButton
-          title="Stories"
-          isActive={activeTab === "stories"}
-          onPress={() => setActiveTab("stories")}
-        />
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.shelfContainer}>
-          {activeTab === "diaries"
-            ? mockDiaries.map((item) => (
-                <BookCard
-                  key={item.id}
-                  item={item}
-                  onPress={() =>
-                    navigation.navigate("Daily", {
-                      screen: "DailyDetail",
-                      params: {
-                        selectedDate: new Date(item.date).toISOString(),
-                        transactions: [],
-                      }
-                    })
-                  }
-                />
-              ))
-            : mockStories.map((item) => (
-                <BookCard
-                  key={item.id}
-                  item={item}
-                  onPress={() =>
-                    navigation.navigate("Story", {
-                      screen: "StoryDetail",
-                      params: { id: item.id }
-                    })
-                  }
-                />
-              ))}
+      {renderHeader()}
+      
+      <ImageBackground
+        source={require("../../../assets/images/library/library_bg.png")}
+        style={styles.bgContainer}
+      >
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("../../../assets/images/library/inner_logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
-      </ScrollView>
+
+        {renderControls()}
+
+        {activeView === "album" ? renderAlbumView() : renderListView()}
+      </ImageBackground>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // 기존 스타일 코드 유지
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  searchButton: {
-    padding: theme.spacing.sm,
+  header: {
+    paddingTop: 72,
+    paddingBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabContainer: {
-    flexDirection: "row",
-    padding: theme.spacing.sm,
-    gap: theme.spacing.sm,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
   },
-  tabButton: {
+  bgContainer: {
     flex: 1,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
+    width: "100%",
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  searchContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    ...theme.shadows.small,
-  },
-  activeTabButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-  },
-  activeTabText: {
-    color: theme.colors.white,
+    marginBottom: 8,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.md,
   },
-  shelfContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  listContent: {
+    backgroundColor: "#FFFBF2", // 연한 베이지색
   },
 });
 
