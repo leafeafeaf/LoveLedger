@@ -12,8 +12,8 @@ public class FictionArtCreateReq {
     @NotBlank(message = "소설 내용은 필수입니다.")
     private String content;
 
-    @NotNull(message = "소설 테마는 필수입니다.")
-    private Long themeId;
+    @NotNull(message = "소설 그림체는 필수입니다.")
+    private String drawStyle;
 
     @NotBlank(message = "소설 제목은 필수입니다.")
     private String title;

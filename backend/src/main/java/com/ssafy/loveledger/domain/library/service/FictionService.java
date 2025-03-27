@@ -116,14 +116,13 @@ public class FictionService {
     @Transactional
     public FictionDetailReadResponse readFiction(User user, Long fictionId) {
 
-        // 사용자 체크
-        libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
-            () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
-
         // 소설 여부 체크
         Fiction fiction = fictionRepository.findById(fictionId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FICTION_NOT_FOUND, String.valueOf(fictionId)));
 
+        if (fiction.getSeries().getLibrary().equals(user.getLibrary())) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
         return FictionDetailReadResponse.builder()
             .title(fiction.getTitle())
             .content(fiction.getContent())
@@ -140,6 +139,8 @@ public class FictionService {
         Long seriesId = fictionContentCreateReq.getSeriesId();
         LocalDate startDate = fictionContentCreateReq.getStartDate();
         LocalDate endDate = fictionContentCreateReq.getEndDate();
+        Boolean isMarried = user.getIsMarried();
+        Boolean gender = user.getGender();
 
         // series 있는지 확인
         Series series = seriesRepository.findById(seriesId)
@@ -176,7 +177,7 @@ public class FictionService {
 
         log.info("계좌 개수 : {}  내역 개수 : {}", accounts.size(), histories.size());
 
-        //챗지피티 반환
+        //TODO : Util로 연결 시, 테마별로 프롬프트 만들기
         String prompt = """
             당신은 사용자의 금융 거래 내역을 바탕으로 테마 스타일에 따라 소설의 제목(title)과 내용(content)을 생성하는 AI 비서입니다.
             
@@ -187,6 +188,10 @@ public class FictionService {
             %s
             - 이전 소설 내용:
             %s
+            - 성별:
+            %s
+            - 사용자 결혼 여부:
+            %s
             
             [출력 포맷]
             {
@@ -195,7 +200,8 @@ public class FictionService {
             }
             
             [규칙]
-            1. 항상 남편과 아내를 주인공으로 등장시켜 주세요.
+            1. 결혼 여부가 True이면, 남편과 아내를 주인공으로 등장시켜주세요.
+            2. 결혼 여부가 False일 때, 성별이 1이면 남성을 주인공으로, 성별이 0이면 여성을 주인공으로 등장시켜주세요.
             2. 거래 내역(금액 포함)을 이야기의 사건, 배경, 갈등 요소로 자연스럽게 녹여내 주세요.
             3. 테마의 분위기를 유지하세요.
             4. 반전, 기승전결 등을 포함시켜주세요.
@@ -205,7 +211,7 @@ public class FictionService {
             8. 이전에 작성한 소설이 있다면, 이전 소설의 내용에 이어서 작성해주세요.
             9. 연작 소설 형태를 이룰 것이기 때문에, title 뒤에 소설의 몇번째 화인지도 붙혀주세요. (ex. title 1화 )
             위 조건에 따라 이야기를 창의적으로 구성해주세요.
-            """.formatted(theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList));
+            """.formatted(theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList), gender, isMarried);
 
         log.info(prompt);
 
@@ -228,25 +234,22 @@ public class FictionService {
     @Transactional(readOnly = true)
     public FictionArtReadRes getFictionArtAI(FictionArtCreateReq fictionArtCreateReq) {
 
-        Long themeId = fictionArtCreateReq.getThemeId();
+        String drawStyle = fictionArtCreateReq.getDrawStyle();
         String title = fictionArtCreateReq.getTitle();
         String content = fictionArtCreateReq.getContent();
 
-        // Theme 검증
-        Theme theme = themeRepository.findById(themeId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.THEME_NOT_FOUND, String.valueOf(themeId)));
 
         String prompt = """
-            당신은 테마, 소설의 제목과 내용에 따라 한 장의 그림을 생성하여 이미지 url로 보여주는 AI 비서입니다.\s
+            당신은 그림체, 소설의 제목과 내용에 따라 한 장의 그림을 생성하여 이미지 url로 보여주는 AI 비서입니다.\s
             
             [입력값]
-            - 테마: %s (작품의 분위기와 장르를 나타냅니다. (예: 파파라치, 중세시대 판타지, 러브코미디 등))
+            - 그림체: %s (그림의 스타일)
             - 제목: %s (소설의 중심 주제를 담고 있는 문장입니다.)
             - 내용: (주요 사건, 인물, 배경이 서술된 본문입니다. 이 내용을 바탕으로 장면을 상상해주세요.)
             %s
             
             [출력 목적]
-            제공된 정보를 바탕으로 하나의 장면을 묘사한 수채화 or 유채화풍 이미지를 생성하기 위한 구체적인 프롬프트 문장을 만드세요.
+            제공된 정보를 바탕으로 하나의 장면을 묘사한 입력받은 그림체로 이미지를 생성하기 위한 구체적인 프롬프트 문장을 만드세요.
             
             [출력 형식]
             {
@@ -261,9 +264,9 @@ public class FictionService {
             5. 민감하거나 부정적인 표현은 피해주세요.
             
             [중요 사항]
-            1. 반드시 수채화 or 유채화 풍으로 귀엽게 만들어주세요.
+            1. 반드시 입력값의 그림체에 해당하는 그림체로 귀엽게 만들어주세요.
             2. 반드시 이미지 url로 출력해주세요.
-            """.formatted(theme.getName(), title, content);
+            """.formatted(drawStyle, title, content);
 
         log.info(prompt);
 
@@ -276,13 +279,11 @@ public class FictionService {
 
         log.info(artUrl);
 
-        //ToDo : S3에 저장 필요.
         return FictionArtReadRes.builder()
             .imageUrl(artUrl)
             .build();
     }
 
-    //TODO chatGPT이 대체될경우 삭제할것
     private String formatHistoryList(List<History> historyList) {
         StringBuilder sb = new StringBuilder();
         sb.append("[\n");
@@ -317,7 +318,6 @@ public class FictionService {
         return sb.toString();
     }
 
-    //TODO chatGPT이 대체될경우 삭제할것
     private String formatFictionList(List<FictionReadRequest> fictionList) {
         StringBuilder sb = new StringBuilder();
         sb.append("[\n");
