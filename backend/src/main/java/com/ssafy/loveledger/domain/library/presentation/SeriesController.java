@@ -1,7 +1,7 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.presentation.dto.request.SeriesCreateReq;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.SeriesReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.series.SeriesCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.series.SeriesReadResponse;
 import com.ssafy.loveledger.domain.library.service.SeriesService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
@@ -28,9 +28,6 @@ public class SeriesController {
     public void createSeries(@RequestBody @Valid SeriesCreateReq seriesCreateReq) {
         User user = userUtil.getCurrentUser();
 
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
-
         log.info("user {} create series", user.getId());
 
         seriesService.createSeries(user, seriesCreateReq);
@@ -41,9 +38,6 @@ public class SeriesController {
     public void deleteSeries(@PathVariable Long seriesId) {
         User user = userUtil.getCurrentUser();
 
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
-
         log.info("user {} delete series {}", user.getId(), seriesId);
 
         seriesService.deleteSeries(user, seriesId);
@@ -53,9 +47,6 @@ public class SeriesController {
     @GetMapping
     public List<SeriesReadResponse> getSeriesName() {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} get series names", user.getId());
 

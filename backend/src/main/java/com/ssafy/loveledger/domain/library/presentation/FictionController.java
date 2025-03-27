@@ -1,13 +1,13 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
 import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCreateRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionAllReadResponse;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionArtReadRes;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionContentReadRes;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionDetailReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionAllCreateRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionArtCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionContentCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionAllReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionArtReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionContentReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
@@ -35,26 +35,20 @@ public class FictionController {
         @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
         User user = userUtil.getCurrentUser();
 
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
-
         log.info("user {} creates fiction content", user.getId());
 
-        return fictionService.createFictionContent(fictionContentCreateReq);
+        return fictionService.getFictionContentAI(user, fictionContentCreateReq);
     }
 
     // 소설 그림 생성
     @PostMapping("/art")
     public FictionArtReadRes createFictionArt(
-        @RequestBody @Valid FictionArtCreateReq fictionContentArtReq) {
+        @RequestBody @Valid FictionArtCreateReq fictionArtCreateReq) {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} creates fiction image", user.getId());
 
-        return fictionService.createFictionArt(fictionContentArtReq);
+        return fictionService.getFictionArtAI(user, fictionArtCreateReq);
     }
 
     // 소설 전체 생성
@@ -62,9 +56,6 @@ public class FictionController {
     public void createFiction(
         @RequestBody @Valid FictionAllCreateRequest fictionCreateReq) {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} creates fiction all", user.getId());
 
@@ -75,9 +66,6 @@ public class FictionController {
     @DeleteMapping("/{fictionId}")
     public void deleteSeries(@PathVariable Long fictionId) {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} delete fiction", user.getId());
 
@@ -93,9 +81,6 @@ public class FictionController {
     ) {
         User user = userUtil.getCurrentUser();
 
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
-
         log.info("user {} read fictions", user.getId());
 
         return fictionService.readAllFiction(user, pageNo, size, sort);
@@ -107,9 +92,6 @@ public class FictionController {
     public FictionDetailReadResponse readFiction(
         @PathVariable Long fictionId) {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} read fiction", user.getId());
 

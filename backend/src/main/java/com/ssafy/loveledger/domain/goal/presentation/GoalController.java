@@ -26,8 +26,6 @@ public class GoalController {
     @PostMapping
     public void createGoal(@RequestBody @Valid GoalCreateRequest goalCreateRequest) {
         User user = userUtil.getCurrentUser();
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} creates goal", user.getId());
 
@@ -40,9 +38,6 @@ public class GoalController {
     public void deleteGoal() {
         User user = userUtil.getCurrentUser();
 
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
-
         log.info("user {} deletes goal", user.getId());
 
         goalService.deleteGoal(user);
@@ -53,8 +48,6 @@ public class GoalController {
     @PatchMapping
     public void updateGoal(@RequestBody @Valid GoalUpdateRequest goalUpdateRequest) {
         User user = userUtil.getCurrentUser();
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} updates goal", user.getId());
 
@@ -66,9 +59,6 @@ public class GoalController {
     @GetMapping
     public GoalReadResponse getGoals() {
         User user = userUtil.getCurrentUser();
-
-        // test
-//        User user = userRepository.findById(1L).orElse(null);
 
         log.info("user {} reads goal", user.getId());
 
