@@ -1,9 +1,7 @@
 package com.ssafy.loveledger.domain.library.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +9,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @Table
 @Entity
 public class Fiction {
@@ -21,22 +21,18 @@ public class Fiction {
 
     private LocalDateTime createdAt;
 
-    private String artURL;//
+    private String artURL;
 
     @ManyToOne
     @JoinColumn(name = "series_id")
     private Series series;
-
-    @ManyToOne
-    @JoinColumn(name = "Theme")
-    private Theme theme;
-
+    
     @Lob
-    private String content;//
+    private String content;
 
-    private LocalDate startDate;//
+    private LocalDate startDate;
 
-    private LocalDate endDate;//
+    private LocalDate endDate;
 
     private String Title;
 

@@ -46,12 +46,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String provider = oauth2Response.getProvider();
         String code = oauth2Response.getProviderId();
         String username = provider + " " + code;
+        String picture = oauth2Response.getPicture();
 
         Optional<User> existData = userRepository.findByProviderAndUsercode(provider, code);
 
         if (existData.isEmpty()) {
             User user = User.builder().provider(provider).email(oauth2Response.getEmail())
-                .name(oauth2Response.getName()).usercode(code).build();
+                .name(oauth2Response.getName()).usercode(code).picture(picture).build();
 
             //TODO 금융 API user key
 
@@ -78,6 +79,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             existingUser.setEmail(oauth2Response.getEmail());
             existingUser.setName(oauth2Response.getName());
+            existingUser.setPicture(oauth2Response.getPicture());
             userRepository.save(existingUser);
 
             // 기존 사용자의 라이브러리 조회
@@ -88,6 +90,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             UserDto userDto = UserDto.builder().name(existingUser.getName())
                 .userId(existingUser.getId())
                 .username(username)
+                .picture(picture)
                 .libraryId(userLibrary.getId())
                 .build();
 

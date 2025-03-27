@@ -46,6 +46,6 @@ public class Couple {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "couple", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "couple") // 수정
     private List<User> users = new ArrayList<>();
 }

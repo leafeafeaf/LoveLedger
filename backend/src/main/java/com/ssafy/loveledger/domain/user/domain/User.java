@@ -43,6 +43,7 @@ public class User {
     private String provider;
     private String usercode;
     private String name;
+    private String picture;
 
     private Boolean isMarried;
 
@@ -52,7 +53,7 @@ public class User {
     @OneToOne(mappedBy = "user")
     private Library library;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
     private List<Account> account;
 
     @ManyToOne(fetch = FetchType.LAZY)

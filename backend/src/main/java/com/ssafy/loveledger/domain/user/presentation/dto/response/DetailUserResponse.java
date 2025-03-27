@@ -25,4 +25,21 @@ public class DetailUserResponse {
     private String darlingName;
     private String darlingBirthDay;
     private int marriageDuration;
+    private String picture;
+
+    @Getter
+    @Builder
+    public static class CoupleInfo {
+
+        private boolean isMarried;
+        private String marryDate;
+        private String darling;
+        private String darlingName;
+        private String darlingBirthDay;
+        private int marriageDuration;
+
+        public static CoupleInfo empty() {
+            return CoupleInfo.builder().isMarried(false).build();
+        }
+    }
 }

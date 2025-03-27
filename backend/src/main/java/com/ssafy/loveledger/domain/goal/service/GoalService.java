@@ -6,33 +6,28 @@ import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalCreateReque
 import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalUpdateRequest;
 import com.ssafy.loveledger.domain.goal.presentation.dto.response.GoalReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.NoSuchElementException;
 
 @RequiredArgsConstructor
 @Service
 public class GoalService {
 
     private final GoalRepository goalRepository;
-    private final UserRepository userRepository;
 
     // 목표 생성
     @Transactional
-    public void createGoal(GoalCreateRequest goalCreateRequest, Long userId) {
+    public void createGoal(GoalCreateRequest goalCreateRequest, User user) {
 
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        if (goalRepository.existsById(userId)) {
-            throw new IllegalStateException("해당 유저는 이미 목표가 존재합니다.");
+        if (goalRepository.existsById(user.getId())) {
+            throw new LoveLedgerException(ErrorCode.GOAL_Exist);
         }
 
         Goal goal = Goal.builder()
-            .id(userId)
+            .id(user.getId())
             .goalAmount(goalCreateRequest.getGoalAmount())
             .currentAmount(goalCreateRequest.getCurrentAmount())
             .startDate(goalCreateRequest.getStartDate())
@@ -46,21 +41,23 @@ public class GoalService {
 
     // 목표 삭제
     @Transactional
-    public void deleteGoal(Long userId) {
+    public void deleteGoal(User user) {
 
-        if (!goalRepository.existsById(userId)) {
-            throw new NoSuchElementException("해당 목표는 존재하지 않습니다.");
+        // 사용자의 목표 여부 확인
+        if (!goalRepository.existsById(user.getId())) {
+            throw new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND);
         }
-        goalRepository.deleteById(userId);
+
+        goalRepository.deleteById(user.getId());
     }
 
     //목표 수정
     @Transactional
-    public void updateGoal(GoalUpdateRequest goalUpdateRequest, Long userId) {
+    public void updateGoal(GoalUpdateRequest goalUpdateRequest, User user) {
 
         // 유저에게 목표가 존재하는지 확인
-        Goal goal = goalRepository.findById(userId)
-            .orElseThrow(() -> new NoSuchElementException("해당 유저에게 목표는 존재하지 않습니다."));
+        Goal goal = goalRepository.findById(user.getId())
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND));
 
         goal.setGoalAmount(goalUpdateRequest.getGoalAmount());
         goal.setCurrentAmount(goalUpdateRequest.getCurrentAmount());
@@ -74,11 +71,11 @@ public class GoalService {
 
     // 목표 조회
     @Transactional
-    public GoalReadResponse readGoal(Long userId) {
+    public GoalReadResponse readGoal(User user) {
 
         // 유저에게 목표가 존재하는지 확인
-        Goal goal = goalRepository.findById(userId)
-            .orElseThrow(() -> new NoSuchElementException("해당 유저에게 목표는 존재하지 않습니다."));
+        Goal goal = goalRepository.findById(user.getId())
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND));
 
         return GoalReadResponse.builder()
             .goalAmount(goal.getGoalAmount())

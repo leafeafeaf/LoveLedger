@@ -34,9 +34,10 @@ public class Account {
     private User user;
     private String bankCode;
     private LocalDateTime certedAt;
-    private Long amount;
 
-    private LocalDateTime lastUpdated;
+    private Long amount = 0L;
+
+    private LocalDateTime lastUpdated = LocalDateTime.of(1980, 1, 1, 1, 0, 0);
 
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private List<History> history;

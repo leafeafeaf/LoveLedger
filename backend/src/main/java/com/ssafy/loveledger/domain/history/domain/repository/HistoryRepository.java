@@ -2,6 +2,7 @@ package com.ssafy.loveledger.domain.history.domain.repository;
 
 import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -28,8 +29,7 @@ public interface HistoryRepository extends JpaRepository<History, String> {
             "FROM DailyStatistics d " +
             "WHERE d.dayId.user = :user " +
             "AND d.dayId.targetDay BETWEEN :startDate AND :endDate " +
-            "GROUP BY d.dayId.targetDay " +
-            "ORDER BY d.dayId.targetDay ASC"
+            "GROUP BY d.dayId.targetDay "
     )
     List<DailyStatisticsResponse> findByUserAndMonth(User user, LocalDate startDate,
         LocalDate endDate, Pageable pageable);
@@ -54,6 +54,25 @@ public interface HistoryRepository extends JpaRepository<History, String> {
         LocalDate monthFirstDay
     );
 
+    @Query(
+        "SELECT NEW com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse( "
+            + "   d.category, " +
+            "   SUM(CASE WHEN d.transactionType > 2 THEN d.transactionAmount ELSE 0 END), "
+            +
+            "   SUM(CASE WHEN d.transactionType < 3 THEN d.transactionAmount ELSE 0 END) "
+            +
+            ") " +
+            "FROM History d " +
+            "WHERE d.account.user = :user " +
+            "AND YEAR(d.createdDate) = :year " +
+            "AND MONTH(d.createdDate) = :month " +
+            "GROUP BY d.category"
+    )
+    List<MonthlyStatisticsResponse> findMonthlyStatistics(
+        User user,
+        int year,
+        int month
+    );
 
     @Query("SELECT h FROM History h WHERE h.account IN :accounts AND h.createdDate = :targetDate")
     List<History> findByAccountsAndCreatedDate(@Param("accounts") List<Account> accounts,

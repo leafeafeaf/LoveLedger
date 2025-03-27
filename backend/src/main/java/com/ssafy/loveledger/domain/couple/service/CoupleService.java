@@ -8,35 +8,25 @@ import com.ssafy.loveledger.domain.couple.domain.repository.CoupleRepository;
 import com.ssafy.loveledger.domain.invite.service.InviteService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CoupleService {
 
     private final UserRepository userRepository;
     private final CoupleRepository coupleRepository;
     private final InviteService inviteService;
-    private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
-
-    /**
-     * 사용자가 이미 커플 관계에 있는지 확인합니다.
-     *
-     * @param userId 사용자 ID
-     * @return 커플 관계 여부
-     */
-    public boolean isUserAlreadyCoupled(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-
-        return user.getCouple() != null;
-    }
 
     /**
      * 사용자의 커플 등록 시간을 조회합니다.
@@ -46,10 +36,10 @@ public class CoupleService {
      */
     public LocalDateTime getCoupleRegisteredTime(Long userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, userId.toString()));
 
         if (user.getCouple() == null) {
-            throw new IllegalStateException("커플 관계가 존재하지 않습니다");
+            throw new LoveLedgerException(ErrorCode.COUPLE_NOT_FOUND, userId.toString());
         }
 
         return user.getCouple().getCreatedAt(); // Couple 엔티티에 createdAt 필드가 있다고 가정
@@ -66,58 +56,57 @@ public class CoupleService {
         // 초대 코드 유효성 검증
         String inviteDataJson = inviteService.validateInviteCode(inviteCode);
         if (inviteDataJson == null) {
-            throw new IllegalArgumentException("유효하지 않은 초대 코드입니다");
+            throw new LoveLedgerException(ErrorCode.INVALID_INVITE_CODE, inviteCode);
         }
+
 
         try {
             // JSON 파싱
             JsonNode inviteData = objectMapper.readTree(inviteDataJson);
 
-            // 만료 시간 확인
+            // 초대 코드 만료 시간 확인
             LocalDateTime expiresAt = LocalDateTime.parse(
-                inviteData.get("expiresAt").asText(),
-                DateTimeFormatter.ISO_DATE_TIME
-            );
-
+                inviteData.get("expiresAt").asText(), DateTimeFormatter.ISO_DATE_TIME);
             if (LocalDateTime.now().isAfter(expiresAt)) {
-                throw new IllegalStateException("초대 링크가 만료되었습니다");
+                throw new LoveLedgerException(ErrorCode.INVITE_EXPIRED, expiresAt.toString());
             }
 
             // 초대자 ID 가져오기
             Long inviterId = inviteData.get("inviterId").asLong();
+            log.info("###########{}", inviterId);
 
-            // 초대자 정보 조회
+
+            // 자기 자신과의 연동 방지 체크
+            if (inviterId.equals(inviteeId)) {
+                throw new LoveLedgerException(ErrorCode.INVALID_REQUEST, "자기 자신과 연동할 수 없습니다.");
+            }
+
+
+            // 초대자, 초대받은 사용자 조회
             User inviter = userRepository.findById(inviterId)
-                .orElseThrow(() -> new IllegalArgumentException("초대자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, inviterId.toString()));
 
-            // 초대받은 사용자 정보 조회
             User invitee = userRepository.findById(inviteeId)
-                .orElseThrow(() -> new IllegalArgumentException("초대받은 사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, inviteeId.toString()));
 
-            // 초대자가 이미 커플 관계인지 확인
+            // 이미 커플인지 체크
             if (inviter.getCouple() != null) {
-                throw new IllegalStateException("초대자가 이미 다른 사용자와 연동되어 있습니다");
+                throw new LoveLedgerException(ErrorCode.ALREADY_COUPLED, inviterId.toString());
             }
 
-            // 초대받은 사용자가 이미 커플 관계인지 확인 (이중 확인)
             if (invitee.getCouple() != null) {
-                throw new IllegalStateException("이미 연동되어 있는 계정입니다");
+                throw new LoveLedgerException(ErrorCode.ALREADY_COUPLED, inviteeId.toString());
             }
 
-            // 성별에 따라 남편/아내 구분 (선택적)
+            // 성별 체크 후 husband/wife 설정
             Long husbandId, wifeId;
             if (inviter.getGender() && !invitee.getGender()) {
-                // 초대자가 남성, 초대받은 사용자가 여성
                 husbandId = inviterId;
                 wifeId = inviteeId;
             } else if (!inviter.getGender() && invitee.getGender()) {
-                // 초대자가 여성, 초대받은 사용자가 남성
                 husbandId = inviteeId;
                 wifeId = inviterId;
             } else {
-                // 같은 성별이거나 성별 구분이 중요하지 않은 경우
-                // 초대자를 남편으로, 초대받은 사용자를 아내로 설정 (또는 다른 규칙 적용)
-                // TODO 또다른 규칙 적용
                 husbandId = inviterId;
                 wifeId = inviteeId;
             }
@@ -136,14 +125,69 @@ public class CoupleService {
             inviter.setCouple(savedCouple);
             invitee.setCouple(savedCouple);
 
-            userRepository.save(inviter);
-            userRepository.save(invitee);
-
             // 초대 코드 사용 처리
             inviteService.useInviteCode(inviteCode, inviteeId);
 
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("초대 정보 처리 중 오류가 발생했습니다", e);
+            throw new LoveLedgerException(ErrorCode.INTERNAL_SERVER_ERROR, "초대 정보 파싱 중 오류가 발생했습니다.");
         }
     }
+
+    @Transactional
+    public void deleteCouple(Long coupleId, Long userId) {
+
+        Couple couple = coupleRepository.findById(coupleId)
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.COUPLE_NOT_FOUND,
+                String.valueOf(coupleId)));
+
+        if (!userId.equals(couple.getHusbandId()) && !userId.equals(couple.getWifeId())) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS, "연동 해제 권한이 없습니다.");
+        }
+
+        // 명시적으로 User 조회 후 isMarried 변경
+        User husband = userRepository.findById(couple.getHusbandId())
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND,
+                String.valueOf(couple.getHusbandId())));
+
+        User wife = userRepository.findById(couple.getWifeId())
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND,
+                String.valueOf(couple.getWifeId())));
+
+        // Couple과 User 사이의 관계를 먼저 끊기
+        husband.setCouple(null);
+        husband.setIsMarried(false);
+
+        wife.setCouple(null);
+        wife.setIsMarried(false);
+
+        // 관계를 끊은 후 저장 (명시적 호출)
+        userRepository.save(husband);
+        userRepository.save(wife);
+
+        coupleRepository.delete(couple);
+    }
+
+    // 사용자가 이미 커플 관계인지 체크 후 예외 처리
+    @Transactional(readOnly = true)
+    public void validateUserNotAlreadyCoupled(Long userId) {
+        if (isUserAlreadyCoupled(userId)) {
+            LocalDateTime registeredAt = getCoupleRegisteredTime(userId);
+            throw new LoveLedgerException(ErrorCode.ALREADY_COUPLED,
+                registeredAt.format(DateTimeFormatter.ISO_DATE_TIME));
+        }
+    }
+
+    /**
+     * 사용자가 이미 커플 관계에 있는지 확인합니다.
+     *
+     * @param userId 사용자 ID
+     * @return 커플 관계 여부
+     */
+    public boolean isUserAlreadyCoupled(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, userId.toString()));
+
+        return user.getCouple() != null;
+    }
+
 }

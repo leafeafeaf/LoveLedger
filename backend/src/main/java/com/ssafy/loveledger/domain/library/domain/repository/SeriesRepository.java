@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SeriesRepository extends JpaRepository<Series, Long> {
-    Page<Series> findAll(Pageable pageable);
-
+    Page<Series> findByLibraryId(Long userId, Pageable pageable);
 
 }

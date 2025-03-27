@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList, ProfileStackParamList, Goal } from "../../types";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
+import { ProfileScreenProps } from "../../types";
 
 type GoalListScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,

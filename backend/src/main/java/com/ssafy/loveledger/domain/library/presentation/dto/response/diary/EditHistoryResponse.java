@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto.response;
+package com.ssafy.loveledger.domain.library.presentation.dto.response.diary;
 
 import java.time.LocalDateTime;
 import lombok.Builder;

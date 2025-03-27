@@ -1,20 +1,22 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
+import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionAllCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionContentCreateReq;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.FictionCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionAllReadResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionArtReadRes;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionContentReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
-import com.ssafy.loveledger.domain.library.service.SeriesService;
+import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
+import com.ssafy.loveledger.global.util.UserUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -23,74 +25,94 @@ import java.util.Map;
 public class FictionController {
 
     private final FictionService fictionService;
-    private final SeriesService seriesService;
+    private final UserUtil userUtil;
+    private final UserRepository userRepository;
+    private final LibraryRepository libraryRepository;
 
     // 소설 내용 생성
     @PostMapping("/content")
-    public ResponseEntity<?> createFictionContent(@RequestBody FictionContentCreateReq fictionContentCreateReq) {
+    public FictionContentReadRes createFictionContent(
+        @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
+        User user = userUtil.getCurrentUser();
 
-        FictionContentReadRes fictionReadDTO = fictionService.createFictionContent(fictionContentCreateReq);
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
 
-        return ResponseEntity.ok(fictionReadDTO);
+        log.info("user {} creates fiction content", user.getId());
+
+        return fictionService.createFictionContent(fictionContentCreateReq);
     }
 
     // 소설 그림 생성
     @PostMapping("/art")
-    public ResponseEntity<?> createFictionArt(@RequestBody FictionArtCreateReq fictionContentArtReq) {
+    public FictionArtReadRes createFictionArt(
+        @RequestBody @Valid FictionArtCreateReq fictionContentArtReq) {
+        User user = userUtil.getCurrentUser();
 
-        FictionArtReadRes fictionArtReadDTO = fictionService.createFictionArt(fictionContentArtReq);
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
 
-        return ResponseEntity.ok(fictionArtReadDTO);
+        log.info("user {} creates fiction image", user.getId());
+
+        return fictionService.createFictionArt(fictionContentArtReq);
     }
 
     // 소설 전체 생성
     @PostMapping
-    public ResponseEntity<?> createFiction(@RequestBody FictionCreateReq fictionCreateReq) {
+    public void createFiction(
+        @RequestBody @Valid FictionAllCreateRequest fictionCreateReq) {
+        User user = userUtil.getCurrentUser();
+
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
+
+        log.info("user {} creates fiction all", user.getId());
 
         fictionService.createFiction(fictionCreateReq);
-
-        return ResponseEntity.ok("소설 생성 완료");
     }
 
     //소설 삭제
     @DeleteMapping("/{fictionId}")
-    public ResponseEntity<?> deleteSeries(@PathVariable Long fictionId) {
-        fictionService.deleteSeries(fictionId);
-        return ResponseEntity.ok("소설 삭제완료 {fictionId} : " + fictionId);
+    public void deleteSeries(@PathVariable Long fictionId) {
+        User user = userUtil.getCurrentUser();
+
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
+
+        log.info("user {} delete fiction", user.getId());
+
+        fictionService.deleteSeries(user, fictionId);
     }
 
     //시리즈 전체(소설 포함) 조회
     @GetMapping
-    public ResponseEntity<?> getFictions(
+    public Page<FictionAllReadResponse> readFictions(
         @RequestParam(defaultValue = "1") int pageNo,
         @RequestParam(defaultValue = "15") int size,
         @RequestParam(defaultValue = "ASC") String sort
     ) {
-        Map<String, Object> data = fictionService.readSeries(pageNo, size, sort);
+        User user = userUtil.getCurrentUser();
 
-        // TODO : 응답 메세지 복구
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "시리즈 정보가 성공적으로 조회되었습니다.");
-        response.put("data", data);
-        response.put("timestamp", LocalDateTime.now());
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
 
-        return ResponseEntity.ok(response);
+        log.info("user {} read fictions", user.getId());
+
+        return fictionService.readAllFiction(user, pageNo, size, sort);
+
     }
 
     // 소설 상세 조회
     @GetMapping("/{fictionId}")
-    public ResponseEntity<?> getFiction(@PathVariable Long fictionId) {
+    public FictionDetailReadResponse readFiction(
+        @PathVariable Long fictionId) {
+        User user = userUtil.getCurrentUser();
 
-        Map<String, Object> data = fictionService.readFiction(fictionId);
+        // test
+//        User user = userRepository.findById(1L).orElse(null);
 
-        // TODO : 응답 메세지 복구
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "정상적으로 반환하였습니다.");
-        response.put("data", data);
-        response.put("timestamp", LocalDateTime.now());
+        log.info("user {} read fiction", user.getId());
 
-        return ResponseEntity.ok(response);
+        return fictionService.readFiction(user, fictionId);
     }
 }
