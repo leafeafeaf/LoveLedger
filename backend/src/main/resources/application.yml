@@ -56,6 +56,7 @@ cloud:
 ssafy:
   url: ${SSAFY_NETWORK_URL}
   apiKey: ${SSAFY_NETWORK_APIKEY}
+  fastapi_url: ${SSAFY_FASTAPI_URL}
 
 app:
   base-url: ${BASE_URL}
