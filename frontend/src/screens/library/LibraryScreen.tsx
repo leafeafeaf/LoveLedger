@@ -1,17 +1,14 @@
 import React, { useState, FC } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import BookCard from "../../components/common/BookCard";
 import { BookItem } from "../../types";
-import { useNavigation, CompositeNavigationProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  CompositeNavigationProp,
+} from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MainTabParamList, RootStackParamList } from "../../types";
@@ -122,9 +119,15 @@ const LibraryScreen: FC = () => {
                   key={item.id}
                   item={item}
                   onPress={() =>
-                    navigation.navigate("DailyDetail", {
-                      selectedDate: new Date(item.date),
-                      transactions: [],
+                    navigation.navigate("Diary", {
+                      screen: "DiaryEdit",
+                      params: {
+                        id: item.id,
+                        date: item.date,
+                        title: item.title,
+                        content: "",
+                        mood: item.mood,
+                      },
                     })
                   }
                 />
@@ -134,7 +137,10 @@ const LibraryScreen: FC = () => {
                   key={item.id}
                   item={item}
                   onPress={() =>
-                    navigation.navigate("StoryDetail", { id: item.id })
+                    navigation.navigate("Story", {
+                      screen: "StoryDetail",
+                      params: { id: item.id },
+                    })
                   }
                 />
               ))}

@@ -1,68 +1,57 @@
 import React, { FC } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Image,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { StoryScreenProps, StorySettings, Story, Series } from "../../types";
 import Header from "../../components/common/Header";
 
-const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
+const StoryPreviewScreen: FC<StoryScreenProps<"StoryPreview">> = ({
   navigation,
   route,
 }) => {
-  const { settings, series, story, coverImage, coverStyle } = route.params;
+  const { settings, series, story } = route.params;
 
   const handleNext = () => {
-    navigation.navigate("Publishing", {
+    navigation.navigate("CoverSelection", {
       settings,
-      series: {
-        id: "id" in series ? series.id : Date.now(),
-        title: "title" in series ? series.title : series.name,
-        episodes: "episodes" in series ? series.episodes : 1,
-        lastUpdated:
-          "lastUpdated" in series
-            ? series.lastUpdated
-            : new Date().toISOString(),
-      },
+      series,
       story,
-      coverImage,
-      coverStyle,
+    });
+  };
+
+  const handleRegenerate = () => {
+    navigation.navigate("StoryGeneration", {
+      settings,
+      series,
     });
   };
 
   return (
     <View style={styles.container}>
       <Header
-        title="커버 미리보기"
+        title="스토리 미리보기"
         showBack={true}
         onBack={() => navigation.goBack()}
       />
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <View style={styles.coverContainer}>
-            <Image
-              source={{ uri: coverImage }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
-            <View style={styles.coverOverlay}>
-              <Text style={styles.storyTitle}>{story.title}</Text>
-              <Text style={styles.seriesTitle}>
-                {"title" in series ? series.title : series.name}
-              </Text>
-            </View>
+          <View style={styles.paperContainer}>
+            <Text style={styles.storyTitle}>{story.title}</Text>
+            <Text style={styles.storyContent}>{story.content}</Text>
           </View>
+          <Pressable style={styles.regenerateButton} onPress={handleRegenerate}>
+            <MaterialCommunityIcons
+              name="refresh"
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.regenerateButtonText}>스토리 재생성</Text>
+          </Pressable>
         </View>
       </ScrollView>
       <View style={styles.footer}>
         <Pressable style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Save</Text>
+          <Text style={styles.nextButtonText}>Next</Text>
           <MaterialCommunityIcons
             name="arrow-right"
             size={20}
@@ -87,40 +76,50 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
-  coverContainer: {
-    aspectRatio: 0.75,
+  paperContainer: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
-    overflow: "hidden",
+    padding: theme.spacing.xl,
     marginVertical: theme.spacing.md,
     marginHorizontal: theme.spacing.sm,
     width: "95%",
     alignSelf: "center",
     ...theme.shadows.medium,
-  },
-  coverImage: {
-    width: "100%",
-    height: "100%",
-  },
-  coverOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: theme.spacing.lg,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   storyTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: theme.colors.white,
-    marginBottom: theme.spacing.xs,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xl,
+    textAlign: "center",
   },
-  seriesTitle: {
+  storyContent: {
     fontSize: 16,
-    fontStyle: "italic",
-    color: theme.colors.white,
-    opacity: 0.9,
+    color: theme.colors.text,
+    lineHeight: 28,
+    textAlign: "justify",
+  },
+  regenerateButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    gap: theme.spacing.sm,
+    marginHorizontal: theme.spacing.sm,
+    width: "95%",
+    alignSelf: "center",
+    ...theme.shadows.medium,
+  },
+  regenerateButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
   },
   footer: {
     padding: theme.spacing.md,
@@ -143,4 +142,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CoverPreviewScreen;
+export default StoryPreviewScreen;

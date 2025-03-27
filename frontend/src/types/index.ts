@@ -13,9 +13,9 @@ export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 // 메인 탭 네비게이션 타입
 export type MainTabParamList = {
-  Dashboard: undefined;
-  Main: undefined;
-  Library: undefined;
+  Dashboard: {};
+  Main: {};
+  Library: {};
 };
 
 // 인증 스택 네비게이션 타입
@@ -33,9 +33,9 @@ export type RootStackParamList = {
   Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
   TransactionEdit: { transaction: Transaction };
-  LinkGeneration: undefined;
+  LinkGeneration: {};
   LinkConfirm: { linkCode: string };
-  LinkSuccess: undefined;
+  LinkSuccess: {};
   LinkError: {
     errorType: "expired" | "invalid" | "already_linked" | "generic";
   };
@@ -43,9 +43,9 @@ export type RootStackParamList = {
 
 // 프로필 스택 파라미터 타입
 export type ProfileStackParamList = {
-  ProfileMain: undefined;
+  ProfileMain: {};
   ProfileEdit: { partner: string };
-  GoalList: undefined;
+  GoalList: {};
   GoalDetail: { goal: Goal };
 };
 
@@ -62,6 +62,11 @@ export type StoryStackParamList = {
     settings: StorySettings;
     series: Series | NewSeries;
   };
+  StoryPreview: {
+    settings: StorySettings;
+    series: Series | NewSeries;
+    story: Story;
+  };
   CoverSelection: {
     settings: StorySettings;
     series: Series | NewSeries;
@@ -69,14 +74,14 @@ export type StoryStackParamList = {
   };
   CoverPreview: {
     settings: StorySettings;
-    series: SeriesData;
+    series: Series | NewSeries;
     story: Story;
     coverImage: string;
     coverStyle: string;
   };
   StoryList: undefined;
   StoryDetail: { id: string };
-  StorySave: {
+  Publishing: {
     settings: StorySettings;
     series: SeriesData;
     story: Story;
@@ -87,7 +92,7 @@ export type StoryStackParamList = {
 
 // 다이어리 스택 파라미터 타입
 export type DiaryStackParamList = {
-  DiaryCreate: undefined;
+  DiaryCreate: {};
   DiaryEdit: {
     id: string;
     date: string;
@@ -369,4 +374,12 @@ export type Theme = {
       elevation: number;
     };
   };
+};
+
+// 회원가입 요청 타입
+export type SignUpRequest = {
+  name: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
 };

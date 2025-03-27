@@ -28,7 +28,7 @@ import {
   RootStackParamList,
   StoryStackParamList,
   ProfileStackParamList,
-} from "../../navigation/navigation";
+} from "../../types/index";
 import type { Transaction } from "../../types/index";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
