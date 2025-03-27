@@ -30,8 +30,8 @@ public class TestController {
         // 기본값으로 토큰 생성
         String accessToken = jwtUtil.createJwt(
             userId,
-            0L, // 기본 라이브러리 ID
-            "USER", // 기본 카테고리
+            1L, // 기본 라이브러리 ID
+            "access", // 기본 카테고리
             "test-user-" + userId, // 기본 사용자명
             expiredMs
         );
