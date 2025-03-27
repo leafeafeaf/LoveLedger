@@ -4,7 +4,6 @@ import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.library.domain.Fiction;
-import com.ssafy.loveledger.domain.library.domain.Library;
 import com.ssafy.loveledger.domain.library.domain.Series;
 import com.ssafy.loveledger.domain.library.domain.Theme;
 import com.ssafy.loveledger.domain.library.domain.repository.FictionRepository;
@@ -118,7 +117,7 @@ public class FictionService {
     public FictionDetailReadResponse readFiction(User user, Long fictionId) {
 
         // 사용자 체크
-        Library library = libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
+        libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
         // 소설 여부 체크
@@ -204,7 +203,7 @@ public class FictionService {
             6. 내용은 최소 2~3 문단 이상으로 구성해주세요.
             7. 민감하거나 부정적인 표현은 피해주세요.
             8. 이전에 작성한 소설이 있다면, 이전 소설의 내용에 이어서 작성해주세요.
-            9. 연작 소설 형태를 이룰 것이기 때문에, title 뒤에 소설의 몇번째 화인지도 붙혀주세요. (ex. title 1화 ) 
+            9. 연작 소설 형태를 이룰 것이기 때문에, title 뒤에 소설의 몇번째 화인지도 붙혀주세요. (ex. title 1화 )
             위 조건에 따라 이야기를 창의적으로 구성해주세요.
             """.formatted(theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList));
 
@@ -227,7 +226,7 @@ public class FictionService {
 
     // 소설 기반 AI 그림 생성.
     @Transactional(readOnly = true)
-    public FictionArtReadRes getFictionArtAI(User user, FictionArtCreateReq fictionArtCreateReq) {
+    public FictionArtReadRes getFictionArtAI(FictionArtCreateReq fictionArtCreateReq) {
 
         Long themeId = fictionArtCreateReq.getThemeId();
         String title = fictionArtCreateReq.getTitle();

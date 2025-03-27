@@ -1,6 +1,5 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionAllCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionContentCreateReq;
@@ -10,7 +9,6 @@ import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.Fic
 import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +24,6 @@ public class FictionController {
 
     private final FictionService fictionService;
     private final UserUtil userUtil;
-    private final UserRepository userRepository;
-    private final LibraryRepository libraryRepository;
 
     // 소설 내용 생성
     @PostMapping("/content")
@@ -48,7 +44,7 @@ public class FictionController {
 
         log.info("user {} creates fiction image", user.getId());
 
-        return fictionService.getFictionArtAI(user, fictionArtCreateReq);
+        return fictionService.getFictionArtAI(fictionArtCreateReq);
     }
 
     // 소설 전체 생성

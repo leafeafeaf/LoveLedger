@@ -4,7 +4,6 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.series.Serie
 import com.ssafy.loveledger.domain.library.presentation.dto.response.series.SeriesReadResponse;
 import com.ssafy.loveledger.domain.library.service.SeriesService;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,6 @@ public class SeriesController {
 
     private final SeriesService seriesService;
     private final UserUtil userUtil;
-    private final UserRepository userRepository;
 
     //시리즈 생성
     @PostMapping

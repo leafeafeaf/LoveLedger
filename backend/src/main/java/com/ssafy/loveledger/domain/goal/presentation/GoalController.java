@@ -5,7 +5,6 @@ import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalUpdateReque
 import com.ssafy.loveledger.domain.goal.presentation.dto.response.GoalReadResponse;
 import com.ssafy.loveledger.domain.goal.service.GoalService;
 import com.ssafy.loveledger.domain.user.domain.User;
-import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ public class GoalController {
 
     private final GoalService goalService;
     private final UserUtil userUtil;
-    private final UserRepository userRepository;
 
     // 목표 생성
     @PostMapping
