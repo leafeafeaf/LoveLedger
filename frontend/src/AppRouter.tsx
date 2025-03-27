@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useAppSelector } from "./hooks/reduxHooks";
+import { useAppSelector, useAppDispatch } from "./hooks/reduxHooks";
 import { RootStackParamList } from "./types";
+import { AuthEvents } from "./api/axios";
+import { logout, checkAuthStatus } from "./store/authSlice";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { theme } from "./utils/theme";
 
 // 네비게이터 임포트
 import { AuthNavigator } from "./navigation/AuthNavigator";
@@ -24,9 +28,40 @@ import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// 로딩 화면 컴포넌트
+const LoadingScreen = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={theme.colors.primary} />
+  </View>
+);
+
 const AppRouter = () => {
   // Redux에서 인증 상태 가져오기
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, autoLoginChecked } = useAppSelector(
+    (state) => state.auth
+  );
+  const dispatch = useAppDispatch();
+
+  // 앱 시작 시 자동 로그인 체크
+  useEffect(() => {
+    dispatch(checkAuthStatus());
+  }, [dispatch]);
+
+  // 토큰 만료시 자동 로그아웃 처리 설정
+  useEffect(() => {
+    AuthEvents.onTokenExpired = () => {
+      dispatch(logout());
+    };
+
+    return () => {
+      AuthEvents.onTokenExpired = null;
+    };
+  }, [dispatch]);
+
+  // 자동 로그인 체크가 완료되지 않았다면 로딩 화면 표시
+  if (!autoLoginChecked) {
+    return <LoadingScreen />;
+  }
 
   return (
     <NavigationContainer>
@@ -105,5 +140,14 @@ const AppRouter = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
+});
 
 export default AppRouter;

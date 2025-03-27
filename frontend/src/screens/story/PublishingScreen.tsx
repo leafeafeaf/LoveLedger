@@ -1,62 +1,53 @@
-import React, { useEffect, useRef, FC } from "react";
-import { View, Text, StyleSheet, Animated, Easing } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Easing,
+  Dimensions,
+  Alert,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RouteProp } from "@react-navigation/native";
 import { StoryScreenProps } from "../../types";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 
-type RootStackParamList = {
-  StoryGeneration: {
-    settings: {
-      themeStyle: string;
-      period: string;
-    };
-    series: {
-      name: string;
-    };
+const { width, height } = Dimensions.get("window");
+
+const useOverlayClose = () => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const closeOverlay = () => {
+    setIsVisible(false);
   };
-  StoryPreview: {
-    settings: {
-      themeStyle: string;
-      period: string;
-    };
-    series: {
-      name: string;
-    };
-    story: {
-      title: string;
-      content: string;
-    };
-  };
+
+  return { isVisible, closeOverlay };
 };
 
-type StoryGenerationScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "StoryGeneration"
->;
-type StoryGenerationScreenRouteProp = RouteProp<
-  RootStackParamList,
-  "StoryGeneration"
->;
-
-type IconName = "book-open-variant" | "book-open-page-variant";
-
-interface StoryGenerationScreenProps {
-  navigation: StoryGenerationScreenNavigationProp;
-  route: StoryGenerationScreenRouteProp;
+interface PublishingScreenProps extends StoryScreenProps<"Publishing"> {
+  onClose?: () => void;
 }
 
-const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
-  navigation,
+const PublishingScreen: React.FC<PublishingScreenProps> = ({
   route,
+  onClose = () => {},
 }) => {
-  const { settings, series } = route.params;
-
+  const navigation = useNavigation();
+  const { isVisible, closeOverlay } = useOverlayClose();
+  const [currentStep, setCurrentStep] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
   const bookAnimation = useRef(new Animated.Value(0)).current;
   const pageAnimation = useRef(new Animated.Value(0)).current;
   const loadingTextOpacity = useRef(new Animated.Value(0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
+
+  const steps = [
+    "소설 제본뜨는 중...",
+    "책장 정리하는 중...",
+    "새로운 책을 책장에 넣고 있습니다...",
+  ];
 
   useEffect(() => {
     // Book open animation
@@ -109,36 +100,42 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
       easing: Easing.inOut(Easing.quad),
     }).start();
 
-    // Navigate to series preview after 5 seconds
-    const timer = setTimeout(() => {
-      navigation.navigate("StoryPreview", {
-        settings,
-        series,
-        story: {
-          title: "용사 부부 연대기 : 마왕 토벌 전, 마지막 하루",
-          content: `검은 구름이 마왕성 위를 뒤덮기 전날, 용사 A와 그의 아내, 성기사 L은 마침내 마지막 준비를 시작했다. 아침, 시흥 왕국 남쪽 마을. 두 사람은 '스타벅스 여관'에서 전설의 카페인의 묘약(12,000골드)을 나눠 마시며 긴장된 하루를 열었다. "마왕과 싸우려면, 정신이 또렷해야지." A가 웃자, L도 잔을 부딪쳤다. 전투 전 부부의 소소한 루틴이었다. 점심 무렵, Rt2 주점에 들른 두 사람. 이곳에서만 맛볼 수 있는 강철 스테이크(15,000골드)와 힘의 포션을 주문해, 내일의 결전을 위해 기운을 충전했다. 식사 도중, 동료 도적 E3에게 전투비(25,000골드)를 송금. "그 친구, 망치만 챙기고 방어구는 빌려 쓰더군요. 이것도 부부로서 챙겨야지." 오후엔 비밀스럽게 ATM 마법진을 찾아 50,000골드 현금화. 둘은 노래방 '노래의 탑'에 들러 승리를 기원하며 노래 한 곡 뽑았다. "이게 우리의 버프야!" L이 깔깔 웃었다. 해가 기울자 감자탕 성당에 들러 43,000골드로 포만감을 채우고, 근처 극장에서 문화극(22,000골드)도 관람. "내일 싸움엔 머리도 써야지." 잠시 시장 골목에 들러 간식거리(15,000골드)까지 빠짐없이 챙겼다. L이 포장한 간식을 A의 갑옷 주머니에 쏙 넣으며, "출정 전에 당 보충은 필수."`,
-        },
+    const timer = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < steps.length - 1) {
+          return prev + 1;
+        }
+        clearInterval(timer);
+        setTimeout(() => {
+          Alert.alert(
+            "소설 생성 완료",
+            "새로운 소설이 성공적으로 생성되었습니다.",
+            [
+              {
+                text: "확인",
+                onPress: () => {
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [{ name: "Main", params: {} }],
+                    })
+                  );
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+        }, 2000);
+        return prev;
       });
-    }, 5000);
+    }, 3000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => clearInterval(timer);
+  }, [navigation, closeOverlay]);
 
-  // Determine what status message to show
-  const getStatusMessage = () => {
-    let progressValue = 0;
-    loadingProgress.addListener(({ value }) => {
-      progressValue = value;
-    });
-
-    if (progressValue < 30) {
-      return "당신의 소중한 추억을 하나하나 살펴보고 있어요...";
-    } else if (progressValue < 60) {
-      return "추억을 아름다운 이야기로 엮어가고 있어요...";
-    } else {
-      return "마지막 마무리로 이야기에 영혼을 불어넣고 있어요...";
-    }
-  };
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -194,7 +191,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
         <Animated.Text
           style={[styles.loadingText, { opacity: loadingTextOpacity }]}
         >
-          {getStatusMessage()}
+          {steps[currentStep]}
         </Animated.Text>
 
         <View style={styles.progressBarContainer}>
@@ -212,7 +209,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
         </View>
 
         <Text style={styles.progressHint}>
-          우리의 이야기를 {settings.themeStyle} 스타일로 글을 쓰는 중입니다
+          우리의 이야기를 책으로 만드는 중입니다
         </Text>
       </View>
     </View>
@@ -265,4 +262,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StoryGenerationScreen;
+export default PublishingScreen;

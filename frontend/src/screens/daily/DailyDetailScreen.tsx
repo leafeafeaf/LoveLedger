@@ -268,7 +268,7 @@ const FABComponent = React.memo(
               toggleFabMenu();
               navigation.navigate("Diary", {
                 screen: "DiaryCreate",
-                params: undefined,
+                params: {},
               });
             }}
           >

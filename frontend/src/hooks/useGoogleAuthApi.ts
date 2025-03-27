@@ -1,0 +1,159 @@
+import { useState, useEffect, useRef } from "react";
+import {
+  handleGoogleLogin,
+  extractTokenFromHash,
+  extractTokenFromUrl,
+  clearLoginTimer,
+  SocialLoginResponse,
+} from "../api/googleAuth";
+import { useAppDispatch } from "./reduxHooks";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  clearError,
+} from "../store/authSlice";
+import { Platform, Linking } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+/**
+ * 구글 소셜 로그인을 위한 커스텀 훅
+ */
+export const useGoogleLogin = () => {
+  const dispatch = useAppDispatch();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loginAttemptTimestamp, setLoginAttemptTimestamp] = useState<
+    number | null
+  >(null);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 로그인 시도 취소 함수
+  const cancelLoginAttempt = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    clearLoginTimer();
+    setIsLoading(false);
+    dispatch(clearError());
+  };
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      cancelLoginAttempt();
+    };
+  }, []);
+
+  // 로그인 성공 처리 함수
+  const handleLoginSuccess = (response: SocialLoginResponse) => {
+    setIsLoading(false);
+    setError(null);
+    setIsNewUser(response.isNewUser);
+
+    dispatch(
+      loginSuccess({
+        token: response.token,
+        userInfo: response.userInfo,
+      })
+    );
+  };
+
+  // 웹 환경에서 리디렉션 후 해시에서 토큰 추출
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      const checkToken = async () => {
+        const response = await extractTokenFromHash();
+        if (response) {
+          handleLoginSuccess(response);
+        }
+      };
+
+      checkToken();
+    }
+  }, [dispatch]);
+
+  // 모바일 환경에서 딥링크 처리 설정
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      const handleDeepLink = async ({ url }: { url: string }) => {
+        if (url.includes("oauth-callback") || url.includes("access_token")) {
+          const response = await extractTokenFromUrl(url);
+          if (response) {
+            handleLoginSuccess(response);
+          }
+        }
+      };
+
+      // 앱이 실행 중인 상태에서 딥링크로 열렸을 때
+      const subscription = Linking.addEventListener("url", handleDeepLink);
+
+      // 앱이 종료된 상태에서 딥링크로 열렸을 때
+      const getInitialUrl = async () => {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          handleDeepLink({ url: initialUrl });
+        }
+      };
+
+      getInitialUrl();
+
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, [dispatch]);
+
+  // 구글 로그인 처리 함수
+  const googleLogin = async () => {
+    // 이미 로그인 시도 중이라면 이전 요청 취소
+    if (isLoading) {
+      cancelLoginAttempt();
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setIsNewUser(false);
+    dispatch(loginStart());
+    setLoginAttemptTimestamp(Date.now());
+
+    try {
+      await handleGoogleLogin(
+        (response, err) => {
+          if (err) {
+            setError(err.message || "소셜 로그인에 실패했습니다.");
+            dispatch(
+              loginFailure(err.message || "소셜 로그인에 실패했습니다.")
+            );
+            setIsLoading(false);
+          }
+          // 성공 처리는 useEffect의 토큰 추출 부분에서 처리됨
+        },
+        () => {
+          // 타임아웃 처리
+          setError("로그인 시간이 초과되었습니다. 다시 시도해주세요.");
+          dispatch(
+            loginFailure("로그인 시간이 초과되었습니다. 다시 시도해주세요.")
+          );
+          setIsLoading(false);
+        },
+        30000 // 30초 타임아웃
+      );
+    } catch (err: any) {
+      setError(err.message || "소셜 로그인에 실패했습니다.");
+      dispatch(loginFailure(err.message || "소셜 로그인에 실패했습니다."));
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    googleLogin,
+    isLoading,
+    error,
+    isNewUser,
+    cancelLoginAttempt,
+    loginAttemptTimestamp,
+  };
+};

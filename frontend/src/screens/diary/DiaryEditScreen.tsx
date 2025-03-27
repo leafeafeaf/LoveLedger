@@ -78,7 +78,7 @@ export default function DiaryEditScreen({
 
     // TODO: 실제 저장 로직 구현
     Alert.alert("저장 완료", "다이어리가 수정되었습니다.", [
-      { text: "확인", onPress: () => navigation.goBack() },
+      { text: "확인", onPress: () => navigation.navigate("DiaryCreate", {}) },
     ]);
   };
 
@@ -92,7 +92,10 @@ export default function DiaryEditScreen({
         onPress: () => {
           // TODO: 실제 삭제 로직 구현
           Alert.alert("삭제 완료", "다이어리가 삭제되었습니다.", [
-            { text: "확인", onPress: () => navigation.goBack() },
+            {
+              text: "확인",
+              onPress: () => navigation.navigate("DiaryCreate", {}),
+            },
           ]);
         },
       },
