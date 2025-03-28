@@ -50,13 +50,11 @@ pipeline {
                 sh '''
                     ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST << 'EOF'
                     
-                    cd app/backend
+                    cd app
 
                     docker stop loveledger-backend || true
                     docker rm loveledger-backend || true
                     docker build -t loveledger-backend .
-
-                    cd ..
 
                     docker run -d --name loveledger-backend \
                         --env-file .env \
