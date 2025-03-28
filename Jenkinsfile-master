@@ -47,24 +47,25 @@ pipeline {
         withCredentials([
             sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
             string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
-                def deployScript = '''
-                    cd app
+                script {
+            def deployScript = '''
+                cd app
 
-                    docker stop loveledger-backend || true
-                    docker rm loveledger-backend || true
+                docker stop loveledger-backend || true
+                docker rm loveledger-backend || true
 
-                    docker build -t loveledger-backend -f backend/Dockerfile .
+                docker build -t loveledger-backend -f backend/Dockerfile .
 
-                    docker run -d --name loveledger-backend \\
-                        --env-file .env \\
-                        --network mynetwork \\
-                        -p 8080:8080 \\
-                        loveledger-backend
-                '''
+                docker run -d --name loveledger-backend \\
+                    --env-file .env \\
+                    --network mynetwork \\
+                    -p 8080:8080 \\
+                    loveledger-backend
+            '''
 
-                sh """
-                    ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $REMOTE_HOST '${deployScript}'
-                """
+            sh """
+                ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $REMOTE_HOST '${deployScript}'
+            """
         }
     }
 }
