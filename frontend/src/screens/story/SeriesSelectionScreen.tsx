@@ -27,19 +27,19 @@ export default function SeriesSelectionScreen({
   const mockSeries: Series[] = [
     {
       id: 1,
-      title: "Our Love Journey",
+      title: "우리의 사랑 여정",
       episodes: 3,
       lastUpdated: "2024-03-10",
     },
     {
       id: 2,
-      title: "Weekend Adventures",
+      title: "주말의 모험",
       episodes: 5,
       lastUpdated: "2024-03-05",
     },
     {
       id: 3,
-      title: "Romantic Escapes",
+      title: "로맨틱한 탈출",
       episodes: 2,
       lastUpdated: "2024-02-28",
     },
@@ -114,7 +114,7 @@ export default function SeriesSelectionScreen({
               mode === "new" && styles.activeModeButtonText,
             ]}
           >
-            Create new series
+            새로운 이야기 시작하기
           </Text>
         </Pressable>
 
@@ -138,29 +138,29 @@ export default function SeriesSelectionScreen({
               mode === "existing" && styles.activeModeButtonText,
             ]}
           >
-            Add to existing series
+            기존 이야기에 이어쓰기
           </Text>
         </Pressable>
       </View>
       <View style={styles.content}>
         {mode === "new" ? (
           <View style={styles.newSeriesContainer}>
-            <Text style={styles.sectionTitle}>Create a New Series</Text>
+            <Text style={styles.sectionTitle}>새로운 이야기의 시작</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter series name"
+              placeholder="이야기의 제목을 입력해주세요"
               value={newSeriesName}
               onChangeText={setNewSeriesName}
               placeholderTextColor={theme.colors.textLight}
             />
             <Text style={styles.description}>
-              Create a new series to organize your stories. You can add more
-              episodes to this series later.
+              당신만의 특별한 이야기를 시작해보세요. 나중에 더 많은 에피소드를
+              추가할 수 있어요.
             </Text>
           </View>
         ) : (
           <View style={styles.existingSeriesContainer}>
-            <Text style={styles.sectionTitle}>Select an Existing Series</Text>
+            <Text style={styles.sectionTitle}>이어갈 이야기 선택하기</Text>
             <FlatList
               data={mockSeries}
               renderItem={renderSeriesItem}

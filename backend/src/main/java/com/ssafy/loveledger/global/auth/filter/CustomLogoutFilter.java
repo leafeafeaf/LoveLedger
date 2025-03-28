@@ -1,6 +1,8 @@
 package com.ssafy.loveledger.global.auth.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.loveledger.global.auth.util.JWTUtil;
+import com.ssafy.loveledger.global.common.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,9 +12,12 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.GenericFilterBean;
 
 @Slf4j
@@ -21,7 +26,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate;
-//    private final String PREFIX = "RT:";  // Refresh Token의 prefix
+    private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 변환용
 
 
     @Override
@@ -48,14 +53,19 @@ public class CustomLogoutFilter extends GenericFilterBean {
         //get refresh token
         String refresh = null;
         Cookie[] cookies = request.getCookies();
-        for (Cookie cookie : cookies) {
-            if (cookie.getName().equals("refresh")) {
-                refresh = cookie.getValue();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("refresh")) {
+                    refresh = cookie.getValue();
+                    break;
+                }
             }
         }
+
+        log.info("#################= {}",refresh);
         //refresh null check
         if (refresh == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writeErrorResponse(response, HttpStatus.BAD_REQUEST, "리프레시 토큰이 존재하지 않습니다");
             return;
         }
 
@@ -64,7 +74,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
             jwtUtil.isExpired(refresh);
         } catch (ExpiredJwtException e) {
             //response status code
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writeErrorResponse(response, HttpStatus.BAD_REQUEST, "리프레시 토큰이 만료되었습니다");
             return;
         }
         // 토큰이 refresh인지 확인 (발급시 페이로드에 명시)
@@ -72,15 +82,20 @@ public class CustomLogoutFilter extends GenericFilterBean {
         if (!category.equals("refresh")) {
 
             //response status code
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writeErrorResponse(response, HttpStatus.BAD_REQUEST, "유효하지 않은 리프레시 토큰입니다");
             return;
         }
-        //DB에 저장되어 있는지 확인
-        Boolean isExist = redisTemplate.hasKey(refresh);
-        if (!isExist) {
+        // 1. 토큰에서 userId 추출
+        Long userId = jwtUtil.getUserId(refresh);
 
-            //response status code
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        // 2. Redis key 구성
+        String redisKey = "token" + userId;
+
+        // 3. Redis에서 저장된 토큰 값 확인
+        String storedRefresh = redisTemplate.opsForValue().get(redisKey);
+
+        if (storedRefresh == null) {
+            writeErrorResponse(response, HttpStatus.BAD_REQUEST, "이미 로그아웃된 토큰입니다");
             return;
         }
         //로그아웃 진행
@@ -95,5 +110,19 @@ public class CustomLogoutFilter extends GenericFilterBean {
         response.addCookie(cookie);
         response.setStatus(HttpServletResponse.SC_OK);
 
+    }
+    private void writeErrorResponse(HttpServletResponse response, HttpStatus status, String message)
+        throws IOException {
+        ApiResponse<Object> errorResponse = ApiResponse.builder()
+            .status(String.valueOf(status.value()))
+            .message(message)
+            .data(null)
+            .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")))
+            .build();
+
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }
