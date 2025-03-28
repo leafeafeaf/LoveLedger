@@ -36,7 +36,7 @@ pipeline {
                     sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
                     string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
                         sh '''
-                            scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r . $REMOTE_HOST:$REMOTE_DIR/
+                            scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r ./backend ./.env $REMOTE_HOST:$REMOTE_DIR/
                         '''
                 }
             }
