@@ -52,8 +52,13 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   ];
 
   const handleSave = () => {
-    // TODO: Implement save functionality
-    navigation.goBack();
+    // TODO: 일기 저장 API 호출 후 diaryId 받아오기
+    const diaryId = "123"; // 임시 ID, 실제로는 API 응답에서 받아와야 함
+
+    navigation.navigate("DiaryEditDaily", {
+      diaryId,
+      selectedDate: selectedDate.toISOString(),
+    });
   };
 
   return (
@@ -183,7 +188,7 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
             size={24}
             color={theme.colors.white}
           />
-          <Text style={styles.saveButtonText}>저장하기</Text>
+          <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

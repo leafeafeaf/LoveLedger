@@ -213,7 +213,7 @@ export default function ProfileMainScreen({
               <Text style={styles.statValue}>
                 {profileData.couple.diariesCount}
               </Text>
-              <Text style={styles.statLabel}>일기</Text>
+              <Text style={styles.statLabel}>함께한 일기</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -225,7 +225,7 @@ export default function ProfileMainScreen({
               <Text style={styles.statValue}>
                 {profileData.couple.storiesCount}
               </Text>
-              <Text style={styles.statLabel}>이야기</Text>
+              <Text style={styles.statLabel}>함께한 이야기</Text>
             </View>
           </View>
         </View>

@@ -40,6 +40,8 @@ export type RootStackParamList = {
   Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
   Library: NavigatorScreenParams<LibraryStackParamList>;
+  DiaryDetail: { id: string; date: string; mood?: string };
+  StoryDetail: { id: string };
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: {};
   LinkConfirm: { linkCode: string };
@@ -100,13 +102,17 @@ export type StoryStackParamList = {
 
 // 다이어리 스택 파라미터 타입
 export type DiaryStackParamList = {
-  DiaryCreate: {};
+  DiaryCreate: undefined;
   DiaryEdit: {
     id: string;
     date: string;
     title: string;
-    content: string;
+    content?: string;
     mood?: string;
+  };
+  DiaryEditDaily: {
+    diaryId: string;
+    selectedDate: string;
   };
 };
 
@@ -398,3 +404,96 @@ export type SignUpRequest = {
   birthDay: string;
   isMarried: boolean;
 };
+
+// --- 초대 관련 타입 정의 ---
+
+export interface InviteResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+  };
+  timestamp: string;
+}
+
+export interface InviteErrorResponse {
+  status: string;
+  message: string;
+  data: {
+    existingLink?: string;
+    createdAt?: string;
+    expiresAt?: string;
+    action?: string;
+  } | null;
+  timestamp: string;
+}
+
+export interface InviteeData {
+  email: string;
+  name: string;
+}
+
+export interface InviteValidateResponse {
+  status: string;
+  message: string;
+  data: InviteeData | null;
+  timestamp: string;
+}
+
+// --- 사용자 관련 타입 정의 ---
+
+export interface UpdateUserRequest {
+  name?: string;
+  gender?: boolean;
+  birthDay?: string;
+  isMarried?: boolean;
+}
+
+export interface UpdateUserResponse {
+  name: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
+}
+
+export interface UserDetailResponse {
+  email: string;
+  name: string;
+  birthDay: string;
+  gender: boolean;
+  marryDate: string | null;
+  darling: string | null;
+  darlingName: string | null;
+  darlingBirthDay: string | null;
+  marriageDuration: number;
+  picture: string | null;
+  isMarried: boolean;
+}
+
+// --- 커플 관련 타입 정의 ---
+
+export interface CoupleJoinResponse {
+  status: number;
+  message: string;
+  data: {
+    registeredAt?: string;
+  } | null;
+  timestamp: string;
+}
+
+export interface CoupleJoinErrorResponse {
+  status: number;
+  message: string;
+  code?: string;
+  data: {
+    registeredAt?: string;
+  } | null;
+  timestamp: string;
+}
+
+export interface CoupleUnlinkResponse {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
