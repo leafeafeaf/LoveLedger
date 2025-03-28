@@ -23,7 +23,7 @@ spring:
       port: ${REDIS_PORT}
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
     url: ${DATABASE_URL}
     username: ${DATABASE_NAME}
     password: ${DATABASE_PASSWORD}
