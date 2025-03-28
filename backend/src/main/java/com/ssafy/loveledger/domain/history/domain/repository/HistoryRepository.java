@@ -6,18 +6,19 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStat
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.user.domain.User;
-import java.time.LocalDate;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.List;
+
 public interface HistoryRepository extends JpaRepository<History, String> {
 
     Page<History> findByAccountAndCreatedDate(Account account, LocalDate createdDate,
-        Pageable pageable);
+                                              Pageable pageable);
 
     @Query(
         "SELECT NEW com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse( "
@@ -32,7 +33,7 @@ public interface HistoryRepository extends JpaRepository<History, String> {
             "GROUP BY d.dayId.targetDay "
     )
     List<DailyStatisticsResponse> findByUserAndMonth(User user, LocalDate startDate,
-        LocalDate endDate, Pageable pageable);
+                                                     LocalDate endDate, Pageable pageable);
 
     @Query(
         "SELECT NEW com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse( "
@@ -76,5 +77,12 @@ public interface HistoryRepository extends JpaRepository<History, String> {
 
     @Query("SELECT h FROM History h WHERE h.account IN :accounts AND h.createdDate = :targetDate")
     List<History> findByAccountsAndCreatedDate(@Param("accounts") List<Account> accounts,
-        @Param("targetDate") LocalDate targetDate);
+                                               @Param("targetDate") LocalDate targetDate);
+
+    @Query("SELECT h FROM History h WHERE h.account IN :accounts AND h.createdDate BETWEEN :startDate AND :endDate")
+    List<History> findByAccountsAndCreatedDateBetween(
+        @Param("accounts") List<Account> accounts,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }

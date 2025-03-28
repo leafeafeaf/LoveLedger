@@ -27,16 +27,21 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_NAME}
     password: ${DATABASE_PASSWORD}
+    hikari:
+      connection-init-sql: "SET SESSION sql_mode=(SELECT REPLACE(@@SESSION.sql_mode, 'ONLY_FULL_GROUP_BY', ''))"
 
   jpa:
     hibernate:
       ddl-auto: update
-
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    database-platform: org.hibernate.dialect.MariaDBDialect
 
   open-ai:
     key: ${OPENAI_API_KEY}
+  gemini-ai:
+    key: ${GEMINI_AI_KEY}
+    backend-url: ${GEMINI_BACKEND_URL}
 
 cloud:
   aws:

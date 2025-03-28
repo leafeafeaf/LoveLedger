@@ -1,12 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../navigation/navigation";
+import { RootStackParamList, ProfileStackParamList, Goal } from "../../types";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
+import { ProfileScreenProps } from "../../types";
 
 type GoalListScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
+  ProfileStackParamList,
   "GoalList"
 >;
 
@@ -14,34 +15,33 @@ interface GoalListScreenProps {
   navigation: GoalListScreenNavigationProp;
 }
 
-interface Goal {
-  id: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  deadline: string;
-}
-
 const goals: Goal[] = [
   {
-    id: 1,
+    id: "1",
     title: "여행 자금",
-    targetAmount: 2000000,
-    currentAmount: 1500000,
+    description: "일본 여행을 위한 자금",
+    target: 2000000,
+    current: 1500000,
     deadline: "2024-12-31",
+    icon: "airplane",
   },
   {
-    id: 2,
+    id: "2",
     title: "결혼 자금",
-    targetAmount: 30000000,
-    currentAmount: 10000000,
+    description: "결혼 준비를 위한 자금",
+    target: 30000000,
+    current: 10000000,
     deadline: "2025-06-30",
+    icon: "heart",
   },
 ];
 
 export default function GoalListScreen({ navigation }: GoalListScreenProps) {
-  const handleGoalPress = (goalId: number) => {
-    navigation.navigate("GoalDetail", { goalId });
+  const handleGoalPress = (goalId: string) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (goal) {
+      navigation.navigate("GoalDetail", { goal });
+    }
   };
 
   return (
@@ -60,15 +60,15 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                 style={[
                   styles.progressBar,
                   {
-                    width: `${(goal.currentAmount / goal.targetAmount) * 100}%`,
+                    width: `${(goal.current / goal.target) * 100}%`,
                   },
                 ]}
               />
             </View>
             <View style={styles.goalInfo}>
               <Text style={styles.goalAmount}>
-                {goal.currentAmount.toLocaleString()}원 /{" "}
-                {goal.targetAmount.toLocaleString()}원
+                {goal.current.toLocaleString()}원 /{" "}
+                {goal.target.toLocaleString()}원
               </Text>
               <Text style={styles.goalDeadline}>목표일: {goal.deadline}</Text>
             </View>

@@ -43,6 +43,7 @@ public class User {
     private String provider;
     private String usercode;
     private String name;
+    private String picture;
 
     private Boolean isMarried;
 

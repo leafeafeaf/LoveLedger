@@ -1,59 +1,53 @@
 package com.ssafy.loveledger.domain.library.presentation;
 
-import com.ssafy.loveledger.domain.library.domain.Series;
-import com.ssafy.loveledger.domain.library.presentation.dto.request.SeriesCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.request.series.SeriesCreateReq;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.series.SeriesReadResponse;
 import com.ssafy.loveledger.domain.library.service.SeriesService;
+import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.global.util.UserUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/series")
 @RequiredArgsConstructor
 public class SeriesController {
 
     private final SeriesService seriesService;
+    private final UserUtil userUtil;
 
     //시리즈 생성
     @PostMapping
-    public ResponseEntity<?> createSeries(@RequestBody SeriesCreateReq seriesCreateReq) {
+    public void createSeries(@RequestBody @Valid SeriesCreateReq seriesCreateReq) {
+        User user = userUtil.getCurrentUser();
 
-        // 토큰에서 유저 iD 추출
-        Long userId = 1L;
+        log.info("user {} create series", user.getId());
 
-        // 시리즈 생성
-        seriesService.createSeries(seriesCreateReq.getTitle(), userId);
-        return ResponseEntity.ok("시리즈 생성완료");
+        seriesService.createSeries(user, seriesCreateReq);
     }
 
     //시리즈 삭제
     @DeleteMapping("/{seriesId}")
-    public ResponseEntity<?> deleteSeries(@PathVariable Long seriesId) {
-        seriesService.deleteSeries(seriesId);
-        return ResponseEntity.ok("시리즈 삭제완료 {seriesId} : " + seriesId);
+    public void deleteSeries(@PathVariable Long seriesId) {
+        User user = userUtil.getCurrentUser();
+
+        log.info("user {} delete series {}", user.getId(), seriesId);
+
+        seriesService.deleteSeries(user, seriesId);
     }
 
     // 시리즈(제목만) 조회
     @GetMapping
-    public ResponseEntity<?> getSeriesName() {
+    public List<SeriesReadResponse> getSeriesName() {
+        User user = userUtil.getCurrentUser();
 
-        List<Series> seriesList = seriesService.getSeriesNames();
+        log.info("user {} get series names", user.getId());
 
-        List<Map<String, Object>> seriesData = new ArrayList<>();
-
-        for (Series series : seriesList) {
-            Map<String, Object> seriesDataMap = new HashMap<>();
-            seriesDataMap.put("seriesid", series.getId());
-            seriesDataMap.put("seriesname", series.getSeriesTitle());
-            seriesData.add(seriesDataMap);
-        }
-
-        return ResponseEntity.ok(seriesData);
+        return seriesService.getSeriesNames(user);
     }
-
 }

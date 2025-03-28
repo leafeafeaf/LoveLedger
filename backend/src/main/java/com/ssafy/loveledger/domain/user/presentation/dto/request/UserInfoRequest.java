@@ -1,12 +1,14 @@
 package com.ssafy.loveledger.domain.user.presentation.dto.request;
 
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Data
 public class UserInfoRequest {
@@ -20,6 +22,8 @@ public class UserInfoRequest {
 
     @NotNull(message = "생일은 필수 입력값입니다")
     @Past(message = "생일은 과거 날짜여야 합니다")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDay;
 
     @NotNull(message = "결혼여부는 필수 입력값입니다")

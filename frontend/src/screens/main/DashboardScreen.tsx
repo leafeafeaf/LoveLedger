@@ -205,7 +205,8 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 76,
   },
   loadingText: {
     marginTop: 10,
@@ -214,6 +215,7 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     margin: theme.spacing.md,
+    marginTop: 76,
     padding: theme.spacing.xl,
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
@@ -242,12 +244,13 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.md,
   },
   overviewLabel: {
-    fontSize: 12,
+    fontSize: 16,
+    fontWeight: "500",
     color: theme.colors.textLight,
     marginBottom: 4,
   },
   amount: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "700",
     marginVertical: theme.spacing.xs,
   },
@@ -266,15 +269,22 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: theme.spacing.sm,
+    // padding: theme.spacing.md,
+    marginLeft: theme.spacing.md,
+    marginRight: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     gap: theme.spacing.sm,
+    justifyContent: 'center',
   },
   categoryCard: {
-    width: "47%",
+    width: "48.5%",
     backgroundColor: theme.colors.white,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     ...theme.shadows.small,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
   },
   iconContainer: {
     width: 40,
@@ -301,7 +311,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: theme.colors.white,
-    margin: theme.spacing.sm,
+    // margin: theme.spacing.sm,
+    marginLeft: theme.spacing.md,
+    marginRight: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     ...theme.shadows.small,

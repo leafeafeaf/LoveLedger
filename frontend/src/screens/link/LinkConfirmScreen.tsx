@@ -77,7 +77,7 @@ const LinkConfirmScreen: FC<RootStackScreenProps<"LinkConfirm">> = ({
     // Simulate API call to confirm the link
     setTimeout(() => {
       setIsLoading(false);
-      navigation.replace("LinkSuccess");
+      navigation.replace("LinkSuccess", {});
     }, 1500);
   };
 
@@ -89,7 +89,8 @@ const LinkConfirmScreen: FC<RootStackScreenProps<"LinkConfirm">> = ({
       },
       {
         text: "거부",
-        onPress: () => navigation.navigate("Main", { screen: "Library" }),
+        onPress: () =>
+          navigation.navigate("Main", { screen: "Library", params: {} }),
         style: "destructive",
       },
     ]);
@@ -115,7 +116,9 @@ const LinkConfirmScreen: FC<RootStackScreenProps<"LinkConfirm">> = ({
         <Text style={styles.headerTitle}>연동 확인</Text>
         <Pressable
           style={styles.closeButton}
-          onPress={() => navigation.navigate("Main", { screen: "Library" })}
+          onPress={() =>
+            navigation.navigate("Main", { screen: "Library", params: {} })
+          }
         >
           <MaterialCommunityIcons
             name="close"

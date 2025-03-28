@@ -38,4 +38,12 @@ public class CustomOAuth2User implements OAuth2User {
     public Long getLibraryId() {
         return userDto.getLibraryId();
     }
+
+    public String getPicture() {
+        return userDto.getPicture();
+    }
+
+    public Boolean getIsRegistered() {
+        return userDto.isRegistered();
+    }
 }

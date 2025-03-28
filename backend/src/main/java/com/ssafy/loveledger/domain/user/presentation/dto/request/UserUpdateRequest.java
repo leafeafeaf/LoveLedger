@@ -14,7 +14,7 @@ public class UserUpdateRequest {
 
     private String name;
     private Boolean gender;
-    private LocalDate birthday; // YYYYMMDD 형식 문자열
+    private LocalDate birthDay; // YYYYMMDD 형식 문자열
     private Boolean isMarried;
 
 }
