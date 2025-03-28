@@ -8,39 +8,63 @@ pipeline {
         CONTAINER_NAME_GREEN = "loveledger-backend-green"
     }
     stages {
-        // stage('Secrets Setup') {
-        //     steps {
-        //         withCredentials([
-        //             file(credentialsId: 'env-file', variable: 'EnvFile'),
-        //         ]) {
-        //             sh '''
-        //                 cp "$EnvFile" .env
-        //                 chmod 644 .env
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Secrets Setup') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'env-file-main', variable: 'EnvFile'),
+                ]) {
+                    sh '''
+                        cp "$EnvFile" .env
+                        chmod 644 .env
+                    '''
+                }
+            }
+        }
 
-        // stage('Build Backend') {
-        //     steps {
-        //         sh '''
-        //             cd ./backend
-        //             chmod +x ./gradlew
-        //             ./gradlew clean build -x test --no-daemon
-        //         '''
-        //     }
-        // }
-
-        stage('Deploy to Main EC2') {
+        stage('Build Backend') {
+            steps {
+                sh '''
+                    cd ./backend
+                    chmod +x ./gradlew
+                    ./gradlew clean build -x test --no-daemon
+                '''
+            }
+        }
+        stage('Upload Jar to EC2') {
             steps {
                 withCredentials([
                     sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
                     string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
                         sh '''
-                            ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST "echo '접속 성공!'"
+                            scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r . $REMOTE_HOST:$REMOTE_DIR/
                         '''
                 }
             }
         }
+
+        stage('Deploy Docker Container') {
+    steps {
+        withCredentials([
+            sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+            string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
+                sh '''
+                    ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST << 'EOF'
+                    cd $REMOTE_DIR
+
+                    docker stop loveledger-backend || true
+                    docker rm loveledger-backend || true
+
+                    docker build -t loveledger-backend .
+
+                    docker run -d --name loveledger-backend \
+                        --env-file .env \
+                        -p 8080:8080 \
+                        loveledger-backend
+                   
+                    EOF
+                '''
+        }
+    }
+}
     }
 }
