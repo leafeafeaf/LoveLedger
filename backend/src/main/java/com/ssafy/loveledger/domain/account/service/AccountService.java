@@ -200,51 +200,53 @@ public class AccountService {
             .map(HistoryResponse::getTransactionSummary)
             .toList()).build();
 
-        List<CategoryPrescriptionResponse> names = categoryPrescriptionUtil.getCategoryPrescription(
-            req).getResults();
+        List<CategoryPrescriptionResponse> names;
+        if (!req.getNames().isEmpty()) {
+            names = categoryPrescriptionUtil.getCategoryPrescription(
+                req).getResults();
 
-        for (HistoryResponse historyResponse : res) {
-            String dateTimeString =
-                historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
-            LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
+            for (HistoryResponse historyResponse : res) {
+                String dateTimeString =
+                    historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
+                LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
 
-            String transactionType = historyResponse.getTransactionTypeName();
-            int type = switch (transactionType) {
-                case "입금" -> 1;
-                case "입금(수시입출금)" -> 2;
-                case "출금" -> 3;
-                case "출금(수시입출금)" -> 4;
-                default -> 0;
-            };
+                String transactionType = historyResponse.getTransactionTypeName();
+                int type = switch (transactionType) {
+                    case "입금" -> 1;
+                    case "입금(수시입출금)" -> 2;
+                    case "출금" -> 3;
+                    case "출금(수시입출금)" -> 4;
+                    default -> 0;
+                };
 
-            String transactionSummary = historyResponse.getTransactionSummary();
-            int categoryId = names.stream()
-                .filter(n -> n.getName().equals(transactionSummary))
-                .map(CategoryPrescriptionResponse::getCode)
-                .findFirst()
-                .orElse(Category.NOT_DEFINED.getId());
+                String transactionSummary = historyResponse.getTransactionSummary();
+                int categoryId = names.stream()
+                    .filter(n -> n.getName().equals(transactionSummary))
+                    .map(CategoryPrescriptionResponse::getCode)
+                    .findFirst()
+                    .orElse(Category.NOT_DEFINED.getId());
 
-            History history = History.builder()
-                .transactionId(historyResponse.getTransactionUniqueNo())
-                .createdDate(dateTime.toLocalDate())
-                .createdTime(dateTime.toLocalTime())
-                .transactionAccount(historyResponse.getTransactionAccountNo())
-                .transactionTarget(historyResponse.getTransactionSummary())
-                .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
-                .transactionType(type)
-                .transactionTypeName(historyResponse.getTransactionTypeName())
-                .category(Category.fromId(categoryId))
-                .account(account)
-                .AmountAfterTransaction(
-                    Long.valueOf(historyResponse.getTransactionAfterBalance())
-                )
-                .memo(historyResponse.getTransactionMemo())
-                .build();
-            historyRepository.save(history);
+                History history = History.builder()
+                    .transactionId(historyResponse.getTransactionUniqueNo())
+                    .createdDate(dateTime.toLocalDate())
+                    .createdTime(dateTime.toLocalTime())
+                    .transactionAccount(historyResponse.getTransactionAccountNo())
+                    .transactionTarget(historyResponse.getTransactionSummary())
+                    .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
+                    .transactionType(type)
+                    .transactionTypeName(historyResponse.getTransactionTypeName())
+                    .category(Category.fromId(categoryId))
+                    .account(account)
+                    .AmountAfterTransaction(
+                        Long.valueOf(historyResponse.getTransactionAfterBalance())
+                    )
+                    .memo(historyResponse.getTransactionMemo())
+                    .build();
+                historyRepository.save(history);
 
-            account.setLastUpdated(LocalDateTime.now());
+                account.setLastUpdated(LocalDateTime.now());
+            }
         }
-
     }
 
     public void getVerificationCode(User user, String accountNo) {
@@ -333,7 +335,6 @@ public class AccountService {
     public String generateCode() {
         int sixDigitNumber = ThreadLocalRandom.current().nextInt(0, 1000000); // 000000 ~ 999999
         String sixDigitString = String.format("%06d", sixDigitNumber);
-
         return LocalDateTime.now().format(formatter) + sixDigitString;
     }
 
