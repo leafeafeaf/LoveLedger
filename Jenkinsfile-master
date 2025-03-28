@@ -30,7 +30,7 @@ pipeline {
                 '''
             }
         }
-        stage('Upload Jar to EC2') {
+        stage('Upload file to EC2') {
             steps {
                 withCredentials([
                     sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
