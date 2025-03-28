@@ -58,10 +58,11 @@ pipeline {
 
                     docker run -d --name loveledger-backend \
                         --env-file .env \
+                        --network mynetwork \
                         -p 8080:8080 \
                         loveledger-backend
                    
-                    EOF
+                EOF
                 '''
         }
     }
