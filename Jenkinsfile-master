@@ -49,16 +49,15 @@ pipeline {
             string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')]) {
                 sh '''
                     ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no $REMOTE_HOST << 'EOF'
-                    cd $REMOTE_DIR
+                    
+                    cd app/backend
 
                     docker stop loveledger-backend || true
                     docker rm loveledger-backend || true
-
-                    cd backend
                     docker build -t loveledger-backend .
 
                     cd ..
-                    
+
                     docker run -d --name loveledger-backend \
                         --env-file .env \
                         -p 8080:8080 \
