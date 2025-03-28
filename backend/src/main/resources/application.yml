@@ -23,7 +23,7 @@ spring:
       port: ${REDIS_PORT}
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
     url: ${DATABASE_URL}
     username: ${DATABASE_NAME}
     password: ${DATABASE_PASSWORD}
@@ -53,6 +53,7 @@ cloud:
 ssafy:
   url: ${SSAFY_NETWORK_URL}
   apiKey: ${SSAFY_NETWORK_APIKEY}
+  fastapi_url: ${FAST_API_URL}
 
 app:
   base-url: ${BASE_URL}
