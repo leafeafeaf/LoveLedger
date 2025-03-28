@@ -54,7 +54,7 @@ pipeline {
 
                     docker stop loveledger-backend || true
                     docker rm loveledger-backend || true
-                    docker build -t loveledger-backend .
+                    docker build -t loveledger-backend -f backend/DockerFile .
 
                     docker run -d --name loveledger-backend \
                         --env-file .env \
