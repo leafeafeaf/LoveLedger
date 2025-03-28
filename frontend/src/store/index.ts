@@ -15,6 +15,7 @@ import partnerReducer from "./partnerSlice";
 import financeReducer from "./financeSlice";
 import contentReducer from "./contentSlice";
 import datePickerReducer from "./datePickerSlice";
+import tokenReducer from "./tokenSlice";
 
 // 루트 리듀서 설정
 const rootReducer = combineReducers({
@@ -23,13 +24,14 @@ const rootReducer = combineReducers({
   finance: financeReducer,
   content: contentReducer,
   datePicker: datePickerReducer,
+  token: tokenReducer,
 });
 
 // Redux Persist 설정
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["auth", "partner"], // 유지할 상태
+  whitelist: ["auth", "partner", "token"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -39,7 +41,7 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // 모든 직렬화 검사 비활성화
+      serializableCheck: false,
     }),
 });
 

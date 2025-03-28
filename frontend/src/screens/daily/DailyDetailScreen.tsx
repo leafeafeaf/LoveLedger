@@ -345,8 +345,8 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   return (
     <View style={styles.container}>
       <Header
-        title="Daily Details"
-        subtitle="Transaction History"
+        title="일별 상세"
+        subtitle="지출 기록"
         showBack={true}
         onBack={() => navigation.goBack()}
       />

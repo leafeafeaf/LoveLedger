@@ -9,7 +9,7 @@ const PartnerSwitch: React.FC = () => {
   const { activeView } = useAppSelector((state) => state.partner);
   const { partnerInfo } = useAppSelector((state) => state.partner);
 
-  const partnerName = partnerInfo?.name || "파트너";
+  const partnerName = partnerInfo?.name || "Lover";
 
   const handleViewChange = (view: "you" | "partner" | "combined") => {
     dispatch(changeActiveView(view));
@@ -24,7 +24,7 @@ const PartnerSwitch: React.FC = () => {
         <Text
           style={[styles.tabText, activeView === "you" && styles.activeTabText]}
         >
-          나
+          Me
         </Text>
       </Pressable>
       <Pressable
@@ -53,7 +53,7 @@ const PartnerSwitch: React.FC = () => {
             activeView === "combined" && styles.activeTabText,
           ]}
         >
-          함께
+          Together
         </Text>
       </Pressable>
     </View>

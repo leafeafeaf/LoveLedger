@@ -23,7 +23,7 @@ type DiaryEditScreenProps = NativeStackScreenProps<
 >;
 
 // 기분 타입 정의
-type MoodType = 'happy' | 'excited' | 'peaceful' | 'sad';
+type MoodType = "happy" | "excited" | "peaceful" | "sad";
 
 interface MoodOption {
   id: MoodType;
@@ -45,7 +45,9 @@ export default function DiaryEditScreen({
 
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent || "");
-  const [selectedMood, setSelectedMood] = useState<MoodType>((initialMood as MoodType) || "happy");
+  const [selectedMood, setSelectedMood] = useState<MoodType>(
+    (initialMood as MoodType) || "happy"
+  );
   const [expense, setExpense] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
     try {
@@ -78,7 +80,17 @@ export default function DiaryEditScreen({
 
     // TODO: 실제 저장 로직 구현
     Alert.alert("저장 완료", "다이어리가 수정되었습니다.", [
-      { text: "확인", onPress: () => navigation.navigate("DiaryCreate", {}) },
+      {
+        text: "확인",
+        onPress: () =>
+          navigation.navigate("DiaryEdit", {
+            id,
+            date,
+            title,
+            content,
+            mood: selectedMood,
+          }),
+      },
     ]);
   };
 
@@ -94,7 +106,14 @@ export default function DiaryEditScreen({
           Alert.alert("삭제 완료", "다이어리가 삭제되었습니다.", [
             {
               text: "확인",
-              onPress: () => navigation.navigate("DiaryCreate", {}),
+              onPress: () =>
+                navigation.navigate("DiaryEdit", {
+                  id,
+                  date,
+                  title,
+                  content,
+                  mood: selectedMood,
+                }),
             },
           ]);
         },
@@ -109,16 +128,16 @@ export default function DiaryEditScreen({
         showBack={true}
         onBack={() => navigation.goBack()}
       />
-      
+
       <DatePicker
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         onSelectDate={setSelectedDate}
         selectedDate={selectedDate}
       />
-      
+
       <ImageBackground
-        source={require('../../../assets/images/library/library_bg.png')}
+        source={require("../../../assets/images/library/library_bg.png")}
         style={styles.backgroundImage}
       >
         <ScrollView style={styles.content}>
@@ -126,11 +145,7 @@ export default function DiaryEditScreen({
             style={styles.dateSelector}
             onPress={() => setShowDatePicker(true)}
           >
-            <MaterialCommunityIcons
-              name="calendar"
-              size={20}
-              color="#F6C324"
-            />
+            <MaterialCommunityIcons name="calendar" size={20} color="#F6C324" />
             <Text style={styles.dateText}>
               {selectedDate.toLocaleDateString("ko-KR", {
                 year: "numeric",
@@ -145,7 +160,7 @@ export default function DiaryEditScreen({
               color="#F6C324"
             />
           </Pressable>
-          
+
           <TextInput
             style={styles.titleInput}
             placeholder="다이어리 제목"
@@ -153,7 +168,7 @@ export default function DiaryEditScreen({
             onChangeText={setTitle}
             placeholderTextColor={theme.colors.textLight}
           />
-          
+
           <View style={styles.moodSelector}>
             <Text style={styles.sectionTitle}>기분은 어땠나요?</Text>
             <View style={styles.moodOptions}>
@@ -169,11 +184,7 @@ export default function DiaryEditScreen({
                   <MaterialCommunityIcons
                     name={mood.icon as any}
                     size={24}
-                    color={
-                      selectedMood === mood.id
-                        ? "white"
-                        : "#F6C324"
-                    }
+                    color={selectedMood === mood.id ? "white" : "#F6C324"}
                   />
                   <Text
                     style={[
@@ -187,7 +198,7 @@ export default function DiaryEditScreen({
               ))}
             </View>
           </View>
-          
+
           <View style={styles.expenseInput}>
             <Text style={styles.sectionTitle}>지출 금액</Text>
             <TextInput
@@ -199,7 +210,7 @@ export default function DiaryEditScreen({
               placeholderTextColor={theme.colors.textLight}
             />
           </View>
-          
+
           <TextInput
             style={styles.contentInput}
             placeholder="내용을 입력하세요..."
@@ -210,16 +221,12 @@ export default function DiaryEditScreen({
             placeholderTextColor={theme.colors.textLight}
           />
         </ScrollView>
-        
+
         <View style={styles.footer}>
           <Pressable style={styles.deleteButton} onPress={handleDelete}>
-            <MaterialCommunityIcons
-              name="delete"
-              size={24}
-              color="red"
-            />
+            <MaterialCommunityIcons name="delete" size={24} color="red" />
           </Pressable>
-          
+
           <Pressable style={styles.saveButton} onPress={handleSave}>
             <MaterialCommunityIcons
               name="content-save"
@@ -241,7 +248,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    width: '100%',
+    width: "100%",
   },
   content: {
     flex: 1,
@@ -298,7 +305,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     backgroundColor: "white",
-    width: '23%',
+    width: "23%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -339,7 +346,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     minHeight: 200,
     marginBottom: 16,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,

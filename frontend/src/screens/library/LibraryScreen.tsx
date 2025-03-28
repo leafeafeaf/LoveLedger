@@ -12,7 +12,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import { MainTabScreenProps } from "../../types";
+import { MainTabScreenProps, LibraryScreenProps } from "../../types";
 import { BookItem as BookItemType } from "../../types";
 import SearchBar from "../../components/library/SearchBar";
 import ViewToggle from "../../components/library/ViewToggle";
@@ -21,11 +21,16 @@ import BookShelf from "../../components/library/BookShelf";
 import BookListItem from "../../components/library/BookListItem";
 import { theme } from "../../utils/theme";
 
-type Props = MainTabScreenProps<"Library">;
+// 네비게이션 props 타입을 간단하게 정의합니다
+type Props = {
+  navigation: any;
+};
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const [activeView, setActiveView] = useState<"album" | "list">("album");
-  const [activeContent, setActiveContent] = useState<"diaries" | "stories">("stories");
+  const [activeContent, setActiveContent] = useState<"diaries" | "stories">(
+    "stories"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const { width } = Dimensions.get("window");
 
@@ -107,30 +112,33 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   ];
 
   // Filter books by search query
-  const filteredBooks = 
-    activeContent === "diaries" 
-      ? mockDiaries.filter(item => 
+  const filteredBooks =
+    activeContent === "diaries"
+      ? mockDiaries.filter((item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase())
         )
-      : mockStories.filter(item => 
+      : mockStories.filter((item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
   // Group books by month (for diaries) or series (for stories)
   const groupedBooks = filteredBooks.reduce((acc, item) => {
     let key;
-    
+
     if (activeContent === "diaries") {
       const date = new Date(item.date);
-      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
     } else {
       key = item.theme || "Default Series";
     }
-    
+
     if (!acc[key]) {
       acc[key] = [];
     }
-    
+
     acc[key].push(item);
     return acc;
   }, {} as Record<string, BookItemType[]>);
@@ -141,12 +149,14 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Handle book selection
   const handleSelectBook = (book: BookItemType) => {
     if (book.type === "diary") {
+      // 일반적인 navigate 호출
       navigation.navigate("DiaryDetail", {
         id: book.id,
         date: book.date,
         mood: book.mood,
       });
     } else {
+      // 일반적인 navigate 호출
       navigation.navigate("StoryDetail", {
         id: book.id,
       });
@@ -168,16 +178,10 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const renderControls = () => (
     <View style={styles.controlsContainer}>
       <View style={styles.searchContainer}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <ViewToggle
-          activeView={activeView}
-          onToggle={setActiveView}
-        />
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <ViewToggle activeView={activeView} onToggle={setActiveView} />
       </View>
-      
+
       <ContentToggle
         activeContent={activeContent}
         onToggle={setActiveContent}
@@ -187,7 +191,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
 
   // 앨범 뷰 렌더링
   const renderAlbumView = () => (
-    <ScrollView 
+    <ScrollView
       style={styles.content}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
@@ -198,7 +202,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
           title={key}
           books={groupedBooks[key]}
           onSelectBook={handleSelectBook}
-          type={activeContent === 'stories' ? 'story' : 'diary'}
+          type={activeContent === "stories" ? "story" : "diary"}
         />
       ))}
     </ScrollView>
@@ -214,7 +218,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
         <BookListItem
           item={item}
           onPress={() => handleSelectBook(item)}
-          type={activeContent === 'stories' ? 'story' : 'diary'}
+          type={activeContent === "stories" ? "story" : "diary"}
         />
       )}
     />
@@ -223,7 +227,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {renderHeader()}
-      
+
       <ImageBackground
         source={require("../../../assets/images/library/library_bg.png")}
         style={styles.bgContainer}
@@ -252,21 +256,21 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 72,
     paddingBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
+    fontWeight: "700",
+    color: "white",
   },
   bgContainer: {
     flex: 1,
     width: "100%",
   },
   logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
   },
   logo: {
