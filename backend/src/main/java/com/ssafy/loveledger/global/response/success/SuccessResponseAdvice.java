@@ -10,6 +10,8 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 @Slf4j
@@ -39,6 +41,11 @@ public class SuccessResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
+        String path = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest()
+            .getRequestURI();
+        if (path != null && path.startsWith("/actuator")) {
+            return false;
+        }
         return true;
     }
 }

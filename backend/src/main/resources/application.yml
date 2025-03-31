@@ -65,3 +65,12 @@ app:
   deep-link-uri-scheme: ${DEEPLINK_URL}
   invite-expiry-hours: ${INVITE_EXPIRE_HOURS}
   android-package-name: ${ANDROID_PACKAGE_NAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
