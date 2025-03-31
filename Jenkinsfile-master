@@ -104,8 +104,6 @@ pipeline {
                                 sleep 2
                             done
 
-                            STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"') && echo "true" || echo "false" )
-
                             if [ "$STATUS" = "true" ]; then
                                 echo "Health check passed"
                             else
