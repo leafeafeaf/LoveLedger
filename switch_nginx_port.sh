@@ -25,7 +25,7 @@ export APP_PORT=$NEW_PORT
 echo "Switching NGINX to port: $NEW_PORT"
 
 # 템플릿을 실제 NGINX 설정으로 변환
-sudo -E envsubst '$APP_PORT' < "$NGINX_TEMPLATE" > "$NGINX_CONFIG"
+sudo -E envsubst '$APP_PORT' < "$NGINX_TEMPLATE" | sudo tee "$NGINX_CONFIG" > /dev/null
 
 # 새로운 포트 저장
 echo "$NEW_PORT" > "$PORT_FILE"
