@@ -1,4 +1,4 @@
-import React, { useState, useRef, FC } from "react";
+import React, { useState, useRef, FC, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   Animated,
   useWindowDimensions,
   PanResponder,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { theme } from "../../utils/theme";
-import { Transaction } from "../../types";
+import { Transaction, TransactionDetail } from "../../types";
 import {
   RootStackParamList,
   DailyScreenProps,
@@ -21,6 +22,14 @@ import {
 } from "../../types";
 import Header from "../../components/common/Header";
 import { CompositeNavigationProp } from "@react-navigation/native";
+import { useAccountDetail } from "@hooks/useAccountDetail";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { 
+  fetchAccountDetailStart, 
+  fetchAccountDetailSuccess, 
+  fetchAccountDetailFailure 
+} from "../../store/financeSlice";
 
 type DailyDetailScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<DailyStackParamList, "DailyDetail">,
@@ -34,280 +43,215 @@ interface DailyDetailScreenProps {
   route: DailyDetailScreenRouteProp;
 }
 
-interface DailySummaryProps {
+const DailySummary: FC<{
   selectedDate: Date;
-  transactions: Transaction[];
-}
+  transactions: TransactionDetail[];
+}> = ({ selectedDate, transactions }) => {
+  const totalIncome = transactions
+    .filter((t) => !t.remittance)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = transactions
+    .filter((t) => t.remittance)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const total = totalIncome - totalExpense;
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("ko-KR", {
-    style: "currency",
-    currency: "KRW",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-const DailySummary = React.memo(
-  ({ selectedDate, transactions }: DailySummaryProps) => {
-    const total = transactions.reduce((acc: number, curr: Transaction) => {
-      return curr.remittance ? acc - curr.amount : acc + curr.amount;
-    }, 0);
-
-    return (
-      <View style={styles.dailySummaryContainer}>
-        <Text style={styles.dailySummaryDate}>
-          {selectedDate.toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "long",
-          })}
-        </Text>
-        <View style={styles.dailySummaryAmounts}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>수입</Text>
-            <Text
-              style={[styles.summaryAmount, { color: theme.colors.success }]}
-            >
-              {formatCurrency(
-                transactions.reduce(
-                  (acc: number, curr: Transaction) =>
-                    !curr.remittance ? acc + curr.amount : acc,
-                  0
-                )
-              )}
-            </Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>지출</Text>
-            <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
-              {formatCurrency(
-                transactions.reduce(
-                  (acc: number, curr: Transaction) =>
-                    curr.remittance ? acc + curr.amount : acc,
-                  0
-                )
-              )}
-            </Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>합계</Text>
-            <Text
-              style={[
-                styles.summaryAmount,
-                {
-                  color: total >= 0 ? theme.colors.success : theme.colors.error,
-                },
-              ]}
-            >
-              {formatCurrency(total)}
-            </Text>
-          </View>
+  return (
+    <View style={styles.dailySummaryContainer}>
+      <Text style={styles.dailySummaryDate}>
+        {selectedDate.toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        })}
+      </Text>
+      <View style={styles.dailySummaryAmounts}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>수입</Text>
+          <Text style={[styles.summaryAmount, { color: theme.colors.success }]}>
+            {formatCurrency(totalIncome)}
+          </Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>지출</Text>
+          <Text style={[styles.summaryAmount, { color: theme.colors.error }]}>
+            {formatCurrency(totalExpense)}
+          </Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>합계</Text>
+          <Text
+            style={[
+              styles.summaryAmount,
+              {
+                color: total >= 0 ? theme.colors.success : theme.colors.error,
+              },
+            ]}
+          >
+            {formatCurrency(total)}
+          </Text>
         </View>
       </View>
-    );
-  }
-);
+    </View>
+  );
+};
 
-interface FABComponentProps {
-  navigation: DailyDetailScreenNavigationProp;
+const FABComponent: FC<{
+  navigation: any;
   showFabMenu: boolean;
   toggleFabMenu: () => void;
   fabAnimation: Animated.Value;
   menuAnimation: Animated.Value;
   position: { x: number; y: number };
-  setPosition: (position: { x: number; y: number }) => void;
-}
+  setPosition: (pos: { x: number; y: number }) => void;
+}> = ({
+  navigation,
+  showFabMenu,
+  toggleFabMenu,
+  fabAnimation,
+  menuAnimation,
+  position,
+  setPosition,
+}) => {
+  const { width, height } = useWindowDimensions();
+  const pan = useRef(new Animated.ValueXY()).current;
 
-/**
- * 애니메이션 값을 안전하게 얻기 위한 함수
- */
-const getValueFromAnimated = (value: Animated.Value): number => {
-  let result = 0;
-  value.addListener((state) => {
-    result = state.value;
+  const getValue = (value: Animated.Value) => {
+    let result = 0;
+    value.addListener((state) => {
+      result = state.value;
+    });
+    value.removeAllListeners();
+    return result;
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: getValue(pan.x),
+          y: getValue(pan.y),
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+        const newX = position.x + getValue(pan.x);
+        const newY = position.y + getValue(pan.y);
+        setPosition({
+          x: Math.max(0, Math.min(newX, width - 56)),
+          y: Math.max(0, Math.min(newY, height - 56)),
+        });
+      },
+    })
+  ).current;
+
+  const menuTranslateY = menuAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -120],
   });
-  value.removeAllListeners();
-  return result;
-};
 
-const FABComponent = React.memo(
-  ({
-    navigation,
-    showFabMenu,
-    toggleFabMenu,
-    fabAnimation,
-    menuAnimation,
-    position,
-    setPosition,
-  }: FABComponentProps) => {
-    const pan = useRef(new Animated.ValueXY(position)).current;
-    const { width, height } = useWindowDimensions();
+  const menuOpacity = menuAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
-    const panResponder = useRef(
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          // 안전한 방법으로 현재 값 얻기
-          const xValue = getValueFromAnimated(pan.x);
-          const yValue = getValueFromAnimated(pan.y);
-
-          pan.setOffset({
-            x: xValue,
-            y: yValue,
-          });
+  return (
+    <Animated.View
+      style={[
+        styles.fabContainer,
+        {
+          transform: [{ translateX: position.x }, { translateY: position.y }],
         },
-        onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-          useNativeDriver: false,
-        }),
-        onPanResponderRelease: (_, gesture) => {
-          pan.flattenOffset();
-
-          // 현재 값을 안전하게 얻기
-          const newX = getValueFromAnimated(pan.x);
-          const newY = getValueFromAnimated(pan.y);
-
-          // Calculate bounds
-          const maxX = width - 80;
-          const maxY = height - 200;
-          const minX = 0;
-          const minY = 0;
-
-          // Check if FAB is dragged too far
-          const isOffScreenX = newX < minX || newX > maxX;
-          const isOffScreenY = newY < minY || newY > maxY;
-
-          let finalX = newX;
-          let finalY = newY;
-
-          // If off screen, snap to nearest edge
-          if (isOffScreenX) {
-            finalX = newX < minX ? minX : maxX;
-          }
-          if (isOffScreenY) {
-            finalY = newY < minY ? minY : maxY;
-          }
-
-          // Snap to edges if close
-          const snapThreshold = 40;
-          if (Math.abs(newX - maxX) < snapThreshold) finalX = maxX;
-          if (Math.abs(newX - minX) < snapThreshold) finalX = minX;
-          if (Math.abs(newY - maxY) < snapThreshold) finalY = maxY;
-          if (Math.abs(newY - minY) < snapThreshold) finalY = minY;
-
-          const finalPosition = { x: finalX, y: finalY };
-
-          Animated.spring(pan, {
-            toValue: finalPosition,
-            useNativeDriver: false,
-            friction: 7,
-            tension: 40,
-          }).start(() => {
-            setPosition(finalPosition);
-          });
-        },
-      })
-    ).current;
-
-    return (
+      ]}
+      {...panResponder.panHandlers}
+    >
       <Animated.View
         style={[
-          styles.fabContainer,
+          styles.fabMenu,
           {
-            transform: pan.getTranslateTransform(),
-            zIndex: 1000,
+            transform: [{ translateY: menuTranslateY }],
+            opacity: menuOpacity,
           },
         ]}
-        {...panResponder.panHandlers}
       >
-        <Animated.View
-          style={[
-            styles.fabMenu,
-            {
-              opacity: menuAnimation,
-              transform: [
-                { scale: menuAnimation },
-                {
-                  translateY: menuAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+        <Pressable
+          style={styles.fabMenuItem}
+          onPress={() => {
+            toggleFabMenu();
+            navigation.navigate("Story", {
+              screen: "StorySettings",
+              params: {
+                themeStyle: undefined,
+                toneStyle: undefined,
+              },
+            });
+          }}
         >
-          <Pressable
-            style={styles.fabMenuItem}
-            onPress={() => {
-              toggleFabMenu();
-              navigation.navigate("Story", {
-                screen: "StorySettings",
-                params: {
-                  themeStyle: undefined,
-                  toneStyle: undefined,
-                },
-              });
-            }}
-          >
-            <MaterialCommunityIcons
-              name="book-open-variant"
-              size={20}
-              color={theme.colors.white}
-            />
-            <Text style={styles.fabMenuText}>Create Story</Text>
-          </Pressable>
+          <MaterialCommunityIcons
+            name="book-open-variant"
+            size={20}
+            color={theme.colors.white}
+          />
+          <Text style={styles.fabMenuText}>Create Story</Text>
+        </Pressable>
 
-          <Pressable
-            style={styles.fabMenuItem}
-            onPress={() => {
-              toggleFabMenu();
-              navigation.navigate("Diary", {
-                screen: "DiaryCreate",
-                params: {},
-              });
-            }}
-          >
-            <MaterialCommunityIcons
-              name="notebook"
-              size={20}
-              color={theme.colors.white}
-            />
-            <Text style={styles.fabMenuText}>Write Diary</Text>
-          </Pressable>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.fab,
-            {
-              transform: [
-                {
-                  rotate: fabAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0deg", "45deg"],
-                  }),
-                },
-              ],
-            },
-          ]}
+        <Pressable
+          style={styles.fabMenuItem}
+          onPress={() => {
+            toggleFabMenu();
+            navigation.navigate("Diary", {
+              screen: "DiaryCreate",
+              params: {},
+            });
+          }}
         >
-          <Pressable onPress={toggleFabMenu} style={styles.fabButton}>
-            <MaterialCommunityIcons
-              name="pencil"
-              size={24}
-              color={theme.colors.white}
-            />
-          </Pressable>
-        </Animated.View>
+          <MaterialCommunityIcons
+            name="notebook"
+            size={20}
+            color={theme.colors.white}
+          />
+          <Text style={styles.fabMenuText}>Write Diary</Text>
+        </Pressable>
       </Animated.View>
-    );
-  }
-);
+      <Pressable style={styles.fab} onPress={toggleFabMenu}>
+        <Animated.View
+          style={{
+            transform: [
+              {
+                rotate: fabAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0deg", "45deg"],
+                }),
+              },
+            ],
+          }}
+        >
+          <MaterialCommunityIcons
+            name="plus"
+            size={24}
+            color={theme.colors.white}
+          />
+        </Animated.View>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("ko-KR", {
+    style: "currency",
+    currency: "KRW",
+  }).format(amount);
+};
 
 const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   navigation,
@@ -317,6 +261,37 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
   const fabAnimation = useRef(new Animated.Value(0)).current;
   const menuAnimation = useRef(new Animated.Value(0)).current;
+
+  const dispatch = useDispatch();
+  const { accountDetail } = useSelector((state: RootState) => state.finance);
+
+  const { selectedDate } = route.params;
+  const selectedDateObj = new Date(selectedDate);
+  
+  const { data, isLoading, error } = useAccountDetail({
+    year: selectedDateObj.getFullYear(),
+    month: selectedDateObj.getMonth() + 1,
+    day: selectedDateObj.getDate(),
+    pageno: 1,
+    size: 30,
+    sort: 'DESC'
+  });
+
+  useEffect(() => {
+    if (data) {
+      dispatch(fetchAccountDetailSuccess(data));
+    }
+  }, [data, dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(fetchAccountDetailFailure(error.message));
+    }
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchAccountDetailStart());
+  }, [dispatch]);
 
   const toggleFabMenu = () => {
     const toValue = showFabMenu ? 0 : 1;
@@ -338,9 +313,28 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
     ]).start();
   };
 
-  const { selectedDate, transactions } = route.params;
-  // ISO 문자열을 Date 객체로 변환
-  const selectedDateObj = new Date(selectedDate);
+  if (isLoading || accountDetail.isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || accountDetail.error) {
+    return (
+      <View style={styles.errorContainer}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={48}
+          color={theme.colors.error}
+        />
+        <Text style={styles.errorText}>데이터를 불러오는데 실패했습니다.</Text>
+      </View>
+    );
+  }
+
+  const transactions = data?.content || accountDetail.data?.content || [];
 
   return (
     <View style={styles.container}>
@@ -358,34 +352,39 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
         />
         {transactions.length > 0 ? (
           <View style={styles.transactionsContainer}>
-            {transactions.map((transaction: Transaction) => (
+            {transactions.map((transaction: TransactionDetail) => (
               <View
-                key={
-                  transaction.id ||
-                  transaction.transactionid ||
-                  `transaction-${Math.random().toString(36).substr(2, 9)}`
-                }
+                key={transaction.transactionId}
                 style={styles.transactionItem}
               >
                 <Pressable
                   style={styles.transactionContent}
                   onPress={() =>
-                    navigation.navigate("TransactionEdit", { transaction })
+                    navigation.navigate("TransactionEdit", { 
+                      transaction: {
+                        id: transaction.transactionId,
+                        transactionid: transaction.transactionId,
+                        amount: transaction.amount,
+                        date: transaction.date,
+                        time: transaction.time,
+                        remittance: transaction.remittance,
+                        targetname: transaction.targetName,
+                        category: transaction.categoryName,
+                        accountNo: transaction.accountNo,
+                      }
+                    })
                   }
                 >
                   <View style={styles.transactionDetails}>
                     <Text style={styles.transactionTarget}>
-                      {transaction.targetname}
+                      {transaction.targetName}
                     </Text>
                     <View style={styles.transactionMeta}>
                       <Text style={styles.transactionCategory}>
-                        {transaction.category}
+                        {transaction.categoryName}
                       </Text>
                       <Text style={styles.transactionTime}>
-                        {new Date(transaction.date).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {transaction.time}
                       </Text>
                     </View>
                   </View>
@@ -393,8 +392,8 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
                     style={[
                       styles.transactionAmount,
                       transaction.remittance
-                        ? styles.expenseAmount
-                        : styles.incomeAmount,
+                        ? { color: theme.colors.error }
+                        : { color: theme.colors.success },
                     ]}
                   >
                     {transaction.remittance ? "- " : "+ "}
@@ -431,59 +430,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   );
 };
 
-export default DailyDetailScreen;
-
 const styles = StyleSheet.create({
-  fabContainer: {
-    position: "absolute",
-    right: theme.spacing.xl,
-    bottom: 90,
-    alignItems: "flex-end",
-    elevation: 1000,
-    zIndex: 1000,
-  },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    ...theme.shadows.medium,
-  },
-  fabButton: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fabMenu: {
-    position: "absolute",
-    bottom: 70,
-    right: 0,
-    backgroundColor: "transparent",
-    gap: theme.spacing.md,
-  },
-  fabMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
-    transform: [{ scale: 1.05 }],
-    maxWidth: 140,
-    minWidth: 126,
-    marginBottom: theme.spacing.sm,
-    ...theme.shadows.small,
-  },
-  fabMenuText: {
-    color: theme.colors.white,
-    fontWeight: "600",
-    marginLeft: theme.spacing.md,
-    fontSize: 13,
-    flexShrink: 1,
-  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -576,22 +523,104 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  expenseAmount: {
-    color: theme.colors.error,
-  },
-  incomeAmount: {
-    color: theme.colors.success,
-  },
   noTransactionsContainer: {
-    padding: theme.spacing.xl,
-    alignItems: "center",
+    flex: 1,
     justifyContent: "center",
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.white,
+    alignItems: "center",
+    padding: theme.spacing.xl,
   },
   noTransactionsText: {
     fontSize: 16,
     color: theme.colors.textLight,
-    textAlign: "center",
+    marginTop: theme.spacing.md,
+  },
+  fabContainer: {
+    position: "absolute",
+    right: theme.spacing.xl,
+    bottom: 90,
+    alignItems: "flex-end",
+    elevation: 1000,
+    zIndex: 1000,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    ...theme.shadows.medium,
+  },
+  fabButton: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fabMenu: {
+    position: "absolute",
+    bottom: 70,
+    right: 0,
+    backgroundColor: "transparent",
+    gap: theme.spacing.md,
+  },
+  fabMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    transform: [{ scale: 1.05 }],
+    maxWidth: 140,
+    minWidth: 126,
+    marginBottom: theme.spacing.sm,
+    ...theme.shadows.small,
+  },
+  fabMenuText: {
+    color: theme.colors.white,
+    fontWeight: "600",
+    marginLeft: theme.spacing.md,
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  menuContainer: {
+    position: "absolute",
+    bottom: 64,
+    right: 0,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: theme.spacing.sm,
+  },
+  menuText: {
+    color: theme.colors.white,
+    marginLeft: theme.spacing.sm,
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    gap: theme.spacing.md,
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
+    textAlign: 'center',
   },
 });
+
+export default DailyDetailScreen;

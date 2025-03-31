@@ -9,12 +9,21 @@ import {
   Share,
   ImageBackground,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import WoodHeader from '../../components/common/WoodHeader';
 import PageTurningView from '../../components/story/PageTurningView';
 import BlinkingText from '../../components/common/BlinkingText';
 import { theme } from '../../utils/theme';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { 
+  fetchFictionDetailStart, 
+  fetchFictionDetailSuccess, 
+  fetchFictionDetailFailure 
+} from '../../store/contentSlice';
+import { axiosInstance } from '../../api/axios';
 
 // 로컬 타입 정의
 type StoryDetailParams = {
@@ -31,24 +40,46 @@ const { width, height } = Dimensions.get('window');
 const StoryDetailScreen = ({ navigation, route }: Props) => {
   const { id } = route.params;
   const [showCover, setShowCover] = useState(true);
-  
-  // 실제로는 id를 기반으로 데이터를 가져오는 로직이 필요합니다
-  // 여기서는 데모 데이터를 사용합니다
+  const dispatch = useDispatch();
+  const { data, isLoading, error } = useSelector((state: RootState) => state.content.fictionDetail);
+
+  useEffect(() => {
+    const fetchFictionDetail = async () => {
+      try {
+        dispatch(fetchFictionDetailStart());
+        const response = await axiosInstance.get(`/fiction/${id}`);
+        dispatch(fetchFictionDetailSuccess(response.data.data));
+      } catch (error) {
+        dispatch(fetchFictionDetailFailure(error instanceof Error ? error.message : "소설을 불러오는데 실패했습니다."));
+      }
+    };
+
+    fetchFictionDetail();
+  }, [dispatch, id]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>소설을 불러오는데 실패했습니다.</Text>
+      </View>
+    );
+  }
+
   const storyData = {
     id,
-    title: '우리의 사랑 이야기',
-    series: 'Medium Raw',
-    content: `I recognize the men at the bar. And the one woman. They're some of the most respected chefs in America. Most of them are French, but all of them made their bones here. They are, each and every one of them, heroes to me—exactly what I aspire to be. They're who I came to this town to be—gods to up-and-coming line cooks, chefs, and wannabe chefs, and to the soon-to-be-ex-career waiters, bartenders, and floor managers everywhere. TV clearly surprised them, vapors being here, to recognize these guys. I'm surprised at who's not here. I've covertly obtained the list of invitees.
-
-I find it notable who chose not to show at this hastily arranged event. At the last minute, I'm told, Jean-Claude insisted on a venue change, from an Italian coffee shop to this place, an anonymous little tavern. Not a restaurant, not a Four Seasons, not Le Cirque, not Daniel, not a place where any of these guys would be seen, ordinarily. Just a bar. It was the sort of petty touch I'd come to expect from Jean-Claude. A deliberate slight.
-
-My heroes came for Jean-Claude, a man I've never met. I came for them.
-
-I walk up to the bar and squeeze in between a few of the chefs. I order my drink of choice, a shot of Jameson and a beer. The bartender gives me my drink and I quickly down the shot. I'm here because I've been invited, sort of. I've covertly obtained the list of invitees.
-
-I try to seem casual, like I belong here.`,
-    date: new Date().toISOString(),
-    coverImage: getBookImage(id),
+    title: data.title,
+    series: data.seriesname || 'Medium Raw',
+    content: data.content,
+    date: data.createdAt,
+    coverImage: { uri: data.arturl },
   };
 
   // 컨텐츠를 여러 페이지로 나누기
@@ -245,6 +276,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
   },
 });
 

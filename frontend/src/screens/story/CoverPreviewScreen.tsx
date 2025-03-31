@@ -6,42 +6,128 @@ import {
   Pressable,
   Image,
   ScrollView,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { StoryScreenProps, StorySettings, Story, Series } from "../../types";
 import Header from "../../components/common/Header";
+import { useFictionSave } from "../../hooks/useFictionSave";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import {
+  clearCoverImage,
+  startStorySaving,
+  storySavingSuccess,
+  storySavingFailure,
+  clearStorySavingState,
+} from "../../store/contentSlice";
 
 const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
   navigation,
   route,
 }) => {
   const { settings, series, story, coverImage, coverStyle } = route.params;
+  const dispatch = useDispatch();
+  const { isSaving, error } = useSelector(
+    (state: RootState) => state.content.storySaving
+  );
+  const { mutate } = useFictionSave();
 
-  const handleNext = () => {
-    navigation.navigate("Publishing", {
-      settings,
-      series: {
-        id: "id" in series ? series.id : Date.now(),
-        title: "title" in series ? series.title : series.name,
-        episodes: "episodes" in series ? series.episodes : 1,
-        lastUpdated:
-          "lastUpdated" in series
-            ? series.lastUpdated
-            : new Date().toISOString(),
+  const handleSave = () => {
+    // 테마 ID 매핑
+    const themeIdMap: { [key: string]: number } = {
+      webtoon: 1,
+      fairytale: 2,
+      realistic: 3,
+      watercolor: 4,
+      oilpainting: 5,
+      sketch: 6,
+    };
+
+    const themeId = themeIdMap[coverStyle] || 1;
+    const seriesId = "id" in series ? series.id : Date.now();
+    const [startDate, endDate] = (settings.period || "").split("~").map(date => date.trim());
+
+    dispatch(startStorySaving());
+
+    mutate(
+      {
+        content: story.content,
+        imageurl: coverImage,
+        startdate: startDate,
+        enddate: endDate,
+        title: story.title,
+        seriesId,
+        themeId,
       },
-      story,
-      coverImage,
-      coverStyle,
-    });
+      {
+        onSuccess: (response) => {
+          dispatch(storySavingSuccess({
+            ...story,
+            id: seriesId.toString(),
+            coverImage,
+          }));
+          dispatch(clearCoverImage());
+          navigation.navigate("Publishing", {
+            settings,
+            series: {
+              id: seriesId,
+              title: "title" in series ? series.title : series.name,
+              episodes: "episodes" in series ? series.episodes : 1,
+              lastUpdated: "lastUpdated" in series
+                ? series.lastUpdated
+                : new Date().toISOString(),
+            },
+            story,
+            coverImage,
+            coverStyle,
+          });
+        },
+        onError: (error) => {
+          let errorMessage = "소설 저장 중 오류가 발생했습니다.";
+          
+          switch (error.message) {
+            case "INVALID_DATE_RANGE":
+              errorMessage = "날짜 범위가 올바르지 않습니다.";
+              break;
+            case "THEME_NOT_FOUND":
+              errorMessage = "선택한 테마를 찾을 수 없습니다.";
+              break;
+            case "SERIES_NOT_FOUND":
+              errorMessage = "시리즈를 찾을 수 없습니다.";
+              break;
+            case "TITLE_TOO_LONG":
+              errorMessage = "제목이 40자를 초과할 수 없습니다.";
+              break;
+            default:
+              errorMessage = error.message;
+          }
+
+          dispatch(storySavingFailure(errorMessage));
+          Alert.alert("오류", errorMessage);
+        },
+      }
+    );
   };
+
+  // 컴포넌트 언마운트 시 상태 초기화
+  React.useEffect(() => {
+    return () => {
+      dispatch(clearStorySavingState());
+    };
+  }, [dispatch]);
 
   return (
     <View style={styles.container}>
       <Header
         title="커버 미리보기"
         showBack={true}
-        onBack={() => navigation.goBack()}
+        onBack={() => {
+          dispatch(clearCoverImage());
+          dispatch(clearStorySavingState());
+          navigation.goBack();
+        }}
       />
       <ScrollView style={styles.content}>
         <View style={styles.section}>
@@ -61,8 +147,14 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <Pressable style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Save</Text>
+        <Pressable 
+          style={[styles.nextButton, isSaving && styles.disabledButton]} 
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          <Text style={styles.nextButtonText}>
+            {isSaving ? "저장 중..." : "Save"}
+          </Text>
           <MaterialCommunityIcons
             name="arrow-right"
             size={20}
@@ -140,6 +232,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
 

@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList, ProfileStackParamList, Goal } from "../../types";
+import { RootStackParamList, ProfileStackParamList } from "../../types";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import { ProfileScreenProps } from "../../types";
+import { useGoalList } from "../../hooks/useGoalList";
 
 type GoalListScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -15,65 +16,77 @@ interface GoalListScreenProps {
   navigation: GoalListScreenNavigationProp;
 }
 
-const goals: Goal[] = [
-  {
-    id: "1",
-    title: "여행 자금",
-    description: "일본 여행을 위한 자금",
-    target: 2000000,
-    current: 1500000,
-    deadline: "2024-12-31",
-    icon: "airplane",
-  },
-  {
-    id: "2",
-    title: "결혼 자금",
-    description: "결혼 준비를 위한 자금",
-    target: 30000000,
-    current: 10000000,
-    deadline: "2025-06-30",
-    icon: "heart",
-  },
-];
-
 export default function GoalListScreen({ navigation }: GoalListScreenProps) {
-  const handleGoalPress = (goalId: string) => {
-    const goal = goals.find((g) => g.id === goalId);
-    if (goal) {
-      navigation.navigate("GoalDetail", { goal });
+  const { data: goalData, isLoading, error } = useGoalList();
+
+  const handleGoalPress = () => {
+    if (goalData) {
+      navigation.navigate("GoalDetail", { 
+        goal: {
+          id: "1",
+          title: goalData.title,
+          description: "목표 설명",
+          target: goalData.goalamount,
+          current: goalData.currentamount,
+          deadline: goalData.goaldate,
+          icon: "target",
+        }
+      });
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Header title="목표 관리" onBack={() => navigation.goBack()} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>목표를 불러오는 중...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Header title="목표 관리" onBack={() => navigation.goBack()} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error.message}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Header title="목표 관리" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content}>
-        {goals.map((goal) => (
+        {goalData && (
           <Pressable
-            key={goal.id}
             style={styles.goalItem}
-            onPress={() => handleGoalPress(goal.id)}
+            onPress={handleGoalPress}
           >
-            <Text style={styles.goalTitle}>{goal.title}</Text>
+            <Text style={styles.goalTitle}>{goalData.title}</Text>
             <View style={styles.progressContainer}>
               <View
                 style={[
                   styles.progressBar,
                   {
-                    width: `${(goal.current / goal.target) * 100}%`,
+                    width: `${(goalData.currentamount / goalData.goalamount) * 100}%`,
                   },
                 ]}
               />
             </View>
             <View style={styles.goalInfo}>
               <Text style={styles.goalAmount}>
-                {goal.current.toLocaleString()}원 /{" "}
-                {goal.target.toLocaleString()}원
+                {goalData.currentamount.toLocaleString()}원 /{" "}
+                {goalData.goalamount.toLocaleString()}원
               </Text>
-              <Text style={styles.goalDeadline}>목표일: {goal.deadline}</Text>
+              <Text style={styles.goalDeadline}>목표일: {goalData.goaldate}</Text>
             </View>
           </Pressable>
-        ))}
+        )}
       </ScrollView>
     </View>
   );
@@ -123,5 +136,26 @@ const styles = StyleSheet.create({
   goalDeadline: {
     fontSize: 14,
     color: theme.colors.textLight,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
+    textAlign: "center",
   },
 });
