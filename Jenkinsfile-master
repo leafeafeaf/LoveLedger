@@ -91,9 +91,7 @@ pipeline {
                             STATUS="false"
 
                             for i in {1..10}; do
-                                
-                                STATUS=`curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"`
-                                
+                                STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"') && echo "true" || echo "false" )
                                 echo $STATUS
 
                                 if [ "$STATUS" = "true" ] ; then
@@ -105,7 +103,7 @@ pipeline {
                                 sleep 2
                             done
 
-                            STATUS=`curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"`
+                            STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"') && echo "true" || echo "false" )
 
                             if [ "$STATUS" = "true" ]; then
                                 echo "Health check passed"
