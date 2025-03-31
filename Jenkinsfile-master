@@ -91,7 +91,7 @@ pipeline {
                             STATUS="false"
 
                             for i in {1..10}; do
-                                STATUS=$( $(curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"') && echo "true" || echo "false" )
+                                STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q 'status.*UP') && echo "true" || echo "false" )
                                 echo $STATUS
                                 echo $NEW_PORT
 
