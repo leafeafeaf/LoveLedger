@@ -32,7 +32,7 @@ public class AccountController {
     private final AccountService accountService;
     private final UserUtil userUtil;
 
-    @GetMapping("/history/stat")
+    @GetMapping("/history/sum/list")
     public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
         @RequestParam Integer year,
         @RequestParam Integer month,
@@ -52,7 +52,7 @@ public class AccountController {
         return accountService.getAccountHistoryByWeek(user, 2025, 3);
     }
 
-    @GetMapping("/history/sum/list")
+    @GetMapping("/history/stat")
     public Map<String, Object> getDailyStatisticsByMonth(
         @RequestParam Integer year,
         @RequestParam Integer month
