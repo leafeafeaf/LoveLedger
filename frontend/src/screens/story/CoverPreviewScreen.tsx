@@ -62,7 +62,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
       </ScrollView>
       <View style={styles.footer}>
         <Pressable style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>Save</Text>
           <MaterialCommunityIcons
             name="arrow-right"
             size={20}
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     gap: theme.spacing.sm,
   },
-  nextButtonText: {
+  saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
