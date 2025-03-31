@@ -13,7 +13,13 @@ import lombok.NoArgsConstructor;
 @Builder
 public class MonthlyStatisticsResponse {
 
-    private Category category;
-    private Long ConsumeSum;
-    private Long EarnSum;
+    private String categoryName;
+    private Long consumeSum;
+    private Long earnSum;
+
+    public MonthlyStatisticsResponse(Category category, Long consumeSum, Long earnSum) {
+        this.categoryName = category.getName();  // Enum의 name 필드 사용
+        this.consumeSum = consumeSum;
+        this.earnSum = earnSum;
+    }
 }
