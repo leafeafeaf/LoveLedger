@@ -1,26 +1,11 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-  Modal,
-  TextInput,
-  Platform,
-} from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import {
-  RootStackParamList,
-  ProfileStackParamList,
-  Goal,
-  NewGoal,
-} from "../../types";
+import { RootStackParamList, ProfileStackParamList } from "../../types";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import { ProfileScreenProps } from "../../types";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import DatePicker from "../../components/common/DatePicker";
+import { useGoalList } from "../../hooks/useGoalList";
 
 type GoalListScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -31,102 +16,77 @@ interface GoalListScreenProps {
   navigation: GoalListScreenNavigationProp;
 }
 
-const goals: Goal[] = [
-  {
-    id: "1",
-    title: "여행 자금",
-    description: "일본 여행을 위한 자금",
-    target: 2000000,
-    current: 1500000,
-    deadline: "2024-12-31",
-    icon: "airplane",
-  },
-  {
-    id: "2",
-    title: "결혼 자금",
-    description: "결혼 준비를 위한 자금",
-    target: 30000000,
-    current: 10000000,
-    deadline: "2025-06-30",
-    icon: "heart",
-  },
-];
-
 export default function GoalListScreen({ navigation }: GoalListScreenProps) {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [newGoal, setNewGoal] = useState<NewGoal>({
-    title: "",
-    description: "",
-    target: "0",
-    deadline: "",
-    icon: "star",
-  });
+  const { data: goalData, isLoading, error } = useGoalList();
 
-  const handleGoalPress = (goalId: string) => {
-    const goal = goals.find((g) => g.id === goalId);
-    if (goal) {
-      navigation.navigate("GoalDetail", { goal });
+  const handleGoalPress = () => {
+    if (goalData) {
+      navigation.navigate("GoalDetail", { 
+        goal: {
+          id: "1",
+          title: goalData.title,
+          description: "목표 설명",
+          target: goalData.goalamount,
+          current: goalData.currentamount,
+          deadline: goalData.goaldate,
+          icon: "target",
+        }
+      });
     }
   };
 
-  const handleCreateGoal = () => {
-    // TODO: API 호출하여 목표 생성
-    setIsModalVisible(false);
-    setNewGoal({
-      title: "",
-      description: "",
-      target: "0",
-      deadline: "",
-      icon: "star",
-    });
-  };
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Header title="목표 관리" onBack={() => navigation.goBack()} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>목표를 불러오는 중...</Text>
+        </View>
+      </View>
+    );
+  }
 
-  const handleDateSelect = (date: Date) => {
-    setShowDatePicker(false);
-    setNewGoal({
-      ...newGoal,
-      deadline: date.toISOString().split("T")[0],
-    });
-  };
-
-  const handleInputChange = (field: keyof NewGoal, value: string) => {
-    setNewGoal({
-      ...newGoal,
-      [field]: value,
-    });
-  };
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Header title="목표 관리" onBack={() => navigation.goBack()} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error.message}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Header title="목표 관리" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content}>
-        {goals.map((goal) => (
+        {goalData && (
           <Pressable
-            key={goal.id}
             style={styles.goalItem}
-            onPress={() => handleGoalPress(goal.id)}
+            onPress={handleGoalPress}
           >
-            <Text style={styles.goalTitle}>{goal.title}</Text>
+            <Text style={styles.goalTitle}>{goalData.title}</Text>
             <View style={styles.progressContainer}>
               <View
                 style={[
                   styles.progressBar,
                   {
-                    width: `${(goal.current / goal.target) * 100}%`,
+                    width: `${(goalData.currentamount / goalData.goalamount) * 100}%`,
                   },
                 ]}
               />
             </View>
             <View style={styles.goalInfo}>
               <Text style={styles.goalAmount}>
-                {goal.current.toLocaleString()}원 /{" "}
-                {goal.target.toLocaleString()}원
+                {goalData.currentamount.toLocaleString()}원 /{" "}
+                {goalData.goalamount.toLocaleString()}원
               </Text>
-              <Text style={styles.goalDeadline}>목표일: {goal.deadline}</Text>
+              <Text style={styles.goalDeadline}>목표일: {goalData.goaldate}</Text>
             </View>
           </Pressable>
-        ))}
+        )}
       </ScrollView>
       <View style={styles.footer}>
         <Pressable
@@ -276,107 +236,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textLight,
   },
-  footer: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.medium,
-  },
-  createButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.white,
-  },
-  modalOverlay: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
+    gap: theme.spacing.md,
   },
-  modalContent: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "80%",
-    ...theme.shadows.medium,
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
   },
-  modalHeader: {
-    flexDirection: "row",
+  errorContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.text,
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
     textAlign: "center",
-  },
-  closeButton: {
-    position: "absolute",
-    right: theme.spacing.md,
-    padding: theme.spacing.sm,
-  },
-  modalBody: {
-    padding: theme.spacing.md,
-    paddingTop: theme.spacing.xl,
-  },
-  formGroup: {
-    marginBottom: theme.spacing.md,
-  },
-  formLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-  },
-  input: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  dateButton: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  submitButton: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    alignItems: "center",
-    marginTop: theme.spacing.md,
-  },
-  submitButtonText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

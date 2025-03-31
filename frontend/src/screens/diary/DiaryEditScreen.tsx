@@ -7,6 +7,8 @@ import {
   TextInput,
   ScrollView,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
   ImageBackground,
 } from "react-native";
@@ -16,6 +18,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DiaryStackParamList } from "../../types";
 import WoodHeader from "../../components/common/WoodHeader";
 import DatePicker from "../../components/common/DatePicker";
+import { useDiaryUpdate } from "../../hooks/useDiaryUpdate";
+import { useDiaryDelete } from '../../hooks/useDiaryDelete';
 
 type DiaryEditScreenProps = NativeStackScreenProps<
   DiaryStackParamList,
@@ -58,6 +62,9 @@ export default function DiaryEditScreen({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const { mutate: updateDiary, isPending } = useDiaryUpdate(id);
+  const { mutate: deleteDiary, isPending: isDeleting } = useDiaryDelete();
+
   // 기분 옵션
   const moods: MoodOption[] = [
     { id: "happy", icon: "emoticon-happy", label: "행복함" },
@@ -78,51 +85,55 @@ export default function DiaryEditScreen({
       return;
     }
 
-    // TODO: 실제 저장 로직 구현
-    Alert.alert("저장 완료", "다이어리가 수정되었습니다.", [
+    updateDiary(
       {
-        text: "확인",
-        onPress: () =>
-          navigation.navigate("DiaryEdit", {
-            id,
-            date,
-            title,
-            content,
-            mood: selectedMood,
-          }),
+        title: title.trim(),
+        content: content.trim(),
       },
-    ]);
+      {
+        onSuccess: () => {
+          Alert.alert("성공", "일기가 수정되었습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      }
+    );
   };
 
   // 일기 삭제 처리
   const handleDelete = () => {
-    Alert.alert("삭제 확인", "정말로 이 다이어리를 삭제하시겠습니까?", [
+    Alert.alert("삭제 확인", "정말로 이 일기를 삭제하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
         text: "삭제",
         style: "destructive",
         onPress: () => {
-          // TODO: 실제 삭제 로직 구현
-          Alert.alert("삭제 완료", "다이어리가 삭제되었습니다.", [
-            {
-              text: "확인",
-              onPress: () =>
-                navigation.navigate("DiaryEdit", {
-                  id,
-                  date,
-                  title,
-                  content,
-                  mood: selectedMood,
-                }),
+          deleteDiary(id, {
+            onSuccess: () => {
+              Alert.alert("삭제 완료", "일기가 삭제되었습니다.", [
+                {
+                  text: "확인",
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
             },
-          ]);
+            onError: (error) => {
+              Alert.alert("오류", error.message);
+            },
+          });
         },
       },
     ]);
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       <WoodHeader
         title="일기 수정"
         showBack={true}
@@ -223,21 +234,35 @@ export default function DiaryEditScreen({
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable style={styles.deleteButton} onPress={handleDelete}>
-            <MaterialCommunityIcons name="delete" size={24} color="red" />
+          <Pressable 
+            style={styles.deleteButton} 
+            onPress={handleDelete}
+            disabled={isDeleting}
+          >
+            <MaterialCommunityIcons
+              name="delete"
+              size={24}
+              color="red"
+            />
           </Pressable>
-
-          <Pressable style={styles.saveButton} onPress={handleSave}>
+          
+          <Pressable 
+            style={styles.saveButton} 
+            onPress={handleSave}
+            disabled={isPending}
+          >
             <MaterialCommunityIcons
               name="content-save"
               size={24}
-              color="white"
+              color={theme.colors.white}
             />
-            <Text style={styles.saveButtonText}>저장하기</Text>
+            <Text style={styles.saveButtonText}>
+              {isPending ? "저장 중..." : "저장하기"}
+            </Text>
           </Pressable>
         </View>
       </ImageBackground>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -26,7 +26,7 @@ const BookListItem: React.FC<BookListItemProps> = ({ item, onPress, type }) => {
       {type === 'story' ? (
         <>
           <Image 
-            source={getBookImage(item.id)} 
+            source={{ uri: item.coverImage }} 
             style={styles.listItemImage} 
             resizeMode="cover"
           />

@@ -11,20 +11,25 @@ import {
   Dimensions,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
-import { MainTabScreenProps, LibraryScreenProps } from "../../types";
+import { MainTabScreenProps, LibraryStackParamList, LibraryScreenProps } from "../../types";
 import { BookItem as BookItemType } from "../../types";
+import { DiaryContent } from "../../store/contentSlice";
 import SearchBar from "../../components/library/SearchBar";
 import ViewToggle from "../../components/library/ViewToggle";
 import ContentToggle from "../../components/library/ContentToggle";
 import BookShelf from "../../components/library/BookShelf";
 import BookListItem from "../../components/library/BookListItem";
 import { theme } from "../../utils/theme";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { fetchFictionListStart, fetchFictionListSuccess, fetchFictionListFailure, fetchDiaryListStart, fetchDiaryListSuccess, fetchDiaryListFailure } from "../../store/contentSlice";
+import { axiosInstance } from "../../api/axios";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useDiaryList } from '../../hooks/useDiaryList';
 
-// 네비게이션 props 타입을 간단하게 정의합니다
-type Props = {
-  navigation: any;
-};
+type Props = LibraryScreenProps<"LibraryMain">;
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const [activeView, setActiveView] = useState<"album" | "list">("album");
@@ -33,91 +38,76 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const { width } = Dimensions.get("window");
+  const dispatch = useDispatch();
+  const { series, isLoading: isFictionLoading } = useSelector((state: RootState) => state.content.fictionList);
+  const { diaries, isLoading: isDiaryLoading } = useSelector((state: RootState) => state.content.diary);
+  const { data: diaryData, isLoading: isDiaryQueryLoading } = useDiaryList();
 
-  // Mock data
-  const mockDiaries: BookItemType[] = [
-    {
-      id: "1",
-      title: "Our First Date",
-      date: "2024-03-13",
-      type: "diary",
-      mood: "happy",
-    },
-    {
-      id: "2",
-      title: "Weekend Getaway",
-      date: "2024-03-12",
-      type: "diary",
-      mood: "excited",
-    },
-    {
-      id: "3",
-      title: "Coffee Shop Meeting",
-      date: "2024-03-11",
-      type: "diary",
-      mood: "peaceful",
-    },
-    {
-      id: "4",
-      title: "Our First Trade",
-      date: "2024-02-15",
-      type: "diary",
-      mood: "peaceful",
-    },
-    {
-      id: "5",
-      title: "Anything",
-      date: "2024-02-10",
-      type: "diary",
-      mood: "happy",
-    },
-  ];
+  // API 데이터 가져오기
+  useEffect(() => {
+    const fetchFictionList = async () => {
+      try {
+        dispatch(fetchFictionListStart());
+        const response = await axiosInstance.get("/fiction", {
+          params: {
+            pageno: 1,
+            size: 50,
+            sort: "DESC"
+          }
+        });
+        dispatch(fetchFictionListSuccess(response.data.data));
+      } catch (error) {
+        dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
+      }
+    };
 
-  const mockStories: BookItemType[] = [
-    {
-      id: "1",
-      title: "Our Love Story",
-      date: "2024-03-13",
-      type: "story",
-      theme: "Series 1",
-    },
-    {
-      id: "2",
-      title: "Future Dreams",
-      date: "2024-03-10",
-      type: "story",
-      theme: "Series 1",
-    },
-    {
-      id: "3",
-      title: "The Vacation",
-      date: "2024-03-05",
-      type: "story",
-      theme: "Series 1",
-    },
-    {
-      id: "4",
-      title: "The Concert",
-      date: "2024-02-20",
-      type: "story",
-      theme: "Series 2",
-    },
-    {
-      id: "5",
-      title: "First Meeting",
-      date: "2024-02-15",
-      type: "story",
-      theme: "Series 2",
-    },
-  ];
+    const fetchDiaryList = async () => {
+      try {
+        dispatch(fetchDiaryListStart());
+        const response = await axiosInstance.get('/diary', {
+          params: {
+            page: 1,
+            size: 50,
+            sort: 'DESC'
+          }
+        });
+        dispatch(fetchDiaryListSuccess(response.data.data.content));
+      } catch (error) {
+        dispatch(fetchDiaryListFailure(error instanceof Error ? error.message : '일기 목록을 불러오는데 실패했습니다.'));
+      }
+    };
+
+    fetchFictionList();
+    fetchDiaryList();
+  }, [dispatch]);
 
   // Filter books by search query
-  const filteredBooks =
-    activeContent === "diaries"
-      ? mockDiaries.filter((item) =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : mockStories.filter((item) =>
+  const filteredBooks: BookItemType[] = 
+    activeContent === "diaries" 
+      ? diaries.map((diary) => ({
+          id: String(diary.id),
+          title: diary.title,
+          date: diary.targetDate,
+          type: 'diary' as const,
+          mood: diary.mood || 'happy',
+          content: diary.content,
+          createdAt: diary.createdAt,
+          updatedAt: diary.updatedAt || undefined,
+          theme: '',
+          coverImage: '',
+          seriesId: 0
+        }))
+      : series.flatMap(series => 
+          series.fictions.map(fiction => ({
+            id: fiction.createat,
+            title: fiction.title,
+            date: new Date(fiction.createat).toISOString().split('T')[0],
+            type: "story" as const,
+            theme: series.seriesname,
+            coverImage: fiction.arturl,
+            seriesId: series.seriesid,
+          }))
+        ).filter(item => 
           item.title.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
@@ -143,8 +133,14 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
     return acc;
   }, {} as Record<string, BookItemType[]>);
 
-  // Sort groups
-  const sortedGroupKeys = Object.keys(groupedBooks).sort().reverse();
+  // Sort groups by date (for diaries) or alphabetically (for stories)
+  const sortedGroupKeys = Object.keys(groupedBooks).sort((a, b) => {
+    if (activeContent === "diaries") {
+      return b.localeCompare(a); // 최신 날짜가 먼저 오도록 정렬
+    } else {
+      return a.localeCompare(b); // 알파벳 순으로 정렬
+    }
+  });
 
   // Handle book selection
   const handleSelectBook = (book: BookItemType) => {
@@ -189,6 +185,13 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  // 로딩 상태 렌더링
+  const renderLoading = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+    </View>
+  );
+
   // 앨범 뷰 렌더링
   const renderAlbumView = () => (
     <ScrollView
@@ -202,7 +205,8 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
           title={key}
           books={groupedBooks[key]}
           onSelectBook={handleSelectBook}
-          type={activeContent === "stories" ? "story" : "diary"}
+          type={activeContent === 'stories' ? 'story' : 'diary'}
+          seriesId={activeContent === 'stories' ? groupedBooks[key][0]?.seriesId : undefined}
         />
       ))}
     </ScrollView>
@@ -242,7 +246,9 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
 
         {renderControls()}
 
-        {activeView === "album" ? renderAlbumView() : renderListView()}
+        {isFictionLoading || isDiaryQueryLoading ? renderLoading() : (
+          activeView === "album" ? renderAlbumView() : renderListView()
+        )}
       </ImageBackground>
     </View>
   );
@@ -294,6 +300,11 @@ const styles = StyleSheet.create({
   },
   listContent: {
     backgroundColor: "#FFFBF2", // 연한 베이지색
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

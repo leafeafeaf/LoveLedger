@@ -11,12 +11,14 @@ import {
   Platform,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DiaryStackParamList } from "../../types";
+import { useDiaryCreate } from "../../hooks/useDiaryCreate";
 
 type DiaryScreenProps = NativeStackScreenProps<
   DiaryStackParamList,
@@ -44,6 +46,8 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const { mutate: createDiary, isPending } = useDiaryCreate();
+
   const moods: Mood[] = [
     { id: "happy", icon: "emoticon-happy", label: "행복" },
     { id: "excited", icon: "emoticon-excited", label: "신나" },
@@ -52,13 +56,33 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   ];
 
   const handleSave = () => {
-    // TODO: 일기 저장 API 호출 후 diaryId 받아오기
-    const diaryId = "123"; // 임시 ID, 실제로는 API 응답에서 받아와야 함
+    if (!title.trim()) {
+      Alert.alert("알림", "제목을 입력해주세요.");
+      return;
+    }
 
-    navigation.navigate("DiaryEditDaily", {
-      diaryId,
-      selectedDate: selectedDate.toISOString(),
-    });
+    if (!content.trim()) {
+      Alert.alert("알림", "내용을 입력해주세요.");
+      return;
+    }
+
+    createDiary(
+      {
+        title: title.trim(),
+        content: content.trim(),
+        targetDate: selectedDate.toISOString().split('T')[0],
+      },
+      {
+        onSuccess: () => {
+          Alert.alert("성공", "일기가 저장되었습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      }
+    );
   };
 
   return (
