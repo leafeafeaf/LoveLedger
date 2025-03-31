@@ -89,7 +89,7 @@ pipeline {
 
                             echo "2. Waiting for app to be healthy..."
                             for i in {1..10}; do
-                                if curl -s localhost:8001/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"; then
+                                if curl -s localhost:8001/actuator/health | grep -q '"status":"UP"'; then
                                     echo "App is healthy!"
                                     break
                                 fi
@@ -97,7 +97,9 @@ pipeline {
                                 sleep 2
                             done
 
-                            if ! curl -s localhost:8001/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"; then
+                            if curl -s localhost:8001/actuator/health | grep -q '"status":"UP"'; then
+                                echo "Health check passed"
+                            else
                                 echo "App failed health check. Aborting!"
                                 docker logs $NEW_CONTAINER
                                 docker stop $NEW_CONTAINER
