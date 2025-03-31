@@ -41,7 +41,7 @@ pipeline {
                     string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')
                 ]) {
                     sh '''
-                        scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r ./backend .env $REMOTE_HOST:$REMOTE_DIR/
+                        scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r ./backend .env switch_nginx_port.sh $REMOTE_HOST:$REMOTE_DIR/
                     '''
                 }
             }
@@ -89,6 +89,8 @@ pipeline {
 
                             echo "2. Waiting for app to be healthy..."
                             STATUS="false"
+
+                            sleep 12
 
                             for i in {1..10}; do
                                 STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q 'status.*UP') && echo "true" || echo "false" )
