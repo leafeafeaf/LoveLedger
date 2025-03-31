@@ -86,7 +86,7 @@ public class SecurityConfig {
         //인가
         http.authorizeHttpRequests(
 
-            (auth) -> auth.requestMatchers("/test/**", "/reissue").permitAll()
+            (auth) -> auth.requestMatchers("/test/**", "/reissue", "/actuator/health").permitAll()
                 .anyRequest().authenticated());
 
         // 세션 stateless
