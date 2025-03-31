@@ -94,7 +94,9 @@ pipeline {
                                 
                                 STATUS=`curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"`
                                 
-                                if ["$STATUS" = "true"] ; then
+                                echo $STATUS
+
+                                if [ "$STATUS" = "true" ] ; then
                                     echo "App is healthy!"
                                     break
                                 fi
@@ -105,7 +107,7 @@ pipeline {
 
                             STATUS=`curl -s localhost:$NEW_PORT/actuator/health | grep -q '"status":"UP"' && echo "true" || echo "false"`
 
-                            if ["$STATUS" = "true"]; then
+                            if [ "$STATUS" = "true" ]; then
                                 echo "Health check passed"
                             else
                                 echo "App failed health check. Aborting!"
