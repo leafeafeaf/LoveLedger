@@ -47,6 +47,8 @@ export type RootStackParamList = {
   Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
   Library: NavigatorScreenParams<LibraryStackParamList>;
+  DiaryDetail: { id: string; date: string; mood?: string };
+  StoryDetail: { id: string };
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: {};
   LinkConfirm: { linkCode: string };
@@ -107,13 +109,17 @@ export type StoryStackParamList = {
 
 // 다이어리 스택 파라미터 타입
 export type DiaryStackParamList = {
-  DiaryCreate: {};
+  DiaryCreate: undefined;
   DiaryEdit: {
     id: string;
     date: string;
     title: string;
-    content: string;
+    content?: string;
     mood?: string;
+  };
+  DiaryEditDaily: {
+    diaryId: string;
+    selectedDate: string;
   };
 };
 

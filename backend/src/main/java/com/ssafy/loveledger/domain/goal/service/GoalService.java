@@ -36,6 +36,7 @@ public class GoalService {
             .contentURL(goalCreateRequest.getContentURL())
             .build();
 
+        //TODO : S3 연결 필요.
         goalRepository.save(goal);
     }
 

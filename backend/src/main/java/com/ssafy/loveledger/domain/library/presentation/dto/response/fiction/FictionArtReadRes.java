@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto.response;
+package com.ssafy.loveledger.domain.library.presentation.dto.response.fiction;
 
 import lombok.Builder;
 import lombok.Getter;

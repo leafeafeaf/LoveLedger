@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     gap: theme.spacing.sm,
   },
-  nextButtonText: {
+  saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,

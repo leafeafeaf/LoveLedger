@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto.response;
+package com.ssafy.loveledger.domain.library.presentation.dto.response.fiction;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -9,10 +9,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-public class FictionReadResponse {
-
-    private Long fictionId;
+public class FictionDetailReadResponse {
     private String title;
     private String artUrl;
     private LocalDateTime createdAt;
+    private String content;
 }

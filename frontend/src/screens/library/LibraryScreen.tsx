@@ -33,7 +33,9 @@ type Props = LibraryScreenProps<"LibraryMain">;
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const [activeView, setActiveView] = useState<"album" | "list">("album");
-  const [activeContent, setActiveContent] = useState<"diaries" | "stories">("stories");
+  const [activeContent, setActiveContent] = useState<"diaries" | "stories">(
+    "stories"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const { width } = Dimensions.get("window");
   const dispatch = useDispatch();
@@ -112,18 +114,21 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Group books by month (for diaries) or series (for stories)
   const groupedBooks = filteredBooks.reduce((acc, item) => {
     let key;
-    
+
     if (activeContent === "diaries") {
       const date = new Date(item.date);
-      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
     } else {
       key = item.theme || "Default Series";
     }
-    
+
     if (!acc[key]) {
       acc[key] = [];
     }
-    
+
     acc[key].push(item);
     return acc;
   }, {} as Record<string, BookItemType[]>);
@@ -140,12 +145,14 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Handle book selection
   const handleSelectBook = (book: BookItemType) => {
     if (book.type === "diary") {
+      // 일반적인 navigate 호출
       navigation.navigate("DiaryDetail", {
         id: book.id,
         date: book.date,
         mood: book.mood,
       });
     } else {
+      // 일반적인 navigate 호출
       navigation.navigate("StoryDetail", {
         id: book.id,
       });
@@ -167,16 +174,10 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const renderControls = () => (
     <View style={styles.controlsContainer}>
       <View style={styles.searchContainer}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <ViewToggle
-          activeView={activeView}
-          onToggle={setActiveView}
-        />
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <ViewToggle activeView={activeView} onToggle={setActiveView} />
       </View>
-      
+
       <ContentToggle
         activeContent={activeContent}
         onToggle={setActiveContent}
@@ -193,7 +194,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
 
   // 앨범 뷰 렌더링
   const renderAlbumView = () => (
-    <ScrollView 
+    <ScrollView
       style={styles.content}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
@@ -221,7 +222,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
         <BookListItem
           item={item}
           onPress={() => handleSelectBook(item)}
-          type={activeContent === 'stories' ? 'story' : 'diary'}
+          type={activeContent === "stories" ? "story" : "diary"}
         />
       )}
     />
@@ -230,7 +231,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {renderHeader()}
-      
+
       <ImageBackground
         source={require("../../../assets/images/library/library_bg.png")}
         style={styles.bgContainer}
@@ -261,21 +262,21 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 72,
     paddingBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
+    fontWeight: "700",
+    color: "white",
   },
   bgContainer: {
     flex: 1,
     width: "100%",
   },
   logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
   },
   logo: {

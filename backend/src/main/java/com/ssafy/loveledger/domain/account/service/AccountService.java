@@ -6,8 +6,10 @@ import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.account.domain.repository.AccountRepository;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthenticationRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountHistoryDetailRequest;
+import com.ssafy.loveledger.domain.account.presentation.dto.request.CategoryPrescriptionRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.MemberInfoRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.SSAFYRequestHeader;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.CategoryPrescriptionResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryResponse;
@@ -21,6 +23,7 @@ import com.ssafy.loveledger.domain.statistics.domain.Category;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.util.CategoryPrescriptionUtil;
 import com.ssafy.loveledger.global.util.OpenFeignUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,6 +50,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final HistoryRepository historyRepository;
     private final OpenFeignUtil openFeignUtil;
+    private final CategoryPrescriptionUtil categoryPrescriptionUtil;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -192,41 +196,57 @@ public class AccountService {
             .map(map -> objectMapper.convertValue(map, HistoryResponse.class))
             .toList();
 
-        for (HistoryResponse historyResponse : res) {
-            String dateTimeString =
-                historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
-            LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
+        CategoryPrescriptionRequest req = CategoryPrescriptionRequest.builder().names(res.stream()
+            .map(HistoryResponse::getTransactionSummary)
+            .toList()).build();
 
-            String transactionType = historyResponse.getTransactionTypeName();
-            int type = switch (transactionType) {
-                case "입금" -> 1;
-                case "입금(수시입출금)" -> 2;
-                case "출금" -> 3;
-                case "출금(수시입출금)" -> 4;
-                default -> 0;
-            };
+        List<CategoryPrescriptionResponse> names;
+        if (!req.getNames().isEmpty()) {
+            names = categoryPrescriptionUtil.getCategoryPrescription(
+                req).getResults();
 
-            History history = History.builder()
-                .transactionId(historyResponse.getTransactionUniqueNo())
-                .createdDate(dateTime.toLocalDate())
-                .createdTime(dateTime.toLocalTime())
-                .transactionAccount(historyResponse.getTransactionAccountNo())
-                .transactionTarget(historyResponse.getTransactionSummary())
-                .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
-                .transactionType(type)
-                .transactionTypeName(historyResponse.getTransactionTypeName())
-                .category(Category.NOT_DEFINED) // TODO : 카테고리 분류 모델 적용 할 것
-                .account(account)
-                .AmountAfterTransaction(
-                    Long.valueOf(historyResponse.getTransactionAfterBalance())
-                )
-                .memo(historyResponse.getTransactionMemo())
-                .build();
-            historyRepository.save(history);
+            for (HistoryResponse historyResponse : res) {
+                String dateTimeString =
+                    historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
+                LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
 
-            account.setLastUpdated(LocalDateTime.now());
+                String transactionType = historyResponse.getTransactionTypeName();
+                int type = switch (transactionType) {
+                    case "입금" -> 1;
+                    case "입금(수시입출금)" -> 2;
+                    case "출금" -> 3;
+                    case "출금(수시입출금)" -> 4;
+                    default -> 0;
+                };
+
+                String transactionSummary = historyResponse.getTransactionSummary();
+                int categoryId = names.stream()
+                    .filter(n -> n.getName().equals(transactionSummary))
+                    .map(CategoryPrescriptionResponse::getCode)
+                    .findFirst()
+                    .orElse(Category.NOT_DEFINED.getId());
+
+                History history = History.builder()
+                    .transactionId(historyResponse.getTransactionUniqueNo())
+                    .createdDate(dateTime.toLocalDate())
+                    .createdTime(dateTime.toLocalTime())
+                    .transactionAccount(historyResponse.getTransactionAccountNo())
+                    .transactionTarget(historyResponse.getTransactionSummary())
+                    .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
+                    .transactionType(type)
+                    .transactionTypeName(historyResponse.getTransactionTypeName())
+                    .category(Category.fromId(categoryId))
+                    .account(account)
+                    .AmountAfterTransaction(
+                        Long.valueOf(historyResponse.getTransactionAfterBalance())
+                    )
+                    .memo(historyResponse.getTransactionMemo())
+                    .build();
+                historyRepository.save(history);
+
+                account.setLastUpdated(LocalDateTime.now());
+            }
         }
-
     }
 
     public void getVerificationCode(User user, String accountNo) {
@@ -315,7 +335,6 @@ public class AccountService {
     public String generateCode() {
         int sixDigitNumber = ThreadLocalRandom.current().nextInt(0, 1000000); // 000000 ~ 999999
         String sixDigitString = String.format("%06d", sixDigitNumber);
-
         return LocalDateTime.now().format(formatter) + sixDigitString;
     }
 

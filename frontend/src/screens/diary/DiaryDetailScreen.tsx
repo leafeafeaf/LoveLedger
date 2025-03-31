@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
@@ -128,6 +128,6 @@ const styles = StyleSheet.create({
   editButton: {
     color: theme.colors.primary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

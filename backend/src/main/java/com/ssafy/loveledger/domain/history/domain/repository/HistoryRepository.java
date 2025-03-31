@@ -56,7 +56,7 @@ public interface HistoryRepository extends JpaRepository<History, String> {
 
     @Query(
         "SELECT NEW com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse( "
-            + "   d.category, " +
+            + "   d.category , " +
             "   SUM(CASE WHEN d.transactionType > 2 THEN d.transactionAmount ELSE 0 END), "
             +
             "   SUM(CASE WHEN d.transactionType < 3 THEN d.transactionAmount ELSE 0 END) "
@@ -66,7 +66,7 @@ public interface HistoryRepository extends JpaRepository<History, String> {
             "WHERE d.account.user = :user " +
             "AND YEAR(d.createdDate) = :year " +
             "AND MONTH(d.createdDate) = :month " +
-            "GROUP BY d.category"
+            "GROUP BY d.category "
     )
     List<MonthlyStatisticsResponse> findMonthlyStatistics(
         User user,
@@ -77,4 +77,11 @@ public interface HistoryRepository extends JpaRepository<History, String> {
     @Query("SELECT h FROM History h WHERE h.account IN :accounts AND h.createdDate = :targetDate")
     List<History> findByAccountsAndCreatedDate(@Param("accounts") List<Account> accounts,
         @Param("targetDate") LocalDate targetDate);
+
+    @Query("SELECT h FROM History h WHERE h.account IN :accounts AND h.createdDate BETWEEN :startDate AND :endDate")
+    List<History> findByAccountsAndCreatedDateBetween(
+        @Param("accounts") List<Account> accounts,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }

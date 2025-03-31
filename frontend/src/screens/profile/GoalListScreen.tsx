@@ -88,6 +88,105 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
           </Pressable>
         )}
       </ScrollView>
+      <View style={styles.footer}>
+        <Pressable
+          style={styles.createButton}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <MaterialCommunityIcons
+            name="plus"
+            size={24}
+            color={theme.colors.white}
+          />
+          <Text style={styles.createButtonText}>새로운 목표 만들기</Text>
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={isModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>새로운 목표</Text>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setIsModalVisible(false)}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.colors.text}
+                />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>제목</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newGoal.title}
+                  onChangeText={(value) => handleInputChange("title", value)}
+                  placeholder="목표 제목을 입력하세요"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>설명</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newGoal.description}
+                  onChangeText={(value) =>
+                    handleInputChange("description", value)
+                  }
+                  placeholder="목표에 대한 설명을 입력하세요"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>목표 금액</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newGoal.target}
+                  onChangeText={(value) => handleInputChange("target", value)}
+                  placeholder="목표 금액을 입력하세요"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>마감일</Text>
+                <Pressable
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>
+                    {newGoal.deadline || "마감일을 선택하세요"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <DatePicker
+                visible={showDatePicker}
+                onClose={() => setShowDatePicker(false)}
+                onSelectDate={handleDateSelect}
+                selectedDate={
+                  newGoal.deadline ? new Date(newGoal.deadline) : undefined
+                }
+              />
+
+              <Pressable style={styles.submitButton} onPress={handleCreateGoal}>
+                <Text style={styles.submitButtonText}>목표 생성</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

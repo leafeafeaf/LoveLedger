@@ -1,5 +1,5 @@
 // screens/story/StoryDetailScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -25,17 +25,10 @@ import {
 } from '../../store/contentSlice';
 import { axiosInstance } from '../../api/axios';
 
-// 로컬 타입 정의
-type StoryDetailParams = {
-  id: string;
-};
+// LibraryScreenProps 사용
+type Props = LibraryScreenProps<"StoryDetail">;
 
-type Props = NativeStackScreenProps<
-  { StoryDetail: StoryDetailParams },
-  'StoryDetail'
->;
-
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const StoryDetailScreen = ({ navigation, route }: Props) => {
   const { id } = route.params;
@@ -115,15 +108,15 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
         message: `Check out this story: ${storyData.title}`,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error("Error sharing:", error);
     }
   };
 
   return (
     <View style={styles.container}>
-      <WoodHeader 
-        title="Story" 
-        showBack={true} 
+      <WoodHeader
+        title="Story"
+        showBack={true}
         showShare={true}
         onBack={() => navigation.goBack()}
         onShare={handleShare}
@@ -140,10 +133,10 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
           <View style={styles.coverTextContainer}>
             <Text style={styles.coverTitle}>{storyData.title}</Text>
             <Text style={styles.coverDate}>
-              {new Date(storyData.date).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
+              {new Date(storyData.date).toLocaleDateString("ko-KR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </Text>
           </View>
@@ -162,16 +155,16 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
 // 책 이미지 가져오는 함수
 function getBookImage(id: string) {
   switch (id) {
-    case '1':
-      return require('../../../assets/images/library/book_image_1.png');
-    case '2':
-      return require('../../../assets/images/library/book_image_2.png');
-    case '3':
-      return require('../../../assets/images/library/book_image_3.png');
-    case '4':
-      return require('../../../assets/images/library/book_image_4.png');
+    case "1":
+      return require("../../../assets/images/library/book_image_1.png");
+    case "2":
+      return require("../../../assets/images/library/book_image_2.png");
+    case "3":
+      return require("../../../assets/images/library/book_image_3.png");
+    case "4":
+      return require("../../../assets/images/library/book_image_4.png");
     default:
-      return require('../../../assets/images/library/book_image_5.png');
+      return require("../../../assets/images/library/book_image_5.png");
   }
 }
 
@@ -179,28 +172,28 @@ function getBookImage(id: string) {
 function splitContentIntoPages(content: string): string[] {
   // 페이지당 글자 수 제한
   const charsPerPage = 1000;
-  
+
   // 문단으로 분리
-  const paragraphs = content.split('\n\n');
-  
+  const paragraphs = content.split("\n\n");
+
   const pages: string[] = [];
-  let currentPage = '';
-  
+  let currentPage = "";
+
   for (const paragraph of paragraphs) {
     // 현재 페이지에 단락 추가했을 때 제한 넘으면 다음 페이지로
     if (currentPage.length + paragraph.length > charsPerPage) {
       pages.push(currentPage);
-      currentPage = paragraph + '\n\n';
+      currentPage = paragraph + "\n\n";
     } else {
-      currentPage += paragraph + '\n\n';
+      currentPage += paragraph + "\n\n";
     }
   }
-  
+
   // 마지막 페이지 추가
   if (currentPage.length > 0) {
     pages.push(currentPage);
   }
-  
+
   return pages;
 }
 
@@ -211,40 +204,40 @@ const styles = StyleSheet.create({
   },
   coverContainer: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   coverImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   coverTextContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 60,
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   coverTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: 'white',
+    fontWeight: "700",
+    color: "white",
     marginBottom: 8,
   },
   coverDate: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.8)",
   },
   nextIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: 20,
   },
   nextText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    shadowColor: '#000',
+    fontWeight: "600",
+    color: "white",
+    shadowColor: "#000",
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.8,
     shadowRadius: 2,
@@ -256,14 +249,14 @@ const styles = StyleSheet.create({
   },
   seriesName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: "500",
+    color: "#666",
     marginBottom: 8,
   },
   bookTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: 'purple',
+    fontWeight: "700",
+    color: "purple",
     marginBottom: 40,
   },
   contentPage: {
@@ -275,7 +268,7 @@ const styles = StyleSheet.create({
   contentText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: "#333",
   },
   loadingContainer: {
     flex: 1,

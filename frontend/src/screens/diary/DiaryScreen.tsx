@@ -212,7 +212,7 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
             size={24}
             color={theme.colors.white}
           />
-          <Text style={styles.saveButtonText}>저장하기</Text>
+          <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

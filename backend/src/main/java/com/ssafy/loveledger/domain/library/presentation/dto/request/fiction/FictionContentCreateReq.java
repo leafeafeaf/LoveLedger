@@ -1,4 +1,4 @@
-package com.ssafy.loveledger.domain.library.presentation.dto.request;
+package com.ssafy.loveledger.domain.library.presentation.dto.request.fiction;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
@@ -32,6 +32,6 @@ public class FictionContentCreateReq {
     @AssertTrue(message = "시작 날짜는 끝 날짜보다 이전이어야 합니다.")
     public boolean isStartBeforeGoal() {
         if (startDate == null || endDate == null) return false;
-        return startDate.isBefore(endDate) || startDate.isEqual(endDate);
+        return !startDate.isAfter(endDate);
     }
 }
