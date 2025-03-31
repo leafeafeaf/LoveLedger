@@ -94,7 +94,7 @@ pipeline {
                                     break
                                 fi
                                 echo "Still waiting..."
-                                sleep 2
+                                sleep 5
                             done
 
                             if ! curl -s "http://localhost:$NEW_PORT/actuator/health" | grep -q '"status":"UP"'; then
