@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { unlinkCouple } from "../api/couple";
-import { CoupleUnlinkResponse } from "../types/couple";
+import { CoupleUnlinkResponse } from "../types/index";
 
 interface CoupleState {
   error: string | null;

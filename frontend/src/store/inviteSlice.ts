@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { generateInviteLink } from "../api/invite";
-import { InviteResponse, InviteErrorResponse } from "../types/invite";
+import { InviteResponse, InviteErrorResponse } from "../types/index";
 
 // 상태 타입 정의
 interface InviteState {

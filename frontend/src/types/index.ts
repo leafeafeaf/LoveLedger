@@ -491,3 +491,65 @@ export interface AccountVerifyConfirmResponse {
 
 // 임계 금액 타입
 export type thresholdAmount = number;
+
+export interface InviteResponse {
+  data: {
+    link: string;
+  };
+}
+
+export interface InviteErrorResponse {
+  status: string;
+  message: string;
+  data?: {
+    existingLink?: string;
+    createdAt?: string;
+    expiresAt?: string;
+    action?: string;
+  };
+}
+
+export interface CoupleJoinResponse {
+  status: number;
+  message: string;
+}
+
+export interface CoupleJoinErrorResponse {
+  status: number;
+  message: string;
+  code?: string;
+  data?: {
+    registeredAt?: string;
+  };
+}
+
+export interface CoupleUnlinkResponse {
+  status: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  gender?: boolean;
+  birthDay?: string;
+  isMarried?: boolean;
+}
+
+export interface UserDetailResponse {
+  id: string;
+  name: string;
+  email: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
+}
+
+export interface InviteValidateResponse {
+  status: string;
+  message: string;
+  data: {
+    isValid: boolean;
+    expiresAt?: string;
+  };
+}
