@@ -132,11 +132,14 @@ export default function DiaryEditDailyScreen({
         selectedDate,
         transactions: selectedChanges.map((change) => ({
           id: change.modified.transactionId.toString(),
+          transactionid: change.modified.transactionId.toString(),
           date: change.modified.time,
+          time: change.modified.time,
           amount: change.modified.amount,
           category: change.modified.category,
           targetname: change.modified.targetName,
           remittance: change.modified.remittance,
+          accountNo: change.modified.transactionId.toString().split("-")[0],
         })),
       },
     });
