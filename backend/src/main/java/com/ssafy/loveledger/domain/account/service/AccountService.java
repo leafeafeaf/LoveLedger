@@ -271,6 +271,7 @@ public class AccountService {
                 ErrorCode.OPENFEIGN_FAILED
             );
         }
+
     }
 
     @Transactional
