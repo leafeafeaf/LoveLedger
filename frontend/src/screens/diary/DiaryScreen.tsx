@@ -71,12 +71,14 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
         title: title.trim(),
         content: content.trim(),
         targetDate: selectedDate.toISOString().split('T')[0],
+        mood: selectedMood,
       },
       {
-        onSuccess: () => {
-          Alert.alert("성공", "일기가 저장되었습니다.", [
-            { text: "확인", onPress: () => navigation.goBack() },
-          ]);
+        onSuccess: (response) => {
+          navigation.navigate("DiaryEditDaily", {
+            diaryId: response.data.id,
+            selectedDate: selectedDate.toISOString(),
+          });
         },
         onError: (error) => {
           Alert.alert("오류", error.message);

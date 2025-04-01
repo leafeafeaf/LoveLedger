@@ -18,4 +18,5 @@ public class DiaryReadResponse {
     LocalDate targetDate;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+    Integer mood;
 }
