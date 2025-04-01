@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LibraryStackParamList, LibraryScreenProps } from '../../types';
 import WoodHeader from '../../components/common/WoodHeader';
 import PageTurningView from '../../components/story/PageTurningView';
 import BlinkingText from '../../components/common/BlinkingText';
