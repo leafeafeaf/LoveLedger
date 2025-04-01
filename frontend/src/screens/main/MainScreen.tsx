@@ -34,11 +34,12 @@ import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import PartnerSwitch from "../../components/profile/PartnerSwitch";
 import { dailyFinanceData, transactionHistoryData } from "../../../dummyData";
-import { useCalendarDailySum } from '../../hooks/useCalendarDailySum';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
-import type { DailySum } from '../../types';
-import { useTransactions } from '@hooks/useTransactions';
+import { useCalendarDailySum } from "../../hooks/useCalendarDailySum";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import type { DailySum } from "../../types";
+import { useTransactions } from "@hooks/useTransactions";
+import Slider from "@react-native-community/slider";
 
 type MainScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Main">,
@@ -68,24 +69,35 @@ const formatCurrency = (amount: number): string => {
 };
 
 // Helper function to get finance data for a specific date
-const getFinanceForDate = (date: Date, activeView: string, dailySums: DailySum[]) => {
-  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  const dailySum = dailySums.find(sum => sum.targetDate === dateString);
-  
+const getFinanceForDate = (
+  date: Date,
+  activeView: string,
+  dailySums: DailySum[] | undefined
+): { earn: number; consume: number } | null => {
+  if (!dailySums || !Array.isArray(dailySums)) return null;
+
+  const dateString = `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const dailySum = dailySums.find((sum) => sum.targetDate === dateString);
+
   if (!dailySum) return null;
 
   return {
     earn: dailySum.totalEarnSum,
-    consume: dailySum.totalConsumeSum
+    consume: dailySum.totalConsumeSum,
   };
 };
 
 // Helper function to get transactions for a specific date
-const getTransactionsForDate = (date: Date, transactions: Transaction[]): Transaction[] => {
-  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  return transactions.filter(
-    (transaction) => transaction.date === dateString
-  );
+const getTransactionsForDate = (
+  date: Date,
+  transactions: Transaction[]
+): Transaction[] => {
+  const dateString = `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return transactions.filter((transaction) => transaction.date === dateString);
 };
 
 // Helper function to safely get value from Animated.Value
@@ -496,6 +508,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
+  const [thresholdAmount, setThresholdAmount] = useState(100000);
   const dimensions = useWindowDimensions();
   const screenWidth = dimensions.width;
   const calendarWidth = screenWidth - theme.spacing.xl * 2;
@@ -505,7 +518,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const fabAnimation = useRef(new Animated.Value(0)).current;
   const menuAnimation = useRef(new Animated.Value(0)).current;
 
-  const { data: dailySumsData } = useCalendarDailySum(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1);
+  const { data: dailySumsData } = useCalendarDailySum(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth() + 1
+  );
   const dailySums = dailySumsData?.data || [];
 
   const { data: transactionsData } = useTransactions();
@@ -525,9 +541,12 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   }, [displayedMonth]);
 
   useEffect(() => {
-    const dailyTransactions = getTransactionsForDate(selectedDate, transactions);
+    const dailyTransactions = getTransactionsForDate(
+      selectedDate,
+      transactions
+    );
     setSelectedDayTransactions(dailyTransactions);
-  }, [selectedDate, transactions]);
+  }, [selectedDate, transactions?.length]);
 
   const toggleFabMenu = () => {
     const toValue = showFabMenu ? 0 : 1;
@@ -559,66 +578,77 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const generateCalendarDays = (date: Date): CalendarDayItem[] => {
-    const days: CalendarDayItem[] = [];
-    const totalDays = getDaysInMonth(date);
-    const firstDay = getFirstDayOfMonth(date);
+  const generateCalendarDays = useMemo(
+    () =>
+      (date: Date): CalendarDayItem[] => {
+        const days: CalendarDayItem[] = [];
+        const totalDays = getDaysInMonth(date);
+        const firstDay = getFirstDayOfMonth(date);
 
-    // 빈 날짜 추가
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ isEmpty: true, index: i });
-    }
+        // 빈 날짜 추가
+        for (let i = 0; i < firstDay; i++) {
+          days.push({ isEmpty: true, index: i });
+        }
 
-    // 실제 날짜 추가
-    for (let i = 1; i <= totalDays; i++) {
-      const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
-      const isToday = calendarDate.toDateString() === new Date().toDateString();
-      const financeData = getFinanceForDate(calendarDate, activeView, dailySums);
+        // 실제 날짜 추가
+        for (let i = 1; i <= totalDays; i++) {
+          const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
+          const isToday =
+            calendarDate.toDateString() === new Date().toDateString();
+          const financeData = getFinanceForDate(
+            calendarDate,
+            activeView,
+            dailySums
+          );
 
-      days.push({
-        date: calendarDate,
-        isToday,
-        financeData,
-      });
-    }
+          days.push({
+            date: calendarDate,
+            isToday,
+            financeData,
+          });
+        }
 
-    // 마지막 주가 7일이 안 될 경우 빈 셀로 채움
-    const remainingDays = 7 - (days.length % 7);
-    if (remainingDays < 7) {
-      for (let i = 0; i < remainingDays; i++) {
-        days.push({ isEmpty: true, index: days.length + i });
-      }
-    }
+        // 마지막 주가 7일이 안 될 경우 빈 셀로 채움
+        const remainingDays = 7 - (days.length % 7);
+        if (remainingDays < 7) {
+          for (let i = 0; i < remainingDays; i++) {
+            days.push({ isEmpty: true, index: days.length + i });
+          }
+        }
 
-    return days;
-  };
+        return days;
+      },
+    [activeView, dailySums]
+  );
 
   // 이전 달, 현재 달, 다음 달 캘린더 데이터 미리 계산
   const prevMonthCalendar = useMemo(
     () => generateCalendarDays(prevMonth),
-    [prevMonth, activeView]
+    [prevMonth, generateCalendarDays]
   );
   const currentMonthCalendar = useMemo(
     () => generateCalendarDays(displayedMonth),
-    [displayedMonth, activeView]
+    [displayedMonth, generateCalendarDays]
   );
   const nextMonthCalendar = useMemo(
     () => generateCalendarDays(nextMonth),
-    [nextMonth, activeView]
+    [nextMonth, generateCalendarDays]
   );
 
   const handleSelectDate = (date: Date) => {
-    const dailyTransactions = getTransactionsForDate(date, transactions).map((t) => ({
-      id: t.id.toString(),
-      transactionid: t.id.toString(),
-      amount: t.amount,
-      date: t.date,
-      time: t.time || '',
-      remittance: t.remittance,
-      targetname: t.targetname || '',
-      category: t.category || '',
-      accountNo: t.id.toString().split('-')[0]
-    }));
+    const dailyTransactions = getTransactionsForDate(date, transactions).map(
+      (t) => ({
+        id: t.id.toString(),
+        transactionid: t.id.toString(),
+        amount: t.amount,
+        date: t.date,
+        time: t.time || "",
+        remittance: t.remittance,
+        targetname: t.targetname || "",
+        category: t.category || "",
+        accountNo: t.id.toString().split("-")[0],
+      })
+    );
 
     navigation.navigate("Daily", {
       screen: "DailyDetail",
@@ -640,7 +670,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
               onPress={() =>
                 navigation.navigate("Profile", {
                   screen: "ProfileMain",
-                  params: {},
+                  params: undefined,
                 })
               }
             >
@@ -917,7 +947,6 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     </GestureHandlerRootView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -4,6 +4,7 @@ import ProfileMainScreen from "../screens/profile/ProfileMainScreen";
 import ProfileEditScreen from "../screens/profile/ProfileEditScreen";
 import GoalListScreen from "../screens/profile/GoalListScreen";
 import GoalDetailScreen from "../screens/profile/GoalDetailScreen";
+import AccountVerificationScreen from "../screens/profile/AccountVerificationScreen";
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -18,6 +19,10 @@ export function ProfileNavigator() {
       <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="GoalList" component={GoalListScreen} />
       <Stack.Screen name="GoalDetail" component={GoalDetailScreen} />
+      <Stack.Screen
+        name="AccountVerification"
+        component={AccountVerificationScreen}
+      />
     </Stack.Navigator>
   );
 }

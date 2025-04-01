@@ -1,11 +1,22 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList, ProfileStackParamList } from "../../types";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import { ProfileScreenProps } from "../../types";
-import { useGoalList } from "../../hooks/useGoalList";
+import { useGoalList, useCreateGoal } from "../../hooks/useGoalList";
+import DatePicker from "../../components/common/DatePicker";
 
 type GoalListScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -16,12 +27,67 @@ interface GoalListScreenProps {
   navigation: GoalListScreenNavigationProp;
 }
 
+interface NewGoal {
+  title: string;
+  description: string;
+  target: string;
+  deadline: string;
+  icon: string;
+}
+
 export default function GoalListScreen({ navigation }: GoalListScreenProps) {
   const { data: goalData, isLoading, error } = useGoalList();
+  const createGoalMutation = useCreateGoal();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [newGoal, setNewGoal] = useState<NewGoal>({
+    title: "",
+    description: "",
+    target: "0",
+    deadline: "",
+    icon: "star",
+  });
+
+  const handleInputChange = (field: keyof NewGoal, value: string) => {
+    setNewGoal((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setNewGoal((prev) => ({
+      ...prev,
+      deadline: date.toISOString().split("T")[0],
+    }));
+    setShowDatePicker(false);
+  };
+
+  const handleCreateGoal = async () => {
+    if (!newGoal.title || !newGoal.target || !newGoal.deadline) {
+      // TODO: 에러 메시지 표시
+      return;
+    }
+
+    try {
+      await createGoalMutation.mutateAsync(newGoal);
+      setIsModalVisible(false);
+      setNewGoal({
+        title: "",
+        description: "",
+        target: "0",
+        deadline: "",
+        icon: "star",
+      });
+    } catch (error) {
+      // TODO: 에러 메시지 표시
+      console.error("목표 생성 실패:", error);
+    }
+  };
 
   const handleGoalPress = () => {
     if (goalData) {
-      navigation.navigate("GoalDetail", { 
+      navigation.navigate("GoalDetail", {
         goal: {
           id: "1",
           title: goalData.title,
@@ -30,7 +96,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
           current: goalData.currentamount,
           deadline: goalData.goaldate,
           icon: "target",
-        }
+        },
       });
     }
   };
@@ -63,17 +129,16 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
       <Header title="목표 관리" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content}>
         {goalData && (
-          <Pressable
-            style={styles.goalItem}
-            onPress={handleGoalPress}
-          >
+          <Pressable style={styles.goalItem} onPress={handleGoalPress}>
             <Text style={styles.goalTitle}>{goalData.title}</Text>
             <View style={styles.progressContainer}>
               <View
                 style={[
                   styles.progressBar,
                   {
-                    width: `${(goalData.currentamount / goalData.goalamount) * 100}%`,
+                    width: `${
+                      (goalData.currentamount / goalData.goalamount) * 100
+                    }%`,
                   },
                 ]}
               />
@@ -83,7 +148,9 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                 {goalData.currentamount.toLocaleString()}원 /{" "}
                 {goalData.goalamount.toLocaleString()}원
               </Text>
-              <Text style={styles.goalDeadline}>목표일: {goalData.goaldate}</Text>
+              <Text style={styles.goalDeadline}>
+                목표일: {goalData.goaldate}
+              </Text>
             </View>
           </Pressable>
         )}
@@ -256,5 +323,97 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.error,
     textAlign: "center",
+  },
+  footer: {
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  createButton: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.sm,
+  },
+  createButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    width: "90%",
+    ...theme.shadows.medium,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  closeButton: {
+    padding: theme.spacing.xs,
+  },
+  modalBody: {
+    padding: theme.spacing.md,
+  },
+  formGroup: {
+    marginBottom: theme.spacing.md,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  input: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: "top",
+  },
+  dateButton: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  submitButton: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
+    marginTop: theme.spacing.md,
+  },
+  submitButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

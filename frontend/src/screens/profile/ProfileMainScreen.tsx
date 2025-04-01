@@ -15,7 +15,7 @@ import { CommonActions } from "@react-navigation/native";
 import { useAppDispatch } from "../../hooks/reduxHooks";
 import { logout } from "../../store/authSlice";
 
-type RootStackParamList = {
+type ProfileStackParamList = {
   ProfileMain: undefined;
   ProfileEdit: { partner: string };
   GoalList: undefined;
@@ -23,6 +23,7 @@ type RootStackParamList = {
   Help: undefined;
   LinkGeneration: undefined;
   Login: undefined;
+  AccountVerification: undefined;
 };
 
 type NavigationParams = {
@@ -36,7 +37,7 @@ type NavigationParams = {
 };
 
 type ProfileMainScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
+  ProfileStackParamList,
   "ProfileMain"
 >;
 
@@ -76,13 +77,13 @@ interface ProfileData {
   partner2: Partner;
 }
 
-interface MenuOption {
+type MenuOption = {
   id: string;
   label: string;
   icon: IconName;
-  screen: keyof RootStackParamList;
-  params?: NavigationParams[keyof NavigationParams];
-}
+  screen: keyof ProfileStackParamList;
+  params?: ProfileStackParamList[keyof ProfileStackParamList];
+};
 
 interface ProfileMainScreenProps {
   navigation: ProfileMainScreenNavigationProp;
@@ -118,11 +119,11 @@ export default function ProfileMainScreen({
 
   const menuOptions: MenuOption[] = [
     {
-      id: "editProfile",
-      label: "개인 정보 수정",
+      id: "accountRegister",
+      label: "계좌 등록",
       icon: "account-edit",
-      screen: "ProfileEdit",
-      params: { partner: "partner1" },
+      screen: "AccountVerification",
+      params: undefined,
     },
     {
       id: "goals",
@@ -230,7 +231,7 @@ export default function ProfileMainScreen({
           </View>
         </View>
         <View style={styles.partnerSection}>
-          <Text style={styles.sectionTitle}>파트너 정보</Text>
+          <Text style={styles.sectionTitle}>개인 정보 수정</Text>
 
           <View style={styles.partnerCardsContainer}>
             <Pressable
