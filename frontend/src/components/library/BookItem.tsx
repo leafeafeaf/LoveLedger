@@ -1,9 +1,20 @@
 // components/library/BookItem.tsx
 import React from 'react';
-import { View, Text, StyleSheet, Image, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, Dimensions, Alert } from 'react-native';
 import { BookItem as BookItemType } from '../../types';
 import MoodIcon from '../common/MoodIcon';
 import { theme } from '../../utils/theme';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { 
+  deleteFictionStart, 
+  deleteFictionSuccess, 
+  deleteFictionFailure,
+  fetchFictionListStart,
+  fetchFictionListSuccess,
+  fetchFictionListFailure
+} from '../../store/contentSlice';
+import { axiosInstance } from '../../api/axios';
 
 interface BookItemProps {
   item: BookItemType;
@@ -14,19 +25,68 @@ interface BookItemProps {
 const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const { width } = Dimensions.get('window');
   const bookWidth = (width - 80) / 3; // 3개씩 표시, 양 옆 마진 고려
+  const dispatch = useDispatch();
+  const { isLoading } = useSelector((state: RootState) => state.content.fictionDelete);
+
+  const refreshFictionList = async () => {
+    try {
+      dispatch(fetchFictionListStart());
+      const response = await axiosInstance.get("/fiction", {
+        params: {
+          pageno: 1,
+          size: 50,
+          sort: "DESC"
+        }
+      });
+      dispatch(fetchFictionListSuccess(response.data.data));
+    } catch (error) {
+      dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
+    }
+  };
+
+  const handleLongPress = () => {
+    if (type === 'story') {
+      Alert.alert(
+        '소설 삭제',
+        '이 소설을 삭제하시겠습니까?',
+        [
+          {
+            text: '취소',
+            style: 'cancel',
+          },
+          {
+            text: '삭제',
+            style: 'destructive',
+            onPress: handleDelete,
+          },
+        ]
+      );
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      dispatch(deleteFictionStart());
+      await axiosInstance.delete(`/fiction/${item.id}`);
+      dispatch(deleteFictionSuccess());
+      await refreshFictionList(); // 삭제 후 목록 새로고침
+      Alert.alert('성공', '소설이 삭제되었습니다.');
+    } catch (error) {
+      dispatch(deleteFictionFailure(error instanceof Error ? error.message : "소설 삭제에 실패했습니다."));
+      Alert.alert('오류', '소설 삭제에 실패했습니다.');
+    }
+  };
 
   // 스토리는 이미지, 다이어리는 색상과 기분 아이콘 사용
   const renderContent = () => {
     if (type === 'story') {
-      // 책 표지 이미지 결정
-      let imageSource;
-      if (item.id === '1') imageSource = require('../../../assets/images/library/book_image_1.png');
-      else if (item.id === '2') imageSource = require('../../../assets/images/library/book_image_2.png');
-      else if (item.id === '3') imageSource = require('../../../assets/images/library/book_image_3.png');
-      else if (item.id === '4') imageSource = require('../../../assets/images/library/book_image_4.png');
-      else imageSource = require('../../../assets/images/library/book_image_5.png');
-      
-      return <Image source={imageSource} style={styles.coverImage} resizeMode="cover" />;
+      return (
+        <Image 
+          source={{ uri: item.coverImage }} 
+          style={styles.coverImage} 
+          resizeMode="cover" 
+        />
+      );
     } else {
       // 다이어리는 색상 배경과 기분 아이콘 사용
       const backgroundColor = getMoodColor(item.mood);
@@ -66,6 +126,8 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
     <Pressable
       style={[styles.container, { width: bookWidth }]}
       onPress={onPress}
+      onLongPress={handleLongPress}
+      disabled={isLoading}
     >
       {renderContent()}
     </Pressable>

@@ -6,12 +6,21 @@ import {
   Pressable,
   FlatList,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import { Series, StorySettings, NewSeries } from "../../types";
+import { Series, StorySettings } from "../../types";
 import { StoryScreenProps } from "../../types";
 import Header from "../../components/common/Header";
+import { useSeriesCreate } from "../../hooks/useSeriesCreate";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../store";
+import { fetchFictionListStart, fetchFictionListSuccess, fetchFictionListFailure } from "../../store/contentSlice";
+import { axiosInstance } from "../../api/axios";
+import { useSeriesList } from "../../hooks/useSeriesList";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SeriesSelectionScreen({
   navigation,
@@ -23,44 +32,71 @@ export default function SeriesSelectionScreen({
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [newSeriesName, setNewSeriesName] = useState("");
   const [selectedSeries, setSelectedSeries] = useState<number | null>(null);
+  
+  const { mutate: createSeries, isPending } = useSeriesCreate();
+  const { data: seriesData, isLoading: isSeriesLoading } = useSeriesList();
+  const series = seriesData?.series || [];
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
-  const mockSeries: Series[] = [
-    {
-      id: 1,
-      title: "우리의 사랑 여정",
-      episodes: 3,
-      lastUpdated: "2024-03-10",
-    },
-    {
-      id: 2,
-      title: "주말의 모험",
-      episodes: 5,
-      lastUpdated: "2024-03-05",
-    },
-    {
-      id: 3,
-      title: "로맨틱한 탈출",
-      episodes: 2,
-      lastUpdated: "2024-02-28",
-    },
-  ];
+  const refreshFictionList = async () => {
+    try {
+      dispatch(fetchFictionListStart());
+      const response = await axiosInstance.get("/fiction", {
+        params: {
+          pageno: 1,
+          size: 50,
+          sort: "DESC"
+        }
+      });
+      dispatch(fetchFictionListSuccess(response.data.data));
+    } catch (error) {
+      dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
+    }
+  };
 
-  const renderSeriesItem = ({ item }: { item: Series }) => (
+  const handleNext = () => {
+    if (mode === "new") {
+      if (!newSeriesName.trim()) {
+        Alert.alert("알림", "시리즈 이름을 입력해주세요.");
+        return;
+      }
+      
+      createSeries(newSeriesName, {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: ["series"] });
+          navigation.navigate("StoryGeneration", {
+            settings,
+            series: { name: newSeriesName },
+          });
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      });
+    } else {
+      const selectedSeriesData = series.find((s) => s.seriesid === selectedSeries);
+      if (selectedSeriesData) {
+        navigation.navigate("StoryGeneration", {
+          settings,
+          series: { name: selectedSeriesData.seriesname },
+        });
+      }
+    }
+  };
+
+  const renderSeriesItem = ({ item }: { item: { seriesid: number; seriesname: string } }) => (
     <Pressable
       style={[
         styles.seriesCard,
-        selectedSeries === item.id && styles.selectedSeriesCard,
+        selectedSeries === item.seriesid && styles.selectedSeriesCard,
       ]}
-      onPress={() => setSelectedSeries(item.id)}
+      onPress={() => setSelectedSeries(item.seriesid)}
     >
       <View style={styles.seriesHeader}>
-        <Text style={styles.seriesTitle}>{item.title}</Text>
-        <View style={styles.episodesBadge}>
-          <Text style={styles.episodesText}>{item.episodes} episodes</Text>
-        </View>
+        <Text style={styles.seriesTitle}>{item.seriesname}</Text>
       </View>
-      <Text style={styles.seriesDate}>Last updated: {item.lastUpdated}</Text>
-      {selectedSeries === item.id && (
+      {selectedSeries === item.seriesid && (
         <View style={styles.checkmark}>
           <MaterialCommunityIcons
             name="check-circle"
@@ -71,25 +107,6 @@ export default function SeriesSelectionScreen({
       )}
     </Pressable>
   );
-
-  const handleNext = () => {
-    let seriesData;
-    if (mode === "new") {
-      seriesData = { name: newSeriesName || "Our Love Story" };
-    } else {
-      const series = mockSeries.find((s) => s.id === selectedSeries);
-      if (series) {
-        seriesData = { name: series.title };
-      } else {
-        seriesData = { name: mockSeries[0].title };
-      }
-    }
-
-    navigation.navigate("StoryGeneration", {
-      settings,
-      series: seriesData,
-    });
-  };
 
   return (
     <View style={styles.container}>
@@ -161,12 +178,19 @@ export default function SeriesSelectionScreen({
         ) : (
           <View style={styles.existingSeriesContainer}>
             <Text style={styles.sectionTitle}>이어갈 이야기 선택하기</Text>
-            <FlatList
-              data={mockSeries}
-              renderItem={renderSeriesItem}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.seriesList}
-            />
+            {isSeriesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={styles.loadingText}>시리즈 목록을 불러오는 중...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={series}
+                renderItem={renderSeriesItem}
+                keyExtractor={(item) => item.seriesid.toString()}
+                contentContainerStyle={styles.seriesList}
+              />
+            )}
           </View>
         )}
       </View>
@@ -174,17 +198,22 @@ export default function SeriesSelectionScreen({
         <Pressable
           style={[
             styles.nextButton,
-            mode === "existing" && !selectedSeries && styles.disabledButton,
+            (mode === "existing" && !selectedSeries) && styles.disabledButton,
+            isPending && styles.disabledButton,
           ]}
           onPress={handleNext}
-          disabled={mode === "existing" && !selectedSeries}
+          disabled={(mode === "existing" && !selectedSeries) || isPending}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color={theme.colors.white}
-          />
+          <Text style={styles.nextButtonText}>
+            {isPending ? "생성 중..." : "Next"}
+          </Text>
+          {!isPending && (
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={20}
+              color={theme.colors.white}
+            />
+          )}
         </Pressable>
       </View>
     </View>
@@ -317,5 +346,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
   },
 });

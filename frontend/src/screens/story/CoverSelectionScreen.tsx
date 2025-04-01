@@ -19,15 +19,26 @@ import {
   StorySettings,
 } from "../../types";
 import Header from "../../components/common/Header";
+import { useFictionArt } from "../../hooks/useFictionArt";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import {
+  startCoverGeneration,
+  coverGenerationSuccess,
+  coverGenerationFailure,
+  setCoverStyle,
+  clearCoverImage,
+} from "../../store/contentSlice";
 
 const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
   navigation,
   route,
 }) => {
   const { settings, series, story } = route.params;
-  const [selectedStyle, setSelectedStyle] = useState<string>("fantasy");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [coverImage, setCoverImage] = useState<string>("");
+  const dispatch = useDispatch();
+  const { isGenerating, selectedStyle, coverImage, error } = useSelector(
+    (state: RootState) => state.content.coverGeneration
+  );
 
   const coverStyles: CoverStyle[] = [
     { id: "webtoon", label: "웹툰", icon: "book-open-page-variant" },
@@ -38,53 +49,54 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
     { id: "sketch", label: "스케치", icon: "pencil" },
   ];
 
+  const { mutate, isPending: mutationLoading, error: apiError } = useFictionArt();
+
   useEffect(() => {
     generateCover();
   }, [selectedStyle]);
 
-  const generateCover = () => {
-    setIsLoading(true);
+  const generateCover = async () => {
+    dispatch(startCoverGeneration(selectedStyle));
 
-    // Generate a unique seed for each style to ensure different images
-    const seed =
-      coverStyles.findIndex((style) => style.id === selectedStyle) + 100;
+    try {
+      // 테마 ID 매핑
+      const themeIdMap: { [key: string]: number } = {
+        webtoon: 1,
+        fairytale: 2,
+        realistic: 3,
+        watercolor: 4,
+        oilpainting: 5,
+        sketch: 6,
+      };
 
-    // Create a prompt based on the story theme and the selected cover style
-    const promptBase = `A beautiful ${selectedStyle} style book cover about love`;
-    let promptAddition = "";
+      const themeId = themeIdMap[selectedStyle] || 1;
 
-    switch (settings.themeStyle) {
-      case "romantic":
-        promptAddition = "with a romantic couple";
-        break;
-      case "fantasy":
-        promptAddition = "with magical elements and fantasy creatures";
-        break;
-      case "paparazzi":
-        promptAddition = "with camera flashes and celebrities";
-        break;
-      case "healing":
-        promptAddition = "with nature, calm waters, and peaceful elements";
-        break;
-      case "comedy":
-        promptAddition = "with humorous elements and bright colors";
-        break;
-      default:
-        promptAddition = "with warm, freesia-inspired colors";
+      // API 호출
+      mutate(
+        {
+          context: story.content || "",
+          themeId,
+          title: story.title,
+        },
+        {
+          onSuccess: (response) => {
+            if (response?.data?.imageUrl) {
+              dispatch(coverGenerationSuccess(response.data.imageUrl));
+            }
+          },
+          onError: (error) => {
+            console.error("커버 이미지 생성 중 오류 발생:", error);
+            dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
+          },
+        }
+      );
+    } catch (error) {
+      dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
     }
+  };
 
-    const prompt = `${promptBase} ${promptAddition}`;
-
-    // Create the image URL with the prompt and seed
-    const imageUrl = `https://api.a0.dev/assets/image?text=${encodeURIComponent(
-      prompt
-    )}&aspect=3:4&seed=${seed}`;
-
-    // Simulate a loading delay to make the user feel the process is happening
-    setTimeout(() => {
-      setCoverImage(imageUrl);
-      setIsLoading(false);
-    }, 1500);
+  const handleStyleSelect = (styleId: string) => {
+    dispatch(setCoverStyle(styleId));
   };
 
   const handleNext = () => {
@@ -92,8 +104,8 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
 
     const storySettings: StorySettings = {
       themeStyle: settings.themeStyle,
-      toneStyle: "default", // 기본값 설정
-      lengthStyle: "default", // 기본값 설정
+      toneStyle: "default",
+      lengthStyle: "default",
     };
 
     navigation.navigate("CoverPreview", {
@@ -115,7 +127,10 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
       <Header
         title="커버 선택"
         showBack={true}
-        onBack={() => navigation.goBack()}
+        onBack={() => {
+          dispatch(clearCoverImage());
+          navigation.goBack();
+        }}
       />
       <ScrollView style={styles.content}>
         <View style={styles.section}>
@@ -129,7 +144,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
                   styles.styleCard,
                   selectedStyle === style.id && styles.selectedStyleCard,
                 ]}
-                onPress={() => setSelectedStyle(style.id)}
+                onPress={() => handleStyleSelect(style.id)}
               >
                 <View style={styles.styleContent}>
                   <MaterialCommunityIcons
@@ -163,14 +178,14 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
           </Text>
 
           <View style={styles.coverPreviewContainer}>
-            {isLoading ? (
+            {isGenerating ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
                 <Text style={styles.loadingText}>
                   그림체를 불러오고 있어요...
                 </Text>
               </View>
-            ) : (
+            ) : coverImage ? (
               <View style={styles.coverContainer}>
                 <Image
                   source={{ uri: coverImage }}
@@ -184,7 +199,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
                   </Text>
                 </View>
               </View>
-            )}
+            ) : null}
           </View>
         </View>
       </ScrollView>
@@ -192,7 +207,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
         <Pressable
           style={styles.nextButton}
           onPress={handleNext}
-          disabled={isLoading || !coverImage}
+          disabled={isGenerating || !coverImage}
         >
           <Text style={styles.nextButtonText}>Next</Text>
           <MaterialCommunityIcons

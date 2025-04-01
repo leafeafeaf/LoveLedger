@@ -29,6 +29,13 @@ export type LibraryStackParamList = {
   LibraryMain: undefined;
   DiaryDetail: { id: string; date: string; mood?: string };
   StoryDetail: { id: string };
+  DiaryEdit: {
+    id: string;
+    date: string;
+    title: string;
+    content: string;
+    mood?: string;
+  };
 };
 
 // 루트 스택 파라미터 타입
@@ -223,28 +230,32 @@ export type DatePickerProps = {
 // --- 데이터 모델 타입 정의 ---
 
 // 도서 항목 타입
-export type BookItem = {
+export interface BookItem {
   id: string;
   title: string;
   date: string;
-  type: "diary" | "story" | "goal";
-  mood?: "happy" | "excited" | "peaceful" | string;
+  type: 'diary' | 'story';
+  mood?: string;
   theme?: string;
-};
+  coverImage?: string;
+  seriesId?: number;
+  content?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 // 거래 관련 타입
-export type Transaction = {
+export interface Transaction {
   id: string;
-  transactionid?: string;
+  transactionid: string;
   amount: number;
   date: string;
-  time?: string;
-  notes?: string;
+  time: string;
   remittance: boolean;
-  targetname?: string;
-  category?: string;
-  userId?: string;
-};
+  targetname: string;
+  category: string;
+  accountNo: string;
+}
 
 // 대시보드 거래 요약 타입
 export type DashboardTransaction = {
@@ -317,6 +328,7 @@ export type Story = {
   id?: string;
   title: string;
   content: string;
+  coverImage?: string;
 };
 
 // 스토리 설정 타입
@@ -405,95 +417,32 @@ export type SignUpRequest = {
   isMarried: boolean;
 };
 
-// --- 초대 관련 타입 정의 ---
-
-export interface InviteResponse {
-  status: string;
-  message: string;
-  data: {
-    link: string;
-  };
-  timestamp: string;
+export interface DailySum {
+  targetDate: string;
+  totalConsumeSum: number;
+  totalEarnSum: number;
 }
 
-export interface InviteErrorResponse {
-  status: string;
-  message: string;
-  data: {
-    existingLink?: string;
-    createdAt?: string;
-    expiresAt?: string;
-    action?: string;
-  } | null;
-  timestamp: string;
+export interface TransactionDetail {
+  transactionId: string;
+  date: string;
+  time: string;
+  remittance: boolean;
+  targetName: string;
+  afterAmount: number;
+  amount: number;
+  categoryName: string;
+  accountNo: string;
 }
 
-export interface InviteeData {
-  email: string;
-  name: string;
+export interface PageInfo {
+  size: number;
+  number: number;
+  totalElements: number;
+  totalPages: number;
 }
 
-export interface InviteValidateResponse {
-  status: string;
-  message: string;
-  data: InviteeData | null;
-  timestamp: string;
-}
-
-// --- 사용자 관련 타입 정의 ---
-
-export interface UpdateUserRequest {
-  name?: string;
-  gender?: boolean;
-  birthDay?: string;
-  isMarried?: boolean;
-}
-
-export interface UpdateUserResponse {
-  name: string;
-  gender: boolean;
-  birthDay: string;
-  isMarried: boolean;
-}
-
-export interface UserDetailResponse {
-  email: string;
-  name: string;
-  birthDay: string;
-  gender: boolean;
-  marryDate: string | null;
-  darling: string | null;
-  darlingName: string | null;
-  darlingBirthDay: string | null;
-  marriageDuration: number;
-  picture: string | null;
-  isMarried: boolean;
-}
-
-// --- 커플 관련 타입 정의 ---
-
-export interface CoupleJoinResponse {
-  status: number;
-  message: string;
-  data: {
-    registeredAt?: string;
-  } | null;
-  timestamp: string;
-}
-
-export interface CoupleJoinErrorResponse {
-  status: number;
-  message: string;
-  code?: string;
-  data: {
-    registeredAt?: string;
-  } | null;
-  timestamp: string;
-}
-
-export interface CoupleUnlinkResponse {
-  status: string;
-  message: string;
-  data: null;
-  timestamp: string;
+export interface AccountDetailResponse {
+  content: TransactionDetail[];
+  page: PageInfo;
 }

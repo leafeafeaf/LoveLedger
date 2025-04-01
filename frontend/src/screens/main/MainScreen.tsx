@@ -34,7 +34,11 @@ import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import PartnerSwitch from "../../components/profile/PartnerSwitch";
 import { dailyFinanceData, transactionHistoryData } from "../../../dummyData";
-import Slider from "@react-native-community/slider";
+import { useCalendarDailySum } from '../../hooks/useCalendarDailySum';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import type { DailySum } from '../../types';
+import { useTransactions } from '@hooks/useTransactions';
 
 type MainScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Main">,
@@ -64,35 +68,23 @@ const formatCurrency = (amount: number): string => {
 };
 
 // Helper function to get finance data for a specific date
-const getFinanceForDate = (date: Date, activeView: string) => {
-  const dateString = `${date.getFullYear()}-${String(
-    date.getMonth() + 1
-  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  let financeData = { earn: 0, consume: 0 };
+const getFinanceForDate = (date: Date, activeView: string, dailySums: DailySum[]) => {
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const dailySum = dailySums.find(sum => sum.targetDate === dateString);
+  
+  if (!dailySum) return null;
 
-  dailyFinanceData.data.days
-    .filter((day) => {
-      if (activeView === "you") return day.userId === "user1";
-      if (activeView === "partner") return day.userId === "user2";
-      return true; // combined view
-    })
-    .forEach((day) => {
-      if (day.day === dateString) {
-        financeData.earn += day.earn;
-        financeData.consume += day.consume;
-      }
-    });
-
-  return financeData.earn > 0 || financeData.consume > 0 ? financeData : null;
+  return {
+    earn: dailySum.totalEarnSum,
+    consume: dailySum.totalConsumeSum
+  };
 };
 
 // Helper function to get transactions for a specific date
-const getTransactionsForDate = (date: Date): Transaction[] => {
-  const dateString = `${date.getFullYear()}-${String(
-    date.getMonth() + 1
-  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  return transactionHistoryData.data.history.filter(
-    (transaction) => transaction.time?.startsWith(dateString) ?? false
+const getTransactionsForDate = (date: Date, transactions: Transaction[]): Transaction[] => {
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return transactions.filter(
+    (transaction) => transaction.date === dateString
   );
 };
 
@@ -513,7 +505,11 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const fabAnimation = useRef(new Animated.Value(0)).current;
   const menuAnimation = useRef(new Animated.Value(0)).current;
 
-  const [thresholdAmount, setThresholdAmount] = useState(10000); // 기본값 1만원
+  const { data: dailySumsData } = useCalendarDailySum(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1);
+  const dailySums = dailySumsData?.data || [];
+
+  const { data: transactionsData } = useTransactions();
+  const transactions = transactionsData?.data || [];
 
   // 이전 달과 다음 달 계산
   const prevMonth = useMemo(() => {
@@ -529,9 +525,9 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   }, [displayedMonth]);
 
   useEffect(() => {
-    const transactions = getTransactionsForDate(selectedDate);
-    setSelectedDayTransactions(transactions);
-  }, [selectedDate]);
+    const dailyTransactions = getTransactionsForDate(selectedDate, transactions);
+    setSelectedDayTransactions(dailyTransactions);
+  }, [selectedDate, transactions]);
 
   const toggleFabMenu = () => {
     const toValue = showFabMenu ? 0 : 1;
@@ -577,7 +573,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     for (let i = 1; i <= totalDays; i++) {
       const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
       const isToday = calendarDate.toDateString() === new Date().toDateString();
-      const financeData = getFinanceForDate(calendarDate, activeView);
+      const financeData = getFinanceForDate(calendarDate, activeView, dailySums);
 
       days.push({
         date: calendarDate,
@@ -612,26 +608,23 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   );
 
   const handleSelectDate = (date: Date) => {
-    const currentDate = new Date().toISOString().split("T")[0];
-    const transactions = getTransactionsForDate(date).map((t) => {
-      const transactionDate = t.time ? t.time.split("T")[0] : currentDate;
-      return {
-        id: t.id.toString(),
-        amount: t.amount,
-        date: transactionDate,
-        time: t.time || undefined,
-        notes: t.notes || undefined,
-        remittance: t.remittance,
-        targetname: t.targetname || undefined,
-        category: t.category || undefined,
-      } as Transaction;
-    });
+    const dailyTransactions = getTransactionsForDate(date, transactions).map((t) => ({
+      id: t.id.toString(),
+      transactionid: t.id.toString(),
+      amount: t.amount,
+      date: t.date,
+      time: t.time || '',
+      remittance: t.remittance,
+      targetname: t.targetname || '',
+      category: t.category || '',
+      accountNo: t.id.toString().split('-')[0]
+    }));
 
     navigation.navigate("Daily", {
       screen: "DailyDetail",
       params: {
         selectedDate: date.toISOString(),
-        transactions,
+        transactions: dailyTransactions,
       },
     });
   };

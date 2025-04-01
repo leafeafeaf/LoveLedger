@@ -8,6 +8,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
@@ -16,6 +17,10 @@ import {
   Transaction,
   ProfileScreenProps,
 } from "../../types";
+import { useGoalList } from "../../hooks/useGoalList";
+import { useGoalUpdate } from "../../hooks/useGoalUpdate";
+import { useGoalTransactions } from "../../hooks/useGoalTransactions";
+import { useGoalDelete } from "../../hooks/useGoalDelete";
 
 const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
   navigation,
@@ -25,45 +30,47 @@ const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
   const [goal, setGoal] = useState<Goal>(initialGoal);
   const [showAddProgressModal, setShowAddProgressModal] =
     useState<boolean>(false);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [progressAmount, setProgressAmount] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [editForm, setEditForm] = useState({
+    title: goal.title,
+    description: goal.description,
+    target: goal.target.toString(),
+    deadline: goal.deadline,
+  });
+  
+  const { data: goalData, isLoading, error } = useGoalList();
+  const { data: transactionsData, isLoading: isTransactionsLoading } = useGoalTransactions();
+  const { mutate: updateGoal, isPending: isUpdating } = useGoalUpdate();
+  const { mutate: deleteGoal, isPending: isDeleting } = useGoalDelete();
 
   useEffect(() => {
-    // Generate mock transactions based on current amount
-    const mockTransactions: Transaction[] = [];
-    let remainingAmount = goal.current;
-
-    // Create between 1 and 5 transactions
-    const transactionCount = Math.max(
-      1,
-      Math.min(5, Math.floor(goal.current / 100000))
-    );
-
-    for (let i = 0; i < transactionCount; i++) {
-      const isLast = i === transactionCount - 1;
-      const amount = isLast
-        ? remainingAmount
-        : Math.floor(Math.random() * remainingAmount * 0.7);
-      remainingAmount -= amount;
-
-      mockTransactions.push({
-        id: i.toString(),
-        amount,
-        date: new Date(
-          Date.now() - i * 86400000 * Math.floor(Math.random() * 10)
-        ).toISOString(),
-        notes: i % 2 === 0 ? "월급 저축" : "보너스 저축",
-        remittance: false,
+    if (goalData) {
+      setGoal({
+        id: "1",
+        title: goalData.title,
+        description: "목표 설명",
+        target: goalData.goalamount,
+        current: goalData.currentamount,
+        deadline: goalData.goaldate,
+        icon: "target",
       });
     }
+  }, [goalData]);
 
-    setTransactions(
-      mockTransactions.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      )
-    );
-  }, [goal]);
+  // Function to handle delete confirmation
+  const handleDelete = () => {
+    deleteGoal(undefined, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+        navigation.goBack();
+      },
+      onError: (error) => {
+        Alert.alert("오류", error.message);
+      },
+    });
+  };
 
   // Function to add progress
   const handleAddProgress = () => {
@@ -74,34 +81,63 @@ const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
     }
 
     const newCurrent = goal.current + amount;
-    setGoal((prev) => ({
-      ...prev,
-      current: newCurrent,
-    }));
+    
+    // API 호출을 통한 목표 업데이트
+    updateGoal(
+      { currentamount: newCurrent },
+      {
+        onSuccess: () => {
+          setGoal((prev) => ({
+            ...prev,
+            current: newCurrent,
+          }));
 
-    // Add new transaction
-    const newTransaction = {
-      id: Date.now().toString(),
-      amount,
-      date: new Date().toISOString(),
-      notes: "직접 추가",
-      remittance: false,
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
+          setShowAddProgressModal(false);
+          setProgressAmount("");
 
-    setShowAddProgressModal(false);
-    setProgressAmount("");
-
-    // Check if goal is completed
-    if (newCurrent >= goal.target) {
-      Alert.alert("축하합니다!", "목표를 달성했습니다! 🎉");
-    }
+          // Check if goal is completed
+          if (newCurrent >= goal.target) {
+            Alert.alert("축하합니다!", "목표를 달성했습니다! 🎉");
+          }
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      }
+    );
   };
 
-  // Function to handle delete confirmation
-  const handleDelete = () => {
-    setShowDeleteModal(false);
-    navigation.goBack();
+  // Function to handle goal edit
+  const handleEdit = () => {
+    const target = parseInt(editForm.target);
+    if (isNaN(target) || target <= 0) {
+      Alert.alert("알림", "유효한 목표 금액을 입력해주세요.");
+      return;
+    }
+
+    updateGoal(
+      {
+        title: editForm.title,
+        goalamount: target,
+        goaldate: editForm.deadline,
+      },
+      {
+        onSuccess: () => {
+          setGoal((prev) => ({
+            ...prev,
+            title: editForm.title,
+            description: editForm.description,
+            target: target,
+            deadline: editForm.deadline,
+          }));
+          setShowEditModal(false);
+          Alert.alert("성공", "목표 정보가 수정되었습니다.");
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      }
+    );
   };
 
   // Function to format currency
@@ -133,16 +169,28 @@ const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
           />
         </Pressable>
         <Text style={styles.headerTitle}>목표 상세</Text>
-        <Pressable
-          style={styles.headerButton}
-          onPress={() => setShowDeleteModal(true)}
-        >
-          <MaterialCommunityIcons
-            name="delete"
-            size={24}
-            color={theme.colors.error}
-          />
-        </Pressable>
+        <View style={styles.headerButtons}>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => setShowEditModal(true)}
+          >
+            <MaterialCommunityIcons
+              name="pencil"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </Pressable>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => setShowDeleteModal(true)}
+          >
+            <MaterialCommunityIcons
+              name="delete"
+              size={24}
+              color={theme.colors.error}
+            />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -191,23 +239,28 @@ const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
           </View>
 
           <Pressable
-            style={styles.addProgressButton}
+            style={[styles.addProgressButton, isUpdating && styles.disabledButton]}
             onPress={() => setShowAddProgressModal(true)}
+            disabled={isUpdating}
           >
             <MaterialCommunityIcons
               name="plus"
               size={20}
               color={theme.colors.white}
             />
-            <Text style={styles.addProgressText}>진행 상황 업데이트</Text>
+            <Text style={styles.addProgressText}>
+              {isUpdating ? "업데이트 중..." : "진행 상황 업데이트"}
+            </Text>
           </Pressable>
         </View>
 
         <View style={styles.transactionsSection}>
           <Text style={styles.sectionTitle}>진행 내역</Text>
 
-          {transactions.length > 0 ? (
-            transactions.map((transaction) => (
+          {isTransactionsLoading ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : transactionsData?.data && transactionsData.data.length > 0 ? (
+            transactionsData.data.map((transaction) => (
               <View key={transaction.id} style={styles.transactionItem}>
                 <View style={styles.transactionIcon}>
                   <MaterialCommunityIcons
@@ -299,6 +352,78 @@ const GoalDetailScreen: FC<ProfileScreenProps<"GoalDetail">> = ({
         </View>
       </Modal>
 
+      {/* Edit Goal Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>목표 정보 수정</Text>
+              <Pressable
+                style={styles.closeModalButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.colors.text}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>목표 제목</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.title}
+                onChangeText={(text) => setEditForm((prev) => ({ ...prev, title: text }))}
+                placeholder="목표 제목을 입력하세요"
+                placeholderTextColor={theme.colors.textLight}
+              />
+
+              <Text style={styles.modalLabel}>목표 금액 (원)</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.target}
+                onChangeText={(text) => setEditForm((prev) => ({ ...prev, target: text }))}
+                placeholder="목표 금액을 입력하세요"
+                placeholderTextColor={theme.colors.textLight}
+                keyboardType="number-pad"
+              />
+
+              <Text style={styles.modalLabel}>목표일</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.deadline}
+                onChangeText={(text) => setEditForm((prev) => ({ ...prev, deadline: text }))}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.textLight}
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.confirmButton}
+                onPress={handleEdit}
+              >
+                <Text style={styles.confirmButtonText}>수정</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Delete Confirmation Modal */}
       <Modal
         visible={showDeleteModal}
@@ -359,6 +484,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: theme.colors.text,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   content: {
     flex: 1,
@@ -633,5 +762,28 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    marginTop: theme.spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
+    marginTop: theme.spacing.md,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
