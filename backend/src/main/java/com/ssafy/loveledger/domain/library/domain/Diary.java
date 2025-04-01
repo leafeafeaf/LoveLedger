@@ -47,6 +47,9 @@ public class Diary {
     @Column(name = "title")
     private String title;
 
+    @Column(name = "mood")
+    private Integer mood;
+
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
