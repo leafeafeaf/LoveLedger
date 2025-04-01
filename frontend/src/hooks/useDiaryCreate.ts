@@ -7,12 +7,15 @@ interface DiaryCreateRequest {
   title: string;
   content: string;
   targetDate: string;
+  mood: string;
 }
 
 interface DiaryCreateResponse {
   status: number;
   message: string;
-  data: null;
+  data: {
+    id: string;
+  };
   timestamp: string;
 }
 
