@@ -1,4 +1,4 @@
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { configureStore } from "@reduxjs/toolkit";
 import {
   persistStore,
   persistReducer,
@@ -16,32 +16,34 @@ import financeReducer from "./financeSlice";
 import contentReducer from "./contentSlice";
 import datePickerReducer from "./datePickerSlice";
 import tokenReducer from "./tokenSlice";
-
-// 루트 리듀서 설정
-const rootReducer = combineReducers({
-  auth: authReducer,
-  partner: partnerReducer,
-  finance: financeReducer,
-  content: contentReducer,
-  datePicker: datePickerReducer,
-  token: tokenReducer,
-});
+import accountReducer from "./accountSlice";
 
 // Redux Persist 설정
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["auth", "partner", "token"],
+  whitelist: ["auth", "token"],
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+const persistedTokenReducer = persistReducer(persistConfig, tokenReducer);
 
 // 스토어 생성
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: {
+    auth: persistedAuthReducer,
+    partner: partnerReducer,
+    finance: financeReducer,
+    content: contentReducer,
+    datePicker: datePickerReducer,
+    token: persistedTokenReducer,
+    account: accountReducer,
+  },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
+      },
     }),
 });
 

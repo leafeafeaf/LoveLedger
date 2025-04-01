@@ -47,7 +47,9 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
 
     const themeId = themeIdMap[coverStyle] || 1;
     const seriesId = "id" in series ? series.id : Date.now();
-    const [startDate, endDate] = (settings.period || "").split("~").map(date => date.trim());
+    const [startDate, endDate] = (settings.period || "")
+      .split("~")
+      .map((date) => date.trim());
 
     dispatch(startStorySaving());
 
@@ -63,11 +65,13 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
       },
       {
         onSuccess: (response) => {
-          dispatch(storySavingSuccess({
-            ...story,
-            id: seriesId.toString(),
-            coverImage,
-          }));
+          dispatch(
+            storySavingSuccess({
+              ...story,
+              id: seriesId.toString(),
+              coverImage,
+            })
+          );
           dispatch(clearCoverImage());
           navigation.navigate("Publishing", {
             settings,
@@ -75,9 +79,10 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
               id: seriesId,
               title: "title" in series ? series.title : series.name,
               episodes: "episodes" in series ? series.episodes : 1,
-              lastUpdated: "lastUpdated" in series
-                ? series.lastUpdated
-                : new Date().toISOString(),
+              lastUpdated:
+                "lastUpdated" in series
+                  ? series.lastUpdated
+                  : new Date().toISOString(),
             },
             story,
             coverImage,
@@ -86,7 +91,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
         },
         onError: (error) => {
           let errorMessage = "소설 저장 중 오류가 발생했습니다.";
-          
+
           switch (error.message) {
             case "INVALID_DATE_RANGE":
               errorMessage = "날짜 범위가 올바르지 않습니다.";
@@ -147,12 +152,12 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <Pressable 
-          style={[styles.nextButton, isSaving && styles.disabledButton]} 
+        <Pressable
+          style={[styles.nextButton, isSaving && styles.disabledButton]}
           onPress={handleSave}
           disabled={isSaving}
         >
-          <Text style={styles.nextButtonText}>
+          <Text style={styles.saveButtonText}>
             {isSaving ? "저장 중..." : "Save"}
           </Text>
           <MaterialCommunityIcons

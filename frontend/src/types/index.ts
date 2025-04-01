@@ -56,14 +56,16 @@ export type RootStackParamList = {
   LinkError: {
     errorType: "expired" | "invalid" | "already_linked" | "generic";
   };
+  AccountVerification: undefined;
 };
 
 // 프로필 스택 파라미터 타입
 export type ProfileStackParamList = {
-  ProfileMain: {};
+  ProfileMain: undefined;
   ProfileEdit: { partner: string };
-  GoalList: {};
+  GoalList: undefined;
   GoalDetail: { goal: Goal };
+  AccountVerification: undefined;
 };
 
 // 스토리 스택 파라미터 타입
@@ -189,7 +191,7 @@ export type LibraryScreenProps<T extends keyof LibraryStackParamList> =
 
 // 트랜잭션 스크린 Props
 export type TransactionStackScreenProps<
-  T extends keyof TransactionStackParamList
+  T extends keyof TransactionStackParamList,
 > = CompositeScreenProps<
   NativeStackScreenProps<TransactionStackParamList, T>,
   NativeStackScreenProps<RootStackParamList>
@@ -234,7 +236,7 @@ export interface BookItem {
   id: string;
   title: string;
   date: string;
-  type: 'diary' | 'story';
+  type: "diary" | "story";
   mood?: string;
   theme?: string;
   coverImage?: string;
@@ -286,13 +288,13 @@ export type Goal = {
 };
 
 // 새 목표 입력 타입
-export type NewGoal = {
+export interface NewGoal {
   title: string;
   description: string;
   target: string;
   deadline: string;
-  icon: IconName;
-};
+  icon: string;
+}
 
 // 목표 거래 타입
 export type GoalTransaction = {
@@ -446,3 +448,46 @@ export interface AccountDetailResponse {
   content: TransactionDetail[];
   page: PageInfo;
 }
+
+// 계좌 인증 요청 타입
+export interface AccountVerifyRequest {
+  accountNo: string;
+}
+
+// 계좌 인증 응답 타입
+export interface AccountVerifyResponse {
+  status: string;
+  message: string;
+  data: {
+    REC: {
+      transactionUniqueNo: number;
+      accounNo: string;
+    };
+  };
+  timestamp: string;
+}
+
+// 계좌 인증 에러 타입
+export interface AccountVerifyError {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 계좌 인증 확인 요청 타입
+export interface AccountVerifyConfirmRequest {
+  authCode: string;
+  accountNo: string;
+}
+
+// 계좌 인증 확인 응답 타입
+export interface AccountVerifyConfirmResponse {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 임계 금액 타입
+export type thresholdAmount = number;

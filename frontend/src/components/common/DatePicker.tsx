@@ -143,17 +143,7 @@ export default function DatePicker({
         console.error("날짜 처리 오류:", error);
       }
     }
-  }, [
-    visible,
-    isRange,
-    selectedDate,
-    startDate,
-    endDate,
-    selectDate,
-    selectStartDate,
-    selectEndDate,
-    setRangeModeEnabled,
-  ]);
+  }, [visible, isRange, selectedDate, startDate, endDate]);
 
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -208,8 +198,8 @@ export default function DatePicker({
       const isSelected = selectedDate
         ? date.toDateString() === selectedDate.toDateString()
         : tempSelectedDate
-        ? date.toDateString() === tempSelectedDate.toDateString()
-        : false;
+          ? date.toDateString() === tempSelectedDate.toDateString()
+          : false;
 
       // 범위 선택 로직
       let isStartDate = false;
@@ -265,8 +255,8 @@ export default function DatePicker({
       const isSelected = selectedDate
         ? date.toDateString() === selectedDate.toDateString()
         : tempSelectedDate
-        ? date.toDateString() === tempSelectedDate.toDateString()
-        : false;
+          ? date.toDateString() === tempSelectedDate.toDateString()
+          : false;
 
       // 범위 선택 로직
       let isStartDate = false;
@@ -322,8 +312,8 @@ export default function DatePicker({
       const isSelected = selectedDate
         ? date.toDateString() === selectedDate.toDateString()
         : tempSelectedDate
-        ? date.toDateString() === tempSelectedDate.toDateString()
-        : false;
+          ? date.toDateString() === tempSelectedDate.toDateString()
+          : false;
 
       // 범위 선택 로직
       let isStartDate = false;
