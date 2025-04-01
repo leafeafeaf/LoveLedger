@@ -11,6 +11,8 @@ import { AxiosError } from 'axios';
 interface DiaryUpdatePayload {
   title: string;
   content: string;
+  targetDate: string;
+  mood: string;
 }
 
 interface ApiError {

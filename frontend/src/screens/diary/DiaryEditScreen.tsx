@@ -89,6 +89,8 @@ export default function DiaryEditScreen({
       {
         title: title.trim(),
         content: content.trim(),
+        targetDate: selectedDate.toISOString().split('T')[0],
+        mood: selectedMood,
       },
       {
         onSuccess: () => {
