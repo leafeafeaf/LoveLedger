@@ -32,12 +32,12 @@ public class AccountController {
     private final AccountService accountService;
     private final UserUtil userUtil;
 
-    @GetMapping("/history/stat")
+    @GetMapping("/history/sum/list")
     public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
         @RequestParam Integer year,
         @RequestParam Integer month,
         @RequestParam(defaultValue = "1") Integer pageno,
-        @RequestParam(defaultValue = "15") Integer size,
+        @RequestParam(defaultValue = "31") Integer size,
         @RequestParam(defaultValue = "asc") String sort
     ) {
         User user = userUtil.getCurrentUser();
@@ -46,13 +46,14 @@ public class AccountController {
         return monthStat;
     }
 
+    // TODO : 1. 계좌 0 번 리턴
     @GetMapping("/saveus")
     public List<WeekStatisticsResponse> saveAccount() {
         User user = userUtil.getCurrentUser();
         return accountService.getAccountHistoryByWeek(user, 2025, 3);
     }
 
-    @GetMapping("/history/sum/list")
+    @GetMapping("/history/stat")
     public Map<String, Object> getDailyStatisticsByMonth(
         @RequestParam Integer year,
         @RequestParam Integer month
@@ -90,8 +91,7 @@ public class AccountController {
         @RequestBody UpdateHistoryTargetRequest request
     ) {
         User user = userUtil.getCurrentUser();
-        accountService.updateHistoryTarget(user, transactionId, request.getAccountNo(),
-            request.getUpdatedTargetName());
+        accountService.updateHistoryTarget(user, transactionId, request.getUpdatedTargetName());
     }
 
     @DeleteMapping("/history/detail/{transactionId}")
@@ -104,6 +104,7 @@ public class AccountController {
     public void getVerification(@RequestBody AccountAuthenticationRequest request) {
         User user = userUtil.getCurrentUser();
         accountService.getVerificationCode(user, request.getAccountNo());
+        // TODO : 2. return authCode
     }
 
     @PostMapping("/verify/confirm")

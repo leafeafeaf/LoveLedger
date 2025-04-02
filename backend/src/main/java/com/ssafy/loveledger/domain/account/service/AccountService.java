@@ -20,6 +20,7 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatist
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.statistics.domain.Category;
+import com.ssafy.loveledger.domain.statistics.domain.repository.DailyStatisticsRepository;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
@@ -49,6 +50,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final HistoryRepository historyRepository;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
     private final OpenFeignUtil openFeignUtil;
     private final CategoryPrescriptionUtil categoryPrescriptionUtil;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -107,7 +109,7 @@ public class AccountService {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-        return historyRepository.findByUserAndMonth(user, startDate, endDate, pageable);
+        return dailyStatisticsRepository.findByUserAndMonth(user, startDate, endDate);
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +123,7 @@ public class AccountService {
 
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
-        return historyRepository.findWeeklyStatistics(user, year, month, startDate);
+        return dailyStatisticsRepository.findWeeklyStatistics(user, year, month, startDate);
     }
 
     @Transactional
@@ -141,25 +143,35 @@ public class AccountService {
         }
 
         History history = historyRepository.findById(transactionId).orElse(null);
-        if (history != null && history.getAccount().getUser() == user) {
+        if (history == null) {
+            throw new LoveLedgerException(ErrorCode.HISTORY_NOT_FOUND);
+        } else if (history.getAccount().getUser() == user) {
             history.delete();
+            historyRepository.delete(history);
         }
     }
 
     @Transactional
-    public void updateHistoryTarget(User user, String transactionId, String accountNo,
+    public void updateHistoryTarget(User user, String transactionId,
         String updatedTargetName) {
 
         if (user == null) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        Account account = accountRepository.findById(accountNo).orElse(null);
+        Account account = accountRepository.findById(user.getAccount().get(0).getAccountId())
+            .orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
-        if (account != null && history != null && user == account.getUser()
-            && history.getAccount() == account) {
+        if (account == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        } else if (history == null) {
+            throw new LoveLedgerException(ErrorCode.HISTORY_NOT_FOUND);
+        }
+
+        if (user == account.getUser() && history.getAccount() == account) {
             history.updateTargetName(updatedTargetName);
+            historyRepository.save(history);
         }
     }
 

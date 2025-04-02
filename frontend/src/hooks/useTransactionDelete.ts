@@ -12,6 +12,7 @@ interface DeleteTransactionResponse {
   message: string;
   data: null;
   timestamp: string;
+  code?: string;
 }
 
 export const useTransactionDelete = () => {
@@ -28,9 +29,9 @@ export const useTransactionDelete = () => {
         return response.data;
       } catch (error: any) {
         if (error.response?.status === 404) {
-          if (error.response?.data?.errorCode === 'ACCOUNT_NOT_FOUND') {
+          if (error.response?.data?.code === 'A001') {
             throw new Error('요청한 계좌를 찾을 수 없습니다.');
-          } else if (error.response?.data?.errorCode === 'TRANSACTION_NOT_FOUND') {
+          } else if (error.response?.data?.code === 'T001') {
             throw new Error('해당 거래 내역을 찾을 수 없습니다.');
           }
         } else if (error.response?.status === 409) {

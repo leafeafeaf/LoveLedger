@@ -76,6 +76,8 @@ public class UserService {
             .gender(request.getGender())
             .birthDay(request.getBirthDay())
             .isMarried(request.getIsMarried())
+            .userKey(user.getUserKey())
+            .picture(user.getPicture())
             .build();
 
         userRepository.save(updatedUser);

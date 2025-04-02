@@ -65,6 +65,12 @@ app:
   deep-link-uri-scheme: ${DEEPLINK_URL}
   invite-expiry-hours: ${INVITE_EXPIRE_HOURS}
   android-package-name: ${ANDROID_PACKAGE_NAME}
+android:
+  oauth2:
+    google:
+      package-name: ${ANDROID_PACKAGE_NAME}  # AndroidManifest.xml에서 확인한 패키지 이름
+      sha1-certificate-fingerprint: ${ANDROID_SHA1_FINGERPRINT}  # keytool로 얻은 SHA-1 지문
+      custom-scheme: ${ANDROID_CUSTOM_SCHEME}  # 앱의 커스텀 URL 스킴 (예: loveledger://)
 
 management:
   endpoints:

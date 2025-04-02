@@ -1,3 +1,4 @@
+// DailyDetailScreen.tsx
 import React, { useState, useRef, FC, useEffect } from "react";
 import {
   View,
@@ -25,10 +26,9 @@ import { CompositeNavigationProp } from "@react-navigation/native";
 import { useAccountDetail } from "@hooks/useAccountDetail";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
-import {
-  fetchAccountDetailStart,
-  fetchAccountDetailSuccess,
-  fetchAccountDetailFailure,
+import { 
+  fetchAccountDetailSuccess, 
+  fetchAccountDetailFailure 
 } from "../../store/financeSlice";
 
 type DailyDetailScreenNavigationProp = CompositeNavigationProp<
@@ -47,11 +47,12 @@ const DailySummary: FC<{
   selectedDate: Date;
   transactions: TransactionDetail[];
 }> = ({ selectedDate, transactions }) => {
+  // ... DailySummary 내용 동일 ...
   const totalIncome = transactions
-    .filter((t) => !t.remittance)
+    .filter((t) => t.remittance)
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = transactions
-    .filter((t) => t.remittance)
+    .filter((t) => !t.remittance)
     .reduce((sum, t) => sum + t.amount, 0);
   const total = totalIncome - totalExpense;
 
@@ -288,14 +289,11 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
     }
   }, [error, dispatch]);
 
-  useEffect(() => {
-    dispatch(fetchAccountDetailStart());
-  }, [dispatch]);
-
+  // 여기서 toggleFabMenu 함수가 누락되어 에러가 발생합니다.
+  // 추가: toggleFabMenu 함수 정의
   const toggleFabMenu = () => {
     const toValue = showFabMenu ? 0 : 1;
     setShowFabMenu(!showFabMenu);
-
     Animated.parallel([
       Animated.spring(fabAnimation, {
         toValue,
@@ -391,11 +389,11 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
                     style={[
                       styles.transactionAmount,
                       transaction.remittance
-                        ? { color: theme.colors.error }
-                        : { color: theme.colors.success },
+                        ? { color: theme.colors.success }
+                        : { color: theme.colors.error },
                     ]}
                   >
-                    {transaction.remittance ? "- " : "+ "}
+                    {transaction.remittance ? "+ " : "- "}
                     {formatCurrency(transaction.amount)}
                   </Text>
                 </Pressable>
@@ -430,6 +428,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
 };
 
 const styles = StyleSheet.create({
+  // ... 스타일 정의 동일 ...
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -550,12 +549,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...theme.shadows.medium,
   },
-  fabButton: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   fabMenu: {
     position: "absolute",
     bottom: 70,
@@ -582,25 +575,6 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.md,
     fontSize: 13,
     flexShrink: 1,
-  },
-  menuContainer: {
-    position: "absolute",
-    bottom: 64,
-    right: 0,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: theme.spacing.sm,
-  },
-  menuText: {
-    color: theme.colors.white,
-    marginLeft: theme.spacing.sm,
-    fontSize: 16,
   },
   loadingContainer: {
     flex: 1,
