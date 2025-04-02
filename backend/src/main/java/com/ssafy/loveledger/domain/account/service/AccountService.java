@@ -162,6 +162,7 @@ public class AccountService {
         if (account != null && history != null && user == account.getUser()
             && history.getAccount() == account) {
             history.updateTargetName(updatedTargetName);
+            historyRepository.save(history);
         }
     }
 
