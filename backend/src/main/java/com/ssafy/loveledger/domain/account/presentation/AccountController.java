@@ -91,8 +91,7 @@ public class AccountController {
         @RequestBody UpdateHistoryTargetRequest request
     ) {
         User user = userUtil.getCurrentUser();
-        accountService.updateHistoryTarget(user, transactionId, request.getAccountNo(),
-            request.getUpdatedTargetName());
+        accountService.updateHistoryTarget(user, transactionId, request.getUpdatedTargetName());
     }
 
     @DeleteMapping("/history/detail/{transactionId}")

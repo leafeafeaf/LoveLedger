@@ -152,14 +152,15 @@ public class AccountService {
     }
 
     @Transactional
-    public void updateHistoryTarget(User user, String transactionId, String accountNo,
+    public void updateHistoryTarget(User user, String transactionId,
         String updatedTargetName) {
 
         if (user == null) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        Account account = accountRepository.findById(accountNo).orElse(null);
+        Account account = accountRepository.findById(user.getAccount().get(0).getAccountId())
+            .orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
         if (account == null) {
