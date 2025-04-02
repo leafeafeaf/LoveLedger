@@ -31,8 +31,8 @@ public class FictionController {
     @PostMapping("/content")
     public FictionContentReadRes createFictionContent(
         @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
-//        User user = userUtil.getCurrentUser();
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
+
         log.info("user {} creates fiction content", user.getId());
 
         return fictionService.getFictionContentAI(user, fictionContentCreateReq);
@@ -42,8 +42,8 @@ public class FictionController {
     @PostMapping("/art")
     public FictionArtReadRes createFictionArt(
         @RequestBody @Valid FictionArtCreateReq fictionArtCreateReq) {
-//        User user = userUtil.getCurrentUser();
-        User user = userRepository.findById(1L).orElse(null);
+        User user = userUtil.getCurrentUser();
+
         log.info("user {} creates fiction image", user.getId());
 
         return fictionService.getFictionArtAI(fictionArtCreateReq);
