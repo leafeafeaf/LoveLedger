@@ -84,7 +84,9 @@ const LinkErrorScreen: FC<RootStackScreenProps<"LinkError">> = ({
         <Text style={styles.headerTitle}>연동 오류</Text>
         <Pressable
           style={styles.closeButton}
-          onPress={() => navigation.navigate("Main", { screen: "Library" })}
+          onPress={() =>
+            navigation.navigate("Main", { screen: "Library", params: {} })
+          }
         >
           <MaterialCommunityIcons
             name="close"
@@ -165,7 +167,9 @@ const LinkErrorScreen: FC<RootStackScreenProps<"LinkError">> = ({
 
         <Pressable
           style={styles.homeButton}
-          onPress={() => navigation.navigate("Main", { screen: "Library" })}
+          onPress={() =>
+            navigation.navigate("Main", { screen: "Library", params: {} })
+          }
         >
           <Text style={styles.homeButtonText}>홈으로 이동</Text>
         </Pressable>

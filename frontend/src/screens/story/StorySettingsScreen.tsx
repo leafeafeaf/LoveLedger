@@ -1,4 +1,4 @@
-import React, { useState, FC } from "react";
+import React, { useState, FC, useEffect } from "react";
 import DatePicker from "../../components/common/DatePicker";
 import {
   View,
@@ -7,6 +7,9 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  FlatList,
+  Image,
+  Dimensions,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
@@ -14,6 +17,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { StoryScreenProps } from "../../types";
 import Header from "../../components/common/Header";
+import useDatePicker from "../../hooks/useDatePicker";
 
 // 아이콘 타입 정의
 type IconName =
@@ -38,6 +42,7 @@ interface ThemeItem {
   id: number;
   label: string;
   icon: IconName;
+  image: any;
 }
 
 interface FontItem {
@@ -77,83 +82,83 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   navigation,
   route,
 }) => {
+  // Redux 상태 사용
+  const { startDate, endDate, isCustomDate, resetAllDates } = useDatePicker();
+
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodItem | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<ThemeItem | null>(null);
   const [selectedFont, setSelectedFont] = useState<FontItem | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [selectingEndDate, setSelectingEndDate] = useState(false);
+
+  // CUSTOM_DATE_ID를 초기화 시에 사용
+  const CUSTOM_DATE_ID = 0;
+
+  // Effect 제거 - 대신 컴포넌트 초기화 시 startDate나 endDate가 있으면 직접 설정으로 초기화
+  useEffect(() => {
+    if ((startDate || endDate) && !selectedPeriod) {
+      setSelectedPeriod({
+        id: CUSTOM_DATE_ID,
+        label: "직접 설정",
+        icon: "calendar-week",
+      });
+    }
+  }, []);
 
   // 기간 옵션
   const periods: PeriodItem[] = [
-    { id: 1, label: "1개월", icon: "calendar-month" },
-    { id: 2, label: "3개월", icon: "calendar-month" },
-    { id: 3, label: "6개월", icon: "calendar-month" },
-    { id: 4, label: "1년", icon: "calendar" },
-    { id: 5, label: "직접 설정", icon: "calendar-week" },
+    { id: 1, label: "이번 주 소설", icon: "calendar-week" },
+    { id: 2, label: "이번 달 소설", icon: "calendar-month" },
+    { id: 3, label: "올해 소설", icon: "calendar" },
   ];
 
   // 테마 옵션
   const themes: ThemeItem[] = [
-    { id: 1, label: "심플", icon: "palette" },
-    { id: 2, label: "로맨틱", icon: "palette" },
-    { id: 3, label: "빈티지", icon: "palette" },
-    { id: 4, label: "모던", icon: "palette" },
-    { id: 5, label: "다이내믹", icon: "format-color-fill" },
+    {
+      id: 1,
+      label: "일상",
+      icon: "palette",
+      image: require("../../../assets/images/theme/일상.png"),
+    },
+    {
+      id: 2,
+      label: "판타지",
+      icon: "palette",
+      image: require("../../../assets/images/theme/판타지.png"),
+    },
+    {
+      id: 3,
+      label: "파파라치",
+      icon: "palette",
+      image: require("../../../assets/images/theme/파파라치.png"),
+    },
+    {
+      id: 4,
+      label: "뉴스",
+      icon: "palette",
+      image: require("../../../assets/images/theme/뉴스.png"),
+    },
   ];
 
   // 폰트 옵션
   const fonts: FontItem[] = [
-    { id: 1, label: "기본", icon: "format-font" },
+    { id: 1, label: "Pretendard", icon: "format-font" },
     { id: 2, label: "고딕", icon: "format-font" },
     { id: 3, label: "명조", icon: "format-font" },
-    { id: 4, label: "손글씨", icon: "format-text" },
-    { id: 5, label: "캐주얼", icon: "format-size" },
+    { id: 4, label: "필기체", icon: "format-text" },
   ];
 
-  // 기간 옵션 렌더링
-  const renderPeriodOption = (item: PeriodItem) => {
-    const isSelected = selectedPeriod?.id === item.id;
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={[styles.optionItem, isSelected && styles.selectedOption]}
-        onPress={() => {
-          setSelectedPeriod(item);
-          if (item.id === 5) {
-            setShowDatePicker(true);
-          }
-        }}
-      >
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={24}
-          color={isSelected ? theme.colors.white : theme.colors.text}
-        />
-        <Text
-          style={[styles.optionText, isSelected && styles.selectedOptionText]}
-        >
-          {item.label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   // 테마 옵션 렌더링
-  const renderThemeOption = (item: ThemeItem) => {
+  const renderThemeOption = ({ item }: { item: ThemeItem }) => {
     const isSelected = selectedTheme?.id === item.id;
     return (
       <TouchableOpacity
-        key={item.id}
-        style={[styles.optionItem, isSelected && styles.selectedOption]}
+        style={[styles.themeCard, isSelected && styles.selectedThemeCard]}
         onPress={() => setSelectedTheme(item)}
       >
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={24}
-          color={isSelected ? theme.colors.white : theme.colors.text}
-        />
+        <Image source={item.image} style={styles.themeImage} />
         <Text
-          style={[styles.optionText, isSelected && styles.selectedOptionText]}
+          style={[styles.themeLabel, isSelected && styles.selectedThemeLabel]}
         >
           {item.label}
         </Text>
@@ -162,24 +167,32 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   };
 
   // 폰트 옵션 렌더링
-  const renderFontOption = (item: FontItem) => {
+  const renderFontOption = ({ item }: { item: FontItem }) => {
     const isSelected = selectedFont?.id === item.id;
     return (
       <TouchableOpacity
-        key={item.id}
-        style={[styles.optionItem, isSelected && styles.selectedOption]}
+        style={[styles.fontCard, isSelected && styles.selectedFontCard]}
         onPress={() => setSelectedFont(item)}
       >
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={24}
-          color={isSelected ? theme.colors.white : theme.colors.text}
-        />
-        <Text
-          style={[styles.optionText, isSelected && styles.selectedOptionText]}
-        >
-          {item.label}
-        </Text>
+        <View style={styles.fontContent}>
+          <Text
+            style={[
+              styles.fontSampleText,
+              item.label === "Pretendard" && styles.pretendardFont,
+              item.label === "고딕" && styles.gothicFont,
+              item.label === "명조" && styles.myeongjoFont,
+              item.label === "필기체" && styles.handwritingFont,
+              isSelected && styles.selectedFontText,
+            ]}
+          >
+            여러분의 이야기를{"\n"}이 글씨로 담겠습니다.
+          </Text>
+          <Text
+            style={[styles.fontLabel, isSelected && styles.selectedFontLabel]}
+          >
+            {item.label}
+          </Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -204,14 +217,54 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
 
   // 날짜 선택 핸들러
   const handleSelectDate = (date: Date) => {
-    setStartDate(date);
-    setShowDatePicker(false);
+    // Redux 상태 업데이트는 이미 DatePicker 컴포넌트 내부에서 처리됨
+    if (!selectingEndDate) {
+      setSelectingEndDate(true);
+      // 시작일 선택 후에도 DatePicker 유지
+    } else {
+      setSelectingEndDate(false);
+      // setShowDatePicker(false); // 모달 닫기 제거
+    }
+  };
+
+  // 범위 선택 핸들러
+  const handleSelectRange = (start: Date, end: Date) => {
+    // Redux 상태 업데이트는 이미 DatePicker 컴포넌트 내부에서 처리됨
+    // setShowDatePicker(false); // 모달 닫기 제거
+
+    // 직접 설정 옵션 수동으로 선택 (useEffect에서 처리하지 않음)
+    if (!selectedPeriod || selectedPeriod.id !== CUSTOM_DATE_ID) {
+      setSelectedPeriod({
+        id: CUSTOM_DATE_ID,
+        label: "직접 설정",
+        icon: "calendar-week",
+      });
+    }
+  };
+
+  // 사용자가 기본 기간 옵션을 선택하면 DatePicker 상태 초기화
+  const handlePeriodSelect = (item: PeriodItem) => {
+    setSelectedPeriod(item);
+    if (item.id !== CUSTOM_DATE_ID) {
+      // 기본 옵션 선택 시 직접 설정 상태 초기화
+      resetAllDates();
+    }
+  };
+
+  // 날짜 포맷 함수
+  const formatDate = (date: Date | null): string => {
+    if (!date) return "날짜 선택";
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}년 ${month}월 ${day}일`;
   };
 
   return (
     <View style={styles.container}>
       <Header
-        title="스토리 설정"
+        title="소설 초기 설정"
         showBack={true}
         onBack={() => navigation.goBack()}
       />
@@ -219,24 +272,119 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         onSelectDate={handleSelectDate}
-        selectedDate={startDate || undefined}
+        isRange={true}
+        onSelectRange={handleSelectRange}
       />
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Period</Text>
-          <View style={styles.optionsRow}>
-            {periods.map(renderPeriodOption)}
+          <Text style={styles.sectionTitle}>기간 선택</Text>
+
+          {/* 직접 설정 옵션 - 분리하여 표시 */}
+          <TouchableOpacity
+            style={[
+              styles.customDateContainer,
+              selectedPeriod?.id === CUSTOM_DATE_ID &&
+                styles.selectedCustomDate,
+            ]}
+            onPress={() => {
+              setSelectedPeriod({
+                id: CUSTOM_DATE_ID,
+                label: "직접 설정",
+                icon: "calendar-week",
+              });
+              setSelectingEndDate(false);
+              setShowDatePicker(true);
+            }}
+          >
+            <View style={styles.customDateHeader}>
+              {!startDate && !endDate && (
+                <Text
+                  style={[
+                    styles.customDateLabel,
+                    styles.centeredCustomDateLabel,
+                  ]}
+                >
+                  직접 설정
+                </Text>
+              )}
+            </View>
+            <View style={styles.dateRangeContainer}>
+              {startDate && endDate ? (
+                <View>
+                  <Text style={[styles.dateRangeDisplay, styles.centeredText]}>
+                    {formatDate(startDate)}부터
+                  </Text>
+                  <Text style={[styles.dateRangeDisplay, styles.centeredText]}>
+                    {formatDate(endDate)}까지의 이야기
+                  </Text>
+                </View>
+              ) : (
+                <Text style={[styles.dateRangeDisplay, styles.centeredText]}>
+                  날짜를 선택해주세요
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* 기본 기간 옵션들 */}
+          <View style={styles.periodOptionsContainer}>
+            {periods.map((item) => {
+              const isSelected = selectedPeriod?.id === item.id;
+
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.optionItem,
+                    isSelected && styles.selectedOption,
+                  ]}
+                  onPress={() => handlePeriodSelect(item)}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.selectedOptionText,
+                      styles.centeredText,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Theme</Text>
-          <View style={styles.themeGrid}>{themes.map(renderThemeOption)}</View>
+          <Text style={styles.sectionTitle}>테마 선택</Text>
+          <FlatList
+            data={themes}
+            renderItem={renderThemeOption}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={
+              Dimensions.get("window").width * 0.78 + theme.spacing.md
+            }
+            decelerationRate="fast"
+            contentContainerStyle={styles.themeListContainer}
+          />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Font</Text>
-          <View style={styles.fontGrid}>{fonts.map(renderFontOption)}</View>
+          <Text style={styles.sectionTitle}>폰트 선택</Text>
+          <FlatList
+            data={fonts}
+            renderItem={renderFontOption}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={
+              Dimensions.get("window").width * 0.78 + theme.spacing.md
+            }
+            decelerationRate="fast"
+            contentContainerStyle={styles.fontListContainer}
+          />
         </View>
       </ScrollView>
       <View style={styles.footer}>
@@ -271,20 +419,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: "#000000",
     marginBottom: theme.spacing.md,
   },
-  optionsRow: {
+  periodOptionsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
   },
   optionItem: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.sm,
     borderWidth: 1,
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.white,
@@ -296,79 +446,100 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.primary,
+    color: "#000000",
   },
   selectedOptionText: {
     color: theme.colors.white,
   },
-  themeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.md,
+  themeListContainer: {
+    paddingHorizontal: theme.spacing.md,
   },
   themeCard: {
-    width: "45%",
-    alignItems: "center",
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
+    width: Dimensions.get("window").width * 0.78,
+    height: 200,
+    marginHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     backgroundColor: theme.colors.white,
-    ...theme.shadows.small,
+    overflow: "hidden",
+    ...theme.shadows.medium,
   },
-  activeThemeCard: {
-    backgroundColor: theme.colors.primary,
+  selectedThemeCard: {
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+  },
+  themeImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   themeLabel: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: theme.spacing.md,
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.white,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    textAlign: "center",
+  },
+  selectedThemeLabel: {
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  fontListContainer: {
+    paddingHorizontal: theme.spacing.md,
+  },
+  fontCard: {
+    width: Dimensions.get("window").width * 0.78,
+    height: 150,
+    marginHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.white,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  selectedFontCard: {
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+  },
+  fontContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+    ...theme.shadows.medium,
+  },
+  fontSampleText: {
+    fontSize: 24,
+    textAlign: "center",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  pretendardFont: {
+    fontFamily: "Pretendard",
+  },
+  gothicFont: {
+    fontFamily: "Pretendard-Bold",
+  },
+  myeongjoFont: {
+    fontFamily: "Pretendard-Medium",
+  },
+  handwritingFont: {
+    fontFamily: "Pretendard-Regular",
+    fontStyle: "italic",
+  },
+  selectedFontText: {
+    color: theme.colors.primary,
+  },
+  fontLabel: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginTop: theme.spacing.sm,
+    textAlign: "center",
   },
-  activeThemeLabel: {
-    color: theme.colors.white,
-  },
-  fontGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  fontOption: {
-    width: "23%",
-    alignItems: "center",
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.small,
-  },
-  activeFontOption: {
-    backgroundColor: theme.colors.secondary,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  },
-  fontSample: {
-    fontSize: 24,
-    fontWeight: "600",
+  selectedFontLabel: {
     color: theme.colors.primary,
-    marginBottom: theme.spacing.xs,
-  },
-  activeFontSample: {
-    color: theme.colors.primary,
-  },
-  handwritingFont: {
-    fontStyle: "italic",
-  },
-  modernFont: {
-    fontWeight: "300",
-  },
-  elegantFont: {
-    fontWeight: "700",
-  },
-  fontLabel: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-  },
-  activeFontLabel: {
-    color: theme.colors.text,
-    fontWeight: "500",
   },
   footer: {
     padding: theme.spacing.md,
@@ -388,5 +559,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  customDateContainer: {
+    width: Dimensions.get("window").width * 0.78,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.md,
+  },
+  selectedCustomDate: {
+    backgroundColor: theme.colors.primary,
+  },
+  customDateHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  customDateLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+    textAlign: "center",
+  },
+  centeredText: {
+    textAlign: "center",
+  },
+  centeredCustomDateLabel: {
+    width: "100%",
+    textAlign: "center",
+  },
+  dateRangeContainer: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  dateRangeDisplay: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000000",
+    textAlign: "center",
+  },
+  selectedDateRange: {
+    color: theme.colors.white,
+  },
+  customDateOption: {
+    width: "100%",
+  },
+  dateRangeText: {
+    fontSize: 12,
+    color: "#000000",
+    marginTop: 4,
   },
 });

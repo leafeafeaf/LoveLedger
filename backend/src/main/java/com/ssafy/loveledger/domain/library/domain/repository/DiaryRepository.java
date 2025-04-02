@@ -17,7 +17,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     @Query(
         "SELECT new com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse("
             +
-            "d.id ,d.title, d.content, d.targetDate, d.createdAt, d.updatedAt) " +
+            "d.id ,d.title, d.content, d.targetDate, d.createdAt, d.updatedAt, d.mood) " +
             "FROM Diary d WHERE d.library = :library")
     Page<DiaryReadAllResponse> findByLibrary(@Param("library") Library library,
         Pageable pageable);

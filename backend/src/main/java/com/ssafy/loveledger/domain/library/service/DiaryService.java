@@ -47,6 +47,7 @@ public class DiaryService {
             .targetDate(diaryCreateRequest.getTargetDate())
             .title(diaryCreateRequest.getTitle())
             .content(diaryCreateRequest.getContent())
+            .mood(diaryCreateRequest.getMood())
             .build();
 
         //일기 저장
@@ -84,6 +85,7 @@ public class DiaryService {
             .targetDate(diary.getTargetDate())
             .createdAt(diary.getCreatedAt())
             .updatedAt(diary.getUpdatedAt())
+            .mood(diary.getMood())
             .build();
     }
 
@@ -102,6 +104,15 @@ public class DiaryService {
         //수정
         diary.setTitle(diaryUpdateRequest.getTitle());
         diary.setContent(diaryUpdateRequest.getContent());
+
+        if (diaryUpdateRequest.getMood() != null) {
+            Integer mood = diaryUpdateRequest.getMood();
+            if (mood < 1 || mood > 4) {
+                diary.setMood(1); // 유효 범위 벗어나면 기본값으로
+            } else {
+                diary.setMood(mood);
+            }
+        }
 
         diaryRepository.save(diary);
     }
