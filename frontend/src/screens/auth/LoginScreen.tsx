@@ -14,6 +14,7 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  TouchableOpacity,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
@@ -24,12 +25,13 @@ import {
   clearError,
 } from "../../store/authSlice";
 import { theme } from "../../utils/theme";
-import { useGoogleLogin } from "../../hooks/useGoogleAuthApi";
+import { useGoogleAuthApi } from "../../hooks/useGoogleAuthApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SignUpRequest } from "../../types";
 import { useUpdateUserInfo } from "../../hooks/useUserApi";
 import { useTokenIntegration } from "../../hooks/useTokenIntegration";
 import { axiosInstance } from "../../api/axios";
+import { WebView } from "react-native-webview";
 
 // TestQueryButton 컴포넌트 (내부에 정의)
 const TestQueryButton = () => {
@@ -166,12 +168,11 @@ export default function LoginScreen() {
     (state) => state.auth
   );
   const {
-    googleLogin,
+    handleGoogleLogin,
     isLoading: googleLoading,
     error: googleError,
-    isNewUser,
-    loginAttemptTimestamp,
-  } = useGoogleLogin();
+    isRegistered,
+  } = useGoogleAuthApi();
   const updateUserInfoMutation = useUpdateUserInfo();
 
   const isLoading = authLoading || googleLoading;
@@ -194,10 +195,10 @@ export default function LoginScreen() {
 
   // 신규 사용자 여부에 따라 회원가입 모달 표시
   useEffect(() => {
-    if (isNewUser) {
+    if (isRegistered) {
       setShowSignUpModal(true);
     }
-  }, [isNewUser]);
+  }, [isRegistered]);
 
   // 구글 로그인 타임아웃 표시
   const [showingTimeout, setShowingTimeout] = useState(false);
@@ -224,7 +225,7 @@ export default function LoginScreen() {
   // 소셜 로그인 처리 함수
   const handleSocialLogin = (provider: "google" | "naver" | "kakao") => {
     if (provider === "google") {
-      googleLogin();
+      handleGoogleLogin();
     } else {
       dispatch(loginStart());
       console.log(`${provider} 로그인 시도`);
@@ -325,10 +326,10 @@ export default function LoginScreen() {
     return (
       <Pressable
         style={styles.socialButton}
-        onPress={() => handleSocialLogin("google")}
-        disabled={false} // 항상 활성화 상태로 유지 (이전 요청은 자동으로 취소됨)
+        onPress={handleGoogleLogin}
+        disabled={googleLoading}
       >
-        {googleLoading && loginAttemptTimestamp ? (
+        {googleLoading ? (
           <ActivityIndicator size="small" color={theme.colors.primary} />
         ) : (
           <Image

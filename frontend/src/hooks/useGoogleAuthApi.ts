@@ -1,159 +1,123 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  handleGoogleLogin,
-  extractTokenFromHash,
-  extractTokenFromUrl,
-  clearLoginTimer,
-  SocialLoginResponse,
-} from "../api/googleAuth";
-import { useAppDispatch } from "./reduxHooks";
-import {
-  loginStart,
-  loginSuccess,
-  loginFailure,
-  clearError,
-} from "../store/authSlice";
-import { Platform, Linking } from "react-native";
+import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setUser } from "../store/slices/userSlice";
+import { axiosInstance } from "../api/axios";
+import Constants from "expo-constants";
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
+import { Platform } from "react-native";
 
-/**
- * 구글 소셜 로그인을 위한 커스텀 훅
- */
-export const useGoogleLogin = () => {
-  const dispatch = useAppDispatch();
+WebBrowser.maybeCompleteAuthSession();
+
+const discovery = {
+  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  tokenEndpoint: "https://oauth2.googleapis.com/token",
+  revocationEndpoint: "https://oauth2.googleapis.com/revoke",
+};
+
+// 디바이스별 구글 OAuth 설정
+const getGoogleClientId = () => {
+  const config = Constants.expoConfig?.extra;
+  if (!config) {
+    throw new Error("Expo 설정을 찾을 수 없습니다.");
+  }
+
+  if (Platform.OS === "ios") {
+    return config.GOOGLE_IOS_CLIENT_ID;
+  } else if (Platform.OS === "android") {
+    return config.GOOGLE_ANDROID_CLIENT_ID;
+  } else {
+    return config.GOOGLE_CLIENT_ID; // 웹 또는 기타 플랫폼
+  }
+};
+
+const GOOGLE_CLIENT_ID = getGoogleClientId();
+
+if (!GOOGLE_CLIENT_ID) {
+  throw new Error(
+    "Google Client ID가 설정되지 않았습니다. .env 파일에서 GOOGLE_CLIENT_ID를 확인해주세요."
+  );
+}
+
+export const useGoogleAuthApi = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loginAttemptTimestamp, setLoginAttemptTimestamp] = useState<
-    number | null
-  >(null);
-  const [isNewUser, setIsNewUser] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const dispatch = useDispatch();
 
-  // 로그인 시도 취소 함수
-  const cancelLoginAttempt = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    clearLoginTimer();
-    setIsLoading(false);
-    dispatch(clearError());
-  };
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: GOOGLE_CLIENT_ID,
+      scopes: ["openid", "profile", "email"],
+      redirectUri: AuthSession.makeRedirectUri({
+        scheme: "loveledger",
+      }),
+    },
+    discovery
+  );
 
-  // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
-    return () => {
-      cancelLoginAttempt();
-    };
-  }, []);
+    if (response?.type === "success") {
+      const { authentication } = response;
+      console.log("[구글 로그인 성공]", authentication?.accessToken);
 
-  // 로그인 성공 처리 함수
-  const handleLoginSuccess = (response: SocialLoginResponse) => {
-    setIsLoading(false);
-    setError(null);
-    setIsNewUser(response.isNewUser);
+      // 서버에 인증 코드 전송
+      const handleServerAuth = async () => {
+        try {
+          console.log("[서버로 인증 코드 전송 시작]");
+          const response = await axiosInstance.post("/auth/google", {
+            code: authentication?.accessToken,
+            redirectUri: AuthSession.makeRedirectUri({
+              scheme: "loveledger",
+            }),
+          });
 
-    dispatch(
-      loginSuccess({
-        token: response.token,
-        userInfo: response.userInfo,
-      })
-    );
-  };
+          console.log("[서버 응답]", response.data);
 
-  // 웹 환경에서 리디렉션 후 해시에서 토큰 추출
-  useEffect(() => {
-    if (Platform.OS === "web") {
-      const checkToken = async () => {
-        const response = await extractTokenFromHash();
-        if (response) {
-          handleLoginSuccess(response);
+          const { accessToken, user } = response.data;
+
+          // 토큰 저장
+          await AsyncStorage.setItem("token", accessToken);
+          console.log("[토큰 저장 완료]");
+
+          // Redux 상태 업데이트
+          dispatch(setUser(user));
+          console.log("[Redux 상태 업데이트 완료]");
+        } catch (error: any) {
+          console.error("[서버 인증 에러]", error);
+          setError(error.message || "서버 인증 중 오류가 발생했습니다.");
+        } finally {
+          setIsLoading(false);
         }
       };
 
-      checkToken();
+      handleServerAuth();
+    } else if (response?.type === "error") {
+      console.error("[구글 로그인 에러]", response.error);
+      setError("구글 로그인 중 오류가 발생했습니다.");
+      setIsLoading(false);
     }
-  }, [dispatch]);
+  }, [response, dispatch]);
 
-  // 모바일 환경에서 딥링크 처리 설정
-  useEffect(() => {
-    if (Platform.OS !== "web") {
-      const handleDeepLink = async ({ url }: { url: string }) => {
-        if (url.includes("oauth-callback") || url.includes("access_token")) {
-          const response = await extractTokenFromUrl(url);
-          if (response) {
-            handleLoginSuccess(response);
-          }
-        }
-      };
-
-      // 앱이 실행 중인 상태에서 딥링크로 열렸을 때
-      const subscription = Linking.addEventListener("url", handleDeepLink);
-
-      // 앱이 종료된 상태에서 딥링크로 열렸을 때
-      const getInitialUrl = async () => {
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          handleDeepLink({ url: initialUrl });
-        }
-      };
-
-      getInitialUrl();
-
-      return () => {
-        subscription.remove();
-      };
-    }
-  }, [dispatch]);
-
-  // 구글 로그인 처리 함수
-  const googleLogin = async () => {
-    // 이미 로그인 시도 중이라면 이전 요청 취소
-    if (isLoading) {
-      cancelLoginAttempt();
-    }
-
+  const handleGoogleLogin = async () => {
+    console.log("[구글 로그인 시작]");
     setIsLoading(true);
     setError(null);
-    setIsNewUser(false);
-    dispatch(loginStart());
-    setLoginAttemptTimestamp(Date.now());
 
     try {
-      await handleGoogleLogin(
-        (response, err) => {
-          if (err) {
-            setError(err.message || "소셜 로그인에 실패했습니다.");
-            dispatch(
-              loginFailure(err.message || "소셜 로그인에 실패했습니다.")
-            );
-            setIsLoading(false);
-          }
-          // 성공 처리는 useEffect의 토큰 추출 부분에서 처리됨
-        },
-        () => {
-          // 타임아웃 처리
-          setError("로그인 시간이 초과되었습니다. 다시 시도해주세요.");
-          dispatch(
-            loginFailure("로그인 시간이 초과되었습니다. 다시 시도해주세요.")
-          );
-          setIsLoading(false);
-        },
-        30000 // 30초 타임아웃
-      );
-    } catch (err: any) {
-      setError(err.message || "소셜 로그인에 실패했습니다.");
-      dispatch(loginFailure(err.message || "소셜 로그인에 실패했습니다."));
+      await promptAsync();
+    } catch (error: any) {
+      console.error("[구글 로그인 에러]", error);
+      setError(error.message || "구글 로그인 중 오류가 발생했습니다.");
       setIsLoading(false);
     }
   };
 
   return {
-    googleLogin,
     isLoading,
     error,
-    isNewUser,
-    cancelLoginAttempt,
-    loginAttemptTimestamp,
+    isRegistered,
+    handleGoogleLogin,
   };
 };

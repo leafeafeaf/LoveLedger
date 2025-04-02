@@ -20,6 +20,15 @@ module.exports = function (api) {
         },
       ],
       [
+        "module-resolver",
+        {
+          root: ["./"],
+          alias: {
+            "@env": "./.env",
+          },
+        },
+      ],
+      [
         "module:react-native-dotenv",
         {
           moduleName: "@env",

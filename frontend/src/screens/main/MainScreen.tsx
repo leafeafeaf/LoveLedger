@@ -647,6 +647,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
         targetname: t.targetname || "",
         category: t.category || "",
         accountNo: t.id.toString().split("-")[0],
+        userId: t.userId || "user1",
       })
     );
 
