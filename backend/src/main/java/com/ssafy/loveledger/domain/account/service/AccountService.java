@@ -143,8 +143,11 @@ public class AccountService {
         }
 
         History history = historyRepository.findById(transactionId).orElse(null);
-        if (history != null && history.getAccount().getUser() == user) {
+        if (history == null) {
+            throw new LoveLedgerException(ErrorCode.HISTORY_NOT_FOUND);
+        } else if (history.getAccount().getUser() == user) {
             history.delete();
+            historyRepository.delete(history);
         }
     }
 
@@ -159,8 +162,13 @@ public class AccountService {
         Account account = accountRepository.findById(accountNo).orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
-        if (account != null && history != null && user == account.getUser()
-            && history.getAccount() == account) {
+        if (account == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        } else if (history == null) {
+            throw new LoveLedgerException(ErrorCode.HISTORY_NOT_FOUND);
+        }
+
+        if (user == account.getUser() && history.getAccount() == account) {
             history.updateTargetName(updatedTargetName);
             historyRepository.save(history);
         }
