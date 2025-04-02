@@ -177,41 +177,10 @@ public class FictionService {
 
         log.info("계좌 개수 : {}  내역 개수 : {}", accounts.size(), histories.size());
 
-        //TODO : Util로 연결 시, 테마별로 프롬프트 만들기
-        String prompt = """
-            당신은 사용자의 금융 거래 내역을 바탕으로 테마 스타일에 따라 소설의 제목(title)과 내용(content)을 생성하는 AI 비서입니다.
-            
-            [입력값]
-            - 테마: %s
-            - 거래 기간: %s ~ %s
-            - 거래 내역:
-            %s
-            - 이전 소설 내용:
-            %s
-            - 성별:
-            %s
-            - 사용자 결혼 여부:
-            %s
-            
-            [출력 포맷]
-            {
-              "title": "생성된 소설 제목",
-              "content": "생성된 소설 내용"
-            }
-            
-            [규칙]
-            1. 결혼 여부가 True이면, 남편과 아내를 주인공으로 등장시켜주세요.
-            2. 결혼 여부가 False일 때, 성별이 1이면 남성을 주인공으로, 성별이 0이면 여성을 주인공으로 등장시켜주세요.
-            2. 거래 내역(금액 포함)을 이야기의 사건, 배경, 갈등 요소로 자연스럽게 녹여내 주세요.
-            3. 테마의 분위기를 유지하세요.
-            4. 반전, 기승전결 등을 포함시켜주세요.
-            5. 소설 제목은 이야기의 핵심을 반영한 제목을 붙여주세요.
-            6. 내용은 최소 2~3 문단 이상으로 구성해주세요.
-            7. 민감하거나 부정적인 표현은 피해주세요.
-            8. 이전에 작성한 소설이 있다면, 이전 소설의 내용에 이어서 작성해주세요.
-            9. 연작 소설 형태를 이룰 것이기 때문에, title 뒤에 소설의 몇번째 화인지도 붙혀주세요. (ex. title 1화 )
-            위 조건에 따라 이야기를 창의적으로 구성해주세요.
-            """.formatted(theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList), gender, isMarried);
+        // 프롬프트 만들기
+        String prompt = geminiUtil.createPromptByTheme(
+            theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList), gender, isMarried
+        );
 
         log.info(prompt);
 
@@ -257,7 +226,7 @@ public class FictionService {
             }
             
             [규칙]
-            1. 반드시 남편과 아내라는 인물을 중심으로 장면을 구성하세요.
+            1. 반드시 소설의 인물을 중심으로 장면을 구성하세요.
             2. 소설의 핵심 갈등, 감정, 또는 상징적인 순간을 시각화하세요.
             3. 테마의 분위기(예: 어두운, 로맨틱한, 환상적인 등)를 반영하여 배경과 색감도 함께 묘사해주세요.
             4. 직접적인 대사보다는 묘사 중심의 프롬프트를 작성해주세요.

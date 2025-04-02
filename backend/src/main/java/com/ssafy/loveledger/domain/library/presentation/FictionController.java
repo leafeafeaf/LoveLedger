@@ -9,6 +9,7 @@ import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.Fic
 import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionDetailReadResponse;
 import com.ssafy.loveledger.domain.library.service.FictionService;
 import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +25,14 @@ public class FictionController {
 
     private final FictionService fictionService;
     private final UserUtil userUtil;
+    private final UserRepository userRepository;
 
     // 소설 내용 생성
     @PostMapping("/content")
     public FictionContentReadRes createFictionContent(
         @RequestBody @Valid FictionContentCreateReq fictionContentCreateReq) {
-        User user = userUtil.getCurrentUser();
-
+//        User user = userUtil.getCurrentUser();
+        User user = userRepository.findById(1L).orElse(null);
         log.info("user {} creates fiction content", user.getId());
 
         return fictionService.getFictionContentAI(user, fictionContentCreateReq);
@@ -40,8 +42,8 @@ public class FictionController {
     @PostMapping("/art")
     public FictionArtReadRes createFictionArt(
         @RequestBody @Valid FictionArtCreateReq fictionArtCreateReq) {
-        User user = userUtil.getCurrentUser();
-
+//        User user = userUtil.getCurrentUser();
+        User user = userRepository.findById(1L).orElse(null);
         log.info("user {} creates fiction image", user.getId());
 
         return fictionService.getFictionArtAI(fictionArtCreateReq);
