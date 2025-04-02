@@ -139,10 +139,9 @@ const FABComponent: FC<{
         });
         pan.setValue({ x: 0, y: 0 });
       },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
+        useNativeDriver: false,
+      }),
       onPanResponderRelease: () => {
         pan.flattenOffset();
         const newX = position.x + getValue(pan.x);
@@ -268,14 +267,14 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
 
   const { selectedDate } = route.params;
   const selectedDateObj = new Date(selectedDate);
-  
+
   const { data, isLoading, error } = useAccountDetail({
     year: selectedDateObj.getFullYear(),
     month: selectedDateObj.getMonth() + 1,
     day: selectedDateObj.getDate(),
     pageno: 1,
     size: 30,
-    sort: 'DESC'
+    sort: "DESC",
   });
 
   useEffect(() => {
@@ -358,7 +357,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
                 <Pressable
                   style={styles.transactionContent}
                   onPress={() =>
-                    navigation.navigate("TransactionEdit", { 
+                    navigation.navigate("TransactionEdit", {
                       transaction: {
                         id: transaction.transactionId,
                         transactionid: transaction.transactionId,
@@ -369,7 +368,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
                         targetname: transaction.targetName,
                         category: transaction.categoryName,
                         accountNo: transaction.accountNo,
-                      }
+                      },
                     })
                   }
                 >

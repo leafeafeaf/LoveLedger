@@ -1,5 +1,5 @@
 import { axiosInstance } from "./axios";
-import { CoupleJoinResponse, CoupleUnlinkResponse } from "../types/couple";
+import { CoupleJoinResponse, CoupleUnlinkResponse } from "../types/index";
 
 /**
  * 부부 연동 API

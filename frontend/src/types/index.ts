@@ -50,6 +50,7 @@ export type RootStackParamList = {
   DiaryDetail: { id: string; date: string; mood?: string };
   StoryDetail: { id: string };
   TransactionEdit: { transaction: Transaction };
+  LinkSelection: {};
   LinkGeneration: {};
   LinkConfirm: { linkCode: string };
   LinkSuccess: {};
@@ -66,6 +67,13 @@ export type ProfileStackParamList = {
   GoalList: undefined;
   GoalDetail: { goal: Goal };
   AccountVerification: undefined;
+  LinkSelection: undefined;
+  LinkGeneration: undefined;
+  LinkConfirm: { linkCode: string };
+  LinkSuccess: undefined;
+  LinkError: {
+    errorType: "expired" | "invalid" | "already_linked" | "generic";
+  };
 };
 
 // 스토리 스택 파라미터 타입
@@ -257,6 +265,7 @@ export interface Transaction {
   targetname: string;
   category: string;
   accountNo: string;
+  userId: string;
 }
 
 // 대시보드 거래 요약 타입
@@ -276,16 +285,17 @@ export type CategorySummary = {
   icon: IconName;
 };
 
-// 목표 관련 타입
-export type Goal = {
+// 목표 타입
+export interface Goal {
   id: string;
   title: string;
   description: string;
-  target: number;
-  current: number;
+  targetAmount: number;
+  currentAmount: number;
   deadline: string;
-  icon: IconName;
-};
+  createdAt: string;
+  updatedAt: string;
+}
 
 // 새 목표 입력 타입
 export interface NewGoal {
@@ -507,6 +517,7 @@ export interface InviteErrorResponse {
     expiresAt?: string;
     action?: string;
   };
+  timestamp: string;
 }
 
 export interface CoupleJoinResponse {
@@ -543,6 +554,14 @@ export interface UserDetailResponse {
   gender: boolean;
   birthDay: string;
   isMarried: boolean;
+  age: number;
+  photo: string | null;
+  partnerName: string;
+  partnerAge: number;
+  partnerPhoto: string | null;
+  marryDate: string;
+  diariesCount: number;
+  storiesCount: number;
 }
 
 export interface InviteValidateResponse {

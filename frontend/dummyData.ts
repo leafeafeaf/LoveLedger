@@ -10,15 +10,14 @@ export interface DailyFinance {
 
 export interface Transaction {
   id: string;
-  transactionid?: string;
-  amount: number;
+  transactionid: string;
+  userId: string;
   date: string;
   time?: string;
-  notes?: string;
-  remittance: boolean;
-  targetname?: string;
-  category?: string;
-  userId?: string;
+  amount: number;
+  category: string;
+  description: string;
+  accountNo: string;
 }
 
 export interface DailyFinanceResponse {
@@ -93,6 +92,7 @@ const generateTransactionsForDateRange = (
         targetname: store,
         category: category,
         userId: userId,
+        accountNo: String(Math.floor(Math.random() * 1000000)),
       });
     }
 

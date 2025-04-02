@@ -4,7 +4,7 @@ import {
   CoupleJoinResponse,
   CoupleJoinErrorResponse,
   CoupleUnlinkResponse,
-} from "../types/couple";
+} from "../types/index";
 import { useAppDispatch } from "./reduxHooks";
 import { setError } from "../store/coupleSlice";
 

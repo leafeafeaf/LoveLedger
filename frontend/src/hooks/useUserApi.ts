@@ -1,6 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { updateUserInfo, updateUserProfile, getUserDetail } from "../api/user";
-import { SignUpRequest, UpdateUserRequest, UserDetailResponse } from "../types";
+import {
+  SignUpRequest,
+  UpdateUserRequest,
+  UserDetailResponse,
+} from "../types/index";
 import { useAppDispatch } from "./reduxHooks";
 import { loginSuccess, loginFailure } from "../store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
