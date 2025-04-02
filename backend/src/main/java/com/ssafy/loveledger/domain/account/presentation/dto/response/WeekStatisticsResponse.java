@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 public class WeekStatisticsResponse {
 
     private Integer week;
-    private Long totalConsumeSum;
     private Long totalEarnSum;
+    private Long totalConsumeSum;
 }
