@@ -5,6 +5,7 @@ import com.ssafy.loveledger.domain.goal.domain.repository.GoalRepository;
 import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalCreateRequest;
 import com.ssafy.loveledger.domain.goal.presentation.dto.request.GoalUpdateRequest;
 import com.ssafy.loveledger.domain.goal.presentation.dto.response.GoalReadResponse;
+import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
@@ -19,14 +20,14 @@ public class GoalService {
 
     // 목표 생성
     @Transactional
-    public void createGoal(GoalCreateRequest goalCreateRequest, Long userId) {
+    public void createGoal(GoalCreateRequest goalCreateRequest, User user) {
 
-        if (goalRepository.existsById(userId)) {
+        if (goalRepository.existsById(user.getId())) {
             throw new LoveLedgerException(ErrorCode.GOAL_Exist);
         }
 
         Goal goal = Goal.builder()
-            .id(userId)
+            .id(user.getId())
             .goalAmount(goalCreateRequest.getGoalAmount())
             .currentAmount(goalCreateRequest.getCurrentAmount())
             .startDate(goalCreateRequest.getStartDate())
@@ -35,27 +36,28 @@ public class GoalService {
             .contentURL(goalCreateRequest.getContentURL())
             .build();
 
+        //TODO : S3 연결 필요.
         goalRepository.save(goal);
     }
 
     // 목표 삭제
     @Transactional
-    public void deleteGoal(Long userId) {
+    public void deleteGoal(User user) {
 
         // 사용자의 목표 여부 확인
-        if (!goalRepository.existsById(userId)) {
+        if (!goalRepository.existsById(user.getId())) {
             throw new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND);
         }
 
-        goalRepository.deleteById(userId);
+        goalRepository.deleteById(user.getId());
     }
 
     //목표 수정
     @Transactional
-    public void updateGoal(GoalUpdateRequest goalUpdateRequest, Long userId) {
+    public void updateGoal(GoalUpdateRequest goalUpdateRequest, User user) {
 
         // 유저에게 목표가 존재하는지 확인
-        Goal goal = goalRepository.findById(userId)
+        Goal goal = goalRepository.findById(user.getId())
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND));
 
         goal.setGoalAmount(goalUpdateRequest.getGoalAmount());
@@ -70,10 +72,10 @@ public class GoalService {
 
     // 목표 조회
     @Transactional
-    public GoalReadResponse readGoal(Long userId) {
+    public GoalReadResponse readGoal(User user) {
 
         // 유저에게 목표가 존재하는지 확인
-        Goal goal = goalRepository.findById(userId)
+        Goal goal = goalRepository.findById(user.getId())
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.GOAL_NOT_FOUND));
 
         return GoalReadResponse.builder()

@@ -16,4 +16,6 @@ public class DiaryUpdateRequest {
     @NotBlank(message = "본문은 필수 입력 값입니다.")
     @Size(max = 500, message = "본문은 최대 500자까지 입력 가능합니다.")
     String content;
+
+    Integer mood;
 }

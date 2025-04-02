@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
 import { fetchTransactionsStart, fetchTransactionsSuccess, fetchTransactionsFailure } from "../../store/financeSlice";
 import { CategorySummary, IconName, Transaction } from "../../types";
 import { transactionHistoryData } from "../../../dummyData";
+import { useMonthlyStat } from "../../hooks/useMonthlyStat";
 
 // 통화 포맷 함수
 const formatCurrency = (amount: number): string => {
@@ -20,8 +21,14 @@ const formatCurrency = (amount: number): string => {
 
 export default function DashboardScreen() {
   const dispatch = useAppDispatch();
-  const { transactions, isLoading } = useAppSelector(state => state.finance);
+  const { transactions, isLoading, monthlyStat } = useAppSelector(state => state.finance);
   const { activeView } = useAppSelector(state => state.partner);
+  
+  // 현재 날짜로 월별 통계 데이터 가져오기
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+  const { data: monthlyStatData, isLoading: isMonthlyStatLoading } = useMonthlyStat(year, month);
 
   // 데이터 로드
   useEffect(() => {
@@ -47,21 +54,20 @@ export default function DashboardScreen() {
 
   // 데이터 계산을 memoize
   const summaryData = useMemo(() => {
-    // 총 지출 계산
-    const totalSpent = transactions.reduce(
+    // API 데이터가 있으면 그것을 사용하고, 없으면 더미 데이터 사용
+    const totalSpent = monthlyStat?.monthStat?.totalExpense || transactions.reduce(
       (total, transaction) => 
         transaction.remittance ? total + transaction.amount : total, 
       0
     );
 
-    // 총 수입 계산
-    const totalEarned = transactions.reduce(
+    const totalEarned = monthlyStat?.monthStat?.totalIncome || transactions.reduce(
       (total, transaction) => 
         !transaction.remittance ? total + transaction.amount : total, 
       0
     );
 
-    // 카테고리별 지출 계산
+    // 카테고리별 지출 계산 (더미 데이터 사용)
     const categoryMap = new Map<string, number>();
     transactions.forEach(transaction => {
       if (transaction.remittance && transaction.category) {
@@ -100,7 +106,7 @@ export default function DashboardScreen() {
       categories,
       recentTransactions
     };
-  }, [transactions]);
+  }, [transactions, monthlyStat]);
 
   if (isLoading) {
     return (

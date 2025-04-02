@@ -1,35 +1,48 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import authReducer from './authSlice';
-import partnerReducer from './partnerSlice';
-import financeReducer from './financeSlice';
-import contentReducer from './contentSlice';
-
-// 루트 리듀서 설정
-const rootReducer = combineReducers({
-  auth: authReducer,
-  partner: partnerReducer,
-  finance: financeReducer,
-  content: contentReducer
-});
+import { configureStore } from "@reduxjs/toolkit";
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from "redux-persist";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import authReducer from "./authSlice";
+import partnerReducer from "./partnerSlice";
+import financeReducer from "./financeSlice";
+import contentReducer from "./contentSlice";
+import datePickerReducer from "./datePickerSlice";
+import tokenReducer from "./tokenSlice";
+import accountReducer from "./accountSlice";
 
 // Redux Persist 설정
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage: AsyncStorage,
-  whitelist: ['auth', 'partner'], // 유지할 상태
+  whitelist: ["auth", "token"],
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+const persistedTokenReducer = persistReducer(persistConfig, tokenReducer);
 
 // 스토어 생성
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: {
+    auth: persistedAuthReducer,
+    partner: partnerReducer,
+    finance: financeReducer,
+    content: contentReducer,
+    datePicker: datePickerReducer,
+    token: persistedTokenReducer,
+    account: accountReducer,
+  },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
       },
     }),
 });

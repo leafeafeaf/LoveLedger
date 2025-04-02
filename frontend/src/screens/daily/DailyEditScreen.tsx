@@ -6,11 +6,17 @@ import {
   TextInput,
   Pressable,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { Transaction, TransactionStackScreenProps } from "../../types";
 import Header from "../../components/common/Header";
+import { useTransactionUpdate } from "@hooks/useTransactionUpdate";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { useTransactionDelete } from "@hooks/useTransactionDelete";
 
 export default function TransactionEditScreen({
   navigation,
@@ -20,11 +26,68 @@ export default function TransactionEditScreen({
   const [editedTransaction, setEditedTransaction] = useState<Transaction>({
     ...transaction,
   });
+  const { transactionUpdate, transactionDelete } = useSelector((state: RootState) => state.finance);
+  const updateMutation = useTransactionUpdate();
+  const deleteMutation = useTransactionDelete();
 
-  const handleSave = () => {
-    // TODO: Implement actual save functionality
-    navigation.goBack();
+  const handleSave = async () => {
+    if (!editedTransaction.targetname?.trim()) {
+      Alert.alert('오류', '상호명을 입력해주세요.');
+      return;
+    }
+
+    if (!editedTransaction.transactionid || !editedTransaction.accountNo) {
+      Alert.alert('오류', '거래 정보가 올바르지 않습니다.');
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        transactionId: editedTransaction.transactionid,
+        accountNo: editedTransaction.accountNo,
+        updatedTargetName: editedTransaction.targetname.trim(),
+      });
+      
+      Alert.alert('성공', '거래 내역이 수정되었습니다.');
+      navigation.goBack();
+    } catch (error: any) {
+      Alert.alert('오류', error.message);
+    }
   };
+
+  const handleDelete = () => {
+    Alert.alert(
+      '삭제 확인',
+      '이 거래 내역을 삭제하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMutation.mutateAsync(editedTransaction.transactionid);
+              Alert.alert('성공', '거래 내역이 삭제되었습니다.');
+              navigation.goBack();
+            } catch (error: any) {
+              Alert.alert('오류', error.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (transactionUpdate.isLoading || transactionDelete.isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -45,6 +108,7 @@ export default function TransactionEditScreen({
               setEditedTransaction((prev) => ({ ...prev, targetname: text }))
             }
             placeholder="Enter store name"
+            maxLength={16}
           />
         </View>
 
@@ -161,10 +225,7 @@ export default function TransactionEditScreen({
       <View style={styles.footer}>
         <Pressable
           style={styles.deleteButton}
-          onPress={() => {
-            // TODO: Implement delete functionality
-            navigation.goBack();
-          }}
+          onPress={handleDelete}
         >
           <MaterialCommunityIcons
             name="delete"
@@ -173,13 +234,22 @@ export default function TransactionEditScreen({
           />
         </Pressable>
 
-        <Pressable style={styles.saveButton} onPress={handleSave}>
+        <Pressable 
+          style={[
+            styles.saveButton,
+            transactionUpdate.isLoading && styles.saveButtonDisabled
+          ]} 
+          onPress={handleSave}
+          disabled={transactionUpdate.isLoading}
+        >
           <MaterialCommunityIcons
             name="content-save"
             size={24}
             color={theme.colors.white}
           />
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+          <Text style={styles.saveButtonText}>
+            {transactionUpdate.isLoading ? 'Saving...' : 'Save Changes'}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -267,5 +337,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
 });

@@ -4,11 +4,14 @@ import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthe
 import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistoryTargetRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.account.service.AccountService;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.UserUtil;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,22 +32,44 @@ public class AccountController {
     private final AccountService accountService;
     private final UserUtil userUtil;
 
+    @GetMapping("/history/sum/list")
+    public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
+        @RequestParam Integer year,
+        @RequestParam Integer month,
+        @RequestParam(defaultValue = "1") Integer pageno,
+        @RequestParam(defaultValue = "31") Integer size,
+        @RequestParam(defaultValue = "asc") String sort
+    ) {
+        User user = userUtil.getCurrentUser();
+        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month, pageno, size, sort);
+        return monthStat;
+    }
+
+    // TODO : 1. 계좌 0 번 리턴
     @GetMapping("/saveus")
     public List<WeekStatisticsResponse> saveAccount() {
         User user = userUtil.getCurrentUser();
         return accountService.getAccountHistoryByWeek(user, 2025, 3);
     }
 
-    @GetMapping("/history/sum/list")
-    public List<DailyStatisticsResponse> getDailyStatisticsByMonth(
+    @GetMapping("/history/stat")
+    public Map<String, Object> getDailyStatisticsByMonth(
         @RequestParam Integer year,
-        @RequestParam Integer month,
-        @RequestParam(defaultValue = "1") Integer pageno,
-        @RequestParam(defaultValue = "15") Integer size,
-        @RequestParam(defaultValue = "asc") String sort
+        @RequestParam Integer month
     ) {
         User user = userUtil.getCurrentUser();
-        return accountService.getAccountHistoryByMonth(user, year, month, size, pageno, sort);
+        Map<String, Object> content = new HashMap<>();
+
+        List<WeekStatisticsResponse> weekStat = accountService.getAccountHistoryByWeek(user, year,
+            month);
+        List<MonthlyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month);
+
+        content.put("weekStat", weekStat);
+        content.put("monthStat", monthStat);
+
+        return content;
     }
 
     @GetMapping("/history/detail/list")
@@ -80,6 +105,7 @@ public class AccountController {
     public void getVerification(@RequestBody AccountAuthenticationRequest request) {
         User user = userUtil.getCurrentUser();
         accountService.getVerificationCode(user, request.getAccountNo());
+        // TODO : 2. return authCode
     }
 
     @PostMapping("/verify/confirm")

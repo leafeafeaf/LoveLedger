@@ -21,12 +21,13 @@ public class Fiction {
 
     private LocalDateTime createdAt;
 
+    @Lob
     private String artURL;
 
     @ManyToOne
     @JoinColumn(name = "series_id")
     private Series series;
-    
+
     @Lob
     private String content;
 

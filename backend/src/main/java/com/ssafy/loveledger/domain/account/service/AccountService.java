@@ -6,20 +6,25 @@ import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.account.domain.repository.AccountRepository;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthenticationRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountHistoryDetailRequest;
+import com.ssafy.loveledger.domain.account.presentation.dto.request.CategoryPrescriptionRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.MemberInfoRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.SSAFYRequestHeader;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.CategoryPrescriptionResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MemberInfoResponse;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.SSAFYResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
 import com.ssafy.loveledger.domain.history.domain.repository.HistoryRepository;
 import com.ssafy.loveledger.domain.statistics.domain.Category;
+import com.ssafy.loveledger.domain.statistics.domain.repository.DailyStatisticsRepository;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
+import com.ssafy.loveledger.global.util.CategoryPrescriptionUtil;
 import com.ssafy.loveledger.global.util.OpenFeignUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,7 +50,9 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final HistoryRepository historyRepository;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
     private final OpenFeignUtil openFeignUtil;
+    private final CategoryPrescriptionUtil categoryPrescriptionUtil;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -56,6 +63,9 @@ public class AccountService {
     public Page<HistoryDetailResponse> getAccountHistory(User user, int year, int month, int day,
         int size, int pageno, String sort) {
 
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
         updateListOfHistory(user);
 
         Direction direction = sort.equalsIgnoreCase("ASC") ? Direction.ASC : Direction.DESC;
@@ -85,26 +95,53 @@ public class AccountService {
     public List<DailyStatisticsResponse> getAccountHistoryByMonth(User user, int year, int month,
         int size, int pageno, String sort) {
 
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        } else if (user.getAccount() == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
         updateListOfHistory(user);
 
-        Direction direction = sort.equals("asc") ? Direction.ASC : Direction.DESC;
+        Direction direction = sort.equalsIgnoreCase("asc") ? Direction.ASC : Direction.DESC;
         Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "dayId.targetDay"));
 
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-        return historyRepository.findByUserAndMonth(user, startDate, endDate, pageable);
+        return dailyStatisticsRepository.findByUserAndMonth(user, startDate, endDate);
     }
 
     @Transactional(readOnly = true)
     public List<WeekStatisticsResponse> getAccountHistoryByWeek(User user, int year, int month) {
+
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        } else if (user.getAccount() == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
-        return historyRepository.findWeeklyStatistics(user, year, month, startDate);
+        return dailyStatisticsRepository.findWeeklyStatistics(user, year, month, startDate);
+    }
+
+    @Transactional
+    public List<MonthlyStatisticsResponse> getAccountHistoryByMonth(User user, int year,
+        int month) {
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        return historyRepository.findMonthlyStatistics(user, year, month);
     }
 
     @Transactional
     public void deleteHistory(User user, String transactionId) {
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         History history = historyRepository.findById(transactionId).orElse(null);
         if (history != null && history.getAccount().getUser() == user) {
             history.delete();
@@ -114,6 +151,11 @@ public class AccountService {
     @Transactional
     public void updateHistoryTarget(User user, String transactionId, String accountNo,
         String updatedTargetName) {
+
+        if (user == null) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         Account account = accountRepository.findById(accountNo).orElse(null);
         History history = historyRepository.findById(transactionId).orElse(null);
 
@@ -126,7 +168,7 @@ public class AccountService {
     @Transactional
     public void updateListOfHistory(User user) {
         if (user == null) {
-            throw new RuntimeException("User Not Found");
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
         String code = generateCode();
@@ -134,6 +176,10 @@ public class AccountService {
         SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
 
         Account account = user.getAccount().get(0);
+        if (account == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
         AccountHistoryDetailRequest request = AccountHistoryDetailRequest.builder()
             .header(header)
             .accountNo(account.getAccountId())
@@ -152,44 +198,64 @@ public class AccountService {
             .map(map -> objectMapper.convertValue(map, HistoryResponse.class))
             .toList();
 
-        for (HistoryResponse historyResponse : res) {
-            String dateTimeString =
-                historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
-            LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
+        CategoryPrescriptionRequest req = CategoryPrescriptionRequest.builder().names(res.stream()
+            .map(HistoryResponse::getTransactionSummary)
+            .toList()).build();
 
-            String transactionType = historyResponse.getTransactionTypeName();
-            int type = switch (transactionType) {
-                case "입금" -> 1;
-                case "입금(수시입출금)" -> 2;
-                case "출금" -> 3;
-                case "출금(수시입출금)" -> 4;
-                default -> 0;
-            };
+        List<CategoryPrescriptionResponse> names;
+        if (!req.getNames().isEmpty()) {
+            names = categoryPrescriptionUtil.getCategoryPrescription(
+                req).getResults();
 
-            History history = History.builder()
-                .transactionId(historyResponse.getTransactionUniqueNo())
-                .createdDate(dateTime.toLocalDate())
-                .createdTime(dateTime.toLocalTime())
-                .transactionAccount(historyResponse.getTransactionAccountNo())
-                .transactionTarget(historyResponse.getTransactionSummary())
-                .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
-                .transactionType(type)
-                .transactionTypeName(historyResponse.getTransactionTypeName())
-                .category(Category.NOT_DEFINED) // TODO : 카테고리 분류 모델 적용 할 것
-                .account(account)
-                .AmountAfterTransaction(
-                    Long.valueOf(historyResponse.getTransactionAfterBalance())
-                )
-                .memo(historyResponse.getTransactionMemo())
-                .build();
-            historyRepository.save(history);
+            for (HistoryResponse historyResponse : res) {
+                String dateTimeString =
+                    historyResponse.getTransactionDate() + historyResponse.getTransactionTime();
+                LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, formatter);
 
-            account.setLastUpdated(LocalDateTime.now());
+                String transactionType = historyResponse.getTransactionTypeName();
+                int type = switch (transactionType) {
+                    case "입금" -> 1;
+                    case "입금(수시입출금)" -> 2;
+                    case "출금" -> 3;
+                    case "출금(수시입출금)" -> 4;
+                    default -> 0;
+                };
+
+                String transactionSummary = historyResponse.getTransactionSummary();
+                int categoryId = names.stream()
+                    .filter(n -> n.getName().equals(transactionSummary))
+                    .map(CategoryPrescriptionResponse::getCode)
+                    .findFirst()
+                    .orElse(Category.NOT_DEFINED.getId());
+
+                History history = History.builder()
+                    .transactionId(historyResponse.getTransactionUniqueNo())
+                    .createdDate(dateTime.toLocalDate())
+                    .createdTime(dateTime.toLocalTime())
+                    .transactionAccount(historyResponse.getTransactionAccountNo())
+                    .transactionTarget(historyResponse.getTransactionSummary())
+                    .transactionAmount(Long.valueOf(historyResponse.getTransactionBalance()))
+                    .transactionType(type)
+                    .transactionTypeName(historyResponse.getTransactionTypeName())
+                    .category(Category.fromId(categoryId))
+                    .account(account)
+                    .AmountAfterTransaction(
+                        Long.valueOf(historyResponse.getTransactionAfterBalance())
+                    )
+                    .memo(historyResponse.getTransactionMemo())
+                    .build();
+                historyRepository.save(history);
+
+                account.setLastUpdated(LocalDateTime.now());
+            }
         }
-
     }
 
     public void getVerificationCode(User user, String accountNo) {
+        if (user == null || user.getUserKey() == null || user.getUserKey().isEmpty()) {
+            throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
         String code = generateCode();
         String apiName = "openAccountAuth";
         SSAFYRequestHeader header = createRequestHeader(user, apiName, code);
@@ -225,7 +291,7 @@ public class AccountService {
 
         SSAFYResponse response = openFeignUtil.getAccountAuthentication(request);
         String status = (String) response.getResultData().get("status");
-        if (status.equals("SUCCESS")) {
+        if (status.equals("SUCCESS") && accountRepository.findById(accountNo).isEmpty()) {
             Account account = Account.builder()
                 .accountId(accountNo)
                 .bankCode("00100")
@@ -233,6 +299,10 @@ public class AccountService {
                 .certedAt(LocalDateTime.now())
                 .build();
             accountRepository.save(account);
+        } else {
+            throw new LoveLedgerException(
+                ErrorCode.ACCOUNT_CANT_CREATED
+            );
         }
     }
 
@@ -267,7 +337,6 @@ public class AccountService {
     public String generateCode() {
         int sixDigitNumber = ThreadLocalRandom.current().nextInt(0, 1000000); // 000000 ~ 999999
         String sixDigitString = String.format("%06d", sixDigitNumber);
-
         return LocalDateTime.now().format(formatter) + sixDigitString;
     }
 
