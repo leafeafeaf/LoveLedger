@@ -47,20 +47,23 @@ export const useAccountDetail = (params: AccountDetailParams = {}) => {
     queryFn: async () => {
       dispatch(fetchAccountDetailStart());
       try {
-        const response = await axiosInstance.get<AccountDetailResponse>(
-          `/account/history/detail/list`,
-          { params }
-        );
-        
-        // API 응답에 accountNo 필드 추가
+        const response = await axiosInstance.get(`/account/history/detail/list`, { params });
+        console.log('API 호출 시작 - 파라미터:', { params });
+        console.log('API 응답:', response.data);
+
+        // axios 인스턴스나 인터셉터가 응답 데이터를 언랩한 경우 response.data가 실제 데이터임.
+        const data: AccountDetailResponse = response.data.content ? response.data : response.data.data;
+        console.log('API 응답 데이터:', data.content);
+
+        // 예시: transactionId의 첫 부분을 accountNo로 사용
         const enrichedData = {
-          ...response.data,
-          content: response.data.content.map(transaction => ({
+          ...data,
+          content: data.content.map(transaction => ({
             ...transaction,
-            accountNo: transaction.transactionId.split('-')[0] // 임시로 transactionId의 첫 부분을 accountNo로 사용
+            accountNo: transaction.transactionId.split('-')[0]
           }))
         };
-        
+
         dispatch(fetchAccountDetailSuccess(enrichedData));
         return enrichedData;
       } catch (error) {
@@ -72,4 +75,4 @@ export const useAccountDetail = (params: AccountDetailParams = {}) => {
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 30 * 60 * 1000,   // 30분
   });
-}; 
+};
