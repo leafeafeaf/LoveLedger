@@ -83,6 +83,8 @@ const getFinanceForDate = (
 
   if (!dailySum) return null;
 
+  console.log(`[${dateString}] 수입: ${dailySum.totalEarnSum}, 지출: ${dailySum.totalConsumeSum}`);
+
   return {
     earn: dailySum.totalEarnSum,
     consume: dailySum.totalConsumeSum,
@@ -362,7 +364,7 @@ const CalendarDay = React.memo(
 
     const financeData = day.financeData;
     const totalAmount = financeData
-      ? financeData.earn - financeData.consume
+      ? financeData.earn - financeData.consume  // 수입에서 지출을 빼서 순수입을 계산
       : 0;
     const isPositive = totalAmount > 0;
     const opacity = calculateOpacity(totalAmount);
@@ -405,7 +407,7 @@ const CalendarDay = React.memo(
                 { color: isPositive ? "#2E7D32" : "#D32F2F" },
               ]}
             >
-              {totalAmount > 0 ? "+" : ""}
+              {totalAmount > 0 ? "+" : "-"}
               {Math.abs(totalAmount / 10000).toFixed(1)}만
             </Text>
           </View>
@@ -427,7 +429,7 @@ interface DailySummaryProps {
 const DailySummary = React.memo(
   ({ selectedDate, transactions }: DailySummaryProps) => {
     const total = transactions.reduce((acc: number, curr) => {
-      return curr.remittance ? acc - curr.amount : acc + curr.amount;
+      return curr.remittance ? acc + curr.amount : acc - curr.amount;
     }, 0);
 
     return (
@@ -449,7 +451,7 @@ const DailySummary = React.memo(
               {formatCurrency(
                 transactions.reduce(
                   (acc: number, curr) =>
-                    !curr.remittance ? acc + curr.amount : acc,
+                    curr.remittance ? acc + curr.amount : acc,
                   0
                 )
               )}
@@ -462,7 +464,7 @@ const DailySummary = React.memo(
               {formatCurrency(
                 transactions.reduce(
                   (acc: number, curr) =>
-                    curr.remittance ? acc + curr.amount : acc,
+                    !curr.remittance ? acc + curr.amount : acc,
                   0
                 )
               )}

@@ -36,18 +36,19 @@ export default function TransactionEditScreen({
       return;
     }
 
-    if (!editedTransaction.transactionid || !editedTransaction.accountNo) {
+    if (!editedTransaction.transactionid) {
       Alert.alert('오류', '거래 정보가 올바르지 않습니다.');
       return;
     }
 
     try {
+      console.log('Before Update:', editedTransaction);
       await updateMutation.mutateAsync({
         transactionId: editedTransaction.transactionid,
-        accountNo: editedTransaction.accountNo,
-        updatedTargetName: editedTransaction.targetname.trim(),
+        updatedTargetName: editedTransaction.targetname.trim()
       });
       
+      console.log('After Update:', editedTransaction);
       Alert.alert('성공', '거래 내역이 수정되었습니다.');
       navigation.goBack();
     } catch (error: any) {
@@ -206,7 +207,9 @@ export default function TransactionEditScreen({
           <TextInput
             style={styles.input}
             value={
-              editedTransaction.time?.split("T")[1].substring(0, 5) || "00:00"
+              editedTransaction.time 
+                ? editedTransaction.time.split("T")[1]?.substring(0, 5) || "00:00"
+                : "00:00"
             }
             onChangeText={(text) => {
               const [hours, minutes] = text.split(":");
