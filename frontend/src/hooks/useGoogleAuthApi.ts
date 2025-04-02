@@ -4,19 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUser } from "../store/slices/userSlice";
 import { axiosInstance } from "../api/axios";
 import Constants from "expo-constants";
-import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
+import * as Linking from "expo-linking";
 import { Platform } from "react-native";
+import { loginSuccess, loginFailure, loginStart } from "../store/authSlice";
+import {
+  checkInitialURL,
+  handleGoogleLogin as startGoogleLogin,
+  processAuthRedirect,
+} from "../api/googleAuth";
 
-WebBrowser.maybeCompleteAuthSession();
-
-const discovery = {
-  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-  tokenEndpoint: "https://oauth2.googleapis.com/token",
-  revocationEndpoint: "https://oauth2.googleapis.com/revoke",
-};
-
-// 디바이스별 구글 OAuth 설정
+// 구글 OAuth 설정
 const getGoogleClientId = () => {
   const config = Constants.expoConfig?.extra;
   if (!config) {
@@ -28,88 +25,109 @@ const getGoogleClientId = () => {
   } else if (Platform.OS === "android") {
     return config.GOOGLE_ANDROID_CLIENT_ID;
   } else {
-    return config.GOOGLE_CLIENT_ID; // 웹 또는 기타 플랫폼
+    return config.GOOGLE_CLIENT_ID;
   }
 };
 
-const GOOGLE_CLIENT_ID = getGoogleClientId();
-
-if (!GOOGLE_CLIENT_ID) {
-  throw new Error(
-    "Google Client ID가 설정되지 않았습니다. .env 파일에서 GOOGLE_CLIENT_ID를 확인해주세요."
-  );
-}
+// 딥링크 설정
+const PREFIX = Linking.createURL("/");
+const REDIRECT_PATH = "oauth/google";
 
 export const useGoogleAuthApi = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(true);
   const dispatch = useDispatch();
 
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: GOOGLE_CLIENT_ID,
-      scopes: ["openid", "profile", "email"],
-      redirectUri: AuthSession.makeRedirectUri({
-        scheme: "loveledger",
-      }),
-    },
-    discovery
-  );
-
+  // 앱이 URL을 통해 열렸을 때 초기 URL 처리
   useEffect(() => {
-    if (response?.type === "success") {
-      const { authentication } = response;
-      console.log("[구글 로그인 성공]", authentication?.accessToken);
+    const handleInitialURL = async () => {
+      try {
+        const result = await checkInitialURL();
+        if (result) {
+          // 토큰과 사용자 정보가 있으면 로그인 성공 처리
+          dispatch(
+            loginSuccess({
+              token: result.token,
+              userInfo: result.userInfo,
+            })
+          );
 
-      // 서버에 인증 코드 전송
-      const handleServerAuth = async () => {
-        try {
-          console.log("[서버로 인증 코드 전송 시작]");
-          const response = await axiosInstance.post("/auth/google", {
-            code: authentication?.accessToken,
-            redirectUri: AuthSession.makeRedirectUri({
-              scheme: "loveledger",
-            }),
-          });
-
-          console.log("[서버 응답]", response.data);
-
-          const { accessToken, user } = response.data;
-
-          // 토큰 저장
-          await AsyncStorage.setItem("token", accessToken);
-          console.log("[토큰 저장 완료]");
-
-          // Redux 상태 업데이트
-          dispatch(setUser(user));
-          console.log("[Redux 상태 업데이트 완료]");
-        } catch (error: any) {
-          console.error("[서버 인증 에러]", error);
-          setError(error.message || "서버 인증 중 오류가 발생했습니다.");
-        } finally {
-          setIsLoading(false);
+          // 신규 사용자인 경우 처리
+          if (result.isNewUser) {
+            setIsRegistered(false);
+          }
         }
-      };
+      } catch (err) {
+        console.error("[초기 URL 처리 에러]", err);
+      }
+    };
 
-      handleServerAuth();
-    } else if (response?.type === "error") {
-      console.error("[구글 로그인 에러]", response.error);
-      setError("구글 로그인 중 오류가 발생했습니다.");
-      setIsLoading(false);
-    }
-  }, [response, dispatch]);
+    handleInitialURL();
+  }, [dispatch]);
+
+  // 앱이 실행 중일 때 URL 변경 처리를 위한 리스너
+  useEffect(() => {
+    const subscription = Linking.addEventListener("url", async ({ url }) => {
+      try {
+        setIsLoading(true);
+
+        const result = await processAuthRedirect(url);
+        if (result) {
+          // 토큰과 사용자 정보가 있으면 로그인 성공 처리
+          dispatch(
+            loginSuccess({
+              token: result.token,
+              userInfo: result.userInfo,
+            })
+          );
+
+          // 신규 사용자인 경우 처리
+          if (result.isNewUser) {
+            setIsRegistered(false);
+          }
+        }
+      } catch (err: any) {
+        console.error("[URL 처리 에러]", err);
+        dispatch(
+          loginFailure(err.message || "로그인 처리 중 오류가 발생했습니다.")
+        );
+        setError(err.message || "로그인 처리 중 오류가 발생했습니다.");
+      } finally {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [dispatch]);
 
   const handleGoogleLogin = async () => {
-    console.log("[구글 로그인 시작]");
-    setIsLoading(true);
-    setError(null);
-
     try {
-      await promptAsync();
-    } catch (error: any) {
-      console.error("[구글 로그인 에러]", error);
-      setError(error.message || "구글 로그인 중 오류가 발생했습니다.");
+      setIsLoading(true);
+      setError(null);
+      dispatch(loginStart());
+
+      console.log("[구글 로그인 시작]");
+      await startGoogleLogin(
+        () => console.log("[로그인 프로세스 시작]"),
+        (success) => {
+          if (!success) {
+            setIsLoading(false);
+            setError("로그인 시도 중 오류가 발생했습니다.");
+            dispatch(loginFailure("로그인 시도 중 오류가 발생했습니다."));
+          }
+        }
+      );
+
+      // 로그인 결과는 딥링크 리스너에서 처리되므로 여기서는 아무것도 하지 않음
+    } catch (err: any) {
+      console.error("[구글 로그인 에러]", err);
+      setError(err.message || "구글 로그인 중 오류가 발생했습니다.");
+      dispatch(
+        loginFailure(err.message || "구글 로그인 중 오류가 발생했습니다.")
+      );
       setIsLoading(false);
     }
   };

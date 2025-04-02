@@ -51,6 +51,12 @@
         {
           "scheme": "loveledger"
         }
+      ],
+      [
+        "expo-linking",
+        {
+          "schemes": ["loveledger"]
+        }
       ]
     ]
   }
