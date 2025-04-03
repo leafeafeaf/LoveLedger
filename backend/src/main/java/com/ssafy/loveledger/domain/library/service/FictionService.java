@@ -120,7 +120,7 @@ public class FictionService {
         Fiction fiction = fictionRepository.findById(fictionId).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FICTION_NOT_FOUND, String.valueOf(fictionId)));
 
-        if (fiction.getSeries().getLibrary().equals(user.getLibrary())) {
+        if (!fiction.getSeries().getLibrary().equals(user.getLibrary())) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
         }
         return FictionDetailReadResponse.builder()
