@@ -7,7 +7,7 @@ module.exports = function (api) {
       [
         "module-resolver",
         {
-          root: ["./src"],
+          root: ["./src", "./"],
           extensions: [".ios.js", ".android.js", ".js", ".ts", ".tsx", ".json"],
           alias: {
             "@": "./src",
@@ -16,15 +16,6 @@ module.exports = function (api) {
             "@utils": "./src/utils",
             "@types": "./src/types",
             "@navigation": "./src/navigation",
-          },
-        },
-      ],
-      [
-        "module-resolver",
-        {
-          root: ["./"],
-          alias: {
-            "@env": "./.env",
           },
         },
       ],
