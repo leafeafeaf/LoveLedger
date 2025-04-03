@@ -84,7 +84,7 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.addCookie(createCookie("refresh", refresh));
         // Access 토큰을 URL 프래그먼트로 전달 (URL 인코딩 추가)
         String encodedAccessToken = URLEncoder.encode(access, StandardCharsets.UTF_8);
-        String redirectUrl = String.format("loveledger://#accessToken=%s&isRegistered=%s",
+        String redirectUrl = String.format("loveledger://oauth2/google#accessToken=%s&isRegistered=%s",
             encodedAccessToken,
             isRegistered
         );
