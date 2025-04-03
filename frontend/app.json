@@ -5,53 +5,20 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "loveledger",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.woonii.loveledger",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        },
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLSchemes": ["loveledger"]
-          }
-        ]
-      }
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.woonii.loveledger",
+      "package": "com.loveleger.app",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      },
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "loveledger",
-              "host": "auth"
-            }
-          ],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ],
-      "permissions": ["INTERNET"]
+      }
     },
-    "web": {},
-    "plugins": [
-      [
-        "expo-web-browser",
-        {
-          "scheme": "loveledger"
-        }
-      ]
-    ]
+    "web": {}
   }
 }

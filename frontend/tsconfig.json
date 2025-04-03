@@ -11,8 +11,7 @@
       "@utils/*": ["src/utils/*"],
       "@types/*": ["src/types/*"],
       "@navigation/*": ["src/navigation/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@env": ["./.env"]
+      "@hooks/*": ["src/hooks/*"]
     }
   }
 }

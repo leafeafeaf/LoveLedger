@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Image,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
@@ -15,8 +14,27 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CommonActions } from "@react-navigation/native";
 import { useAppDispatch } from "../../hooks/reduxHooks";
 import { logout } from "../../store/authSlice";
-import { ProfileStackParamList } from "../../types";
-import { useUserDetail } from "../../hooks/useUserApi";
+
+type ProfileStackParamList = {
+  ProfileMain: undefined;
+  ProfileEdit: { partner: string };
+  GoalList: undefined;
+  Settings: undefined;
+  Help: undefined;
+  LinkGeneration: undefined;
+  Login: undefined;
+  AccountVerification: undefined;
+};
+
+type NavigationParams = {
+  ProfileEdit: { partner: string };
+  ProfileMain: undefined;
+  GoalList: undefined;
+  Settings: undefined;
+  Help: undefined;
+  LinkGeneration: undefined;
+  Login: undefined;
+};
 
 type ProfileMainScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -43,6 +61,7 @@ type IconName =
 interface Partner {
   name: string;
   age: number;
+  motto: string;
   photo: string | null;
 }
 
@@ -63,7 +82,7 @@ type MenuOption = {
   label: string;
   icon: IconName;
   screen: keyof ProfileStackParamList;
-  params?: any;
+  params?: ProfileStackParamList[keyof ProfileStackParamList];
 };
 
 interface ProfileMainScreenProps {
@@ -74,85 +93,37 @@ export default function ProfileMainScreen({
   navigation,
 }: ProfileMainScreenProps) {
   const dispatch = useAppDispatch();
-  const { data: userDetail, isLoading, isError } = useUserDetail();
 
-  const calculateMeetDays = (marryDate: string): number => {
-    const today = new Date();
-    const marriageDate = new Date(marryDate);
-    const diffTime = Math.abs(today.getTime() - marriageDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const calculateAge = (birthDay: string): number => {
-    const today = new Date();
-    const birthDate = new Date(birthDay);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    return age;
-  };
-
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
-
-  if (isError || !userDetail) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>
-          프로필 정보를 불러오는데 실패했습니다.
-        </Text>
-      </View>
-    );
-  }
-
-  const meetDays = calculateMeetDays(userDetail.marryDate);
-  const age = calculateAge(userDetail.birthDay);
-
-  const profileData: ProfileData = {
+  // This would typically come from a database or state management
+  const [profileData, setProfileData] = useState<ProfileData>({
     couple: {
-      name: `${userDetail.name} & ${userDetail.partnerName}`,
-      since: `${userDetail.marryDate}부터 함께`,
-      meetDays: meetDays,
-      diariesCount: userDetail.diariesCount,
-      storiesCount: userDetail.storiesCount,
+      name: "철수 & 영희",
+      since: "2023년부터 함께",
+      meetDays: 365,
+      diariesCount: 15,
+      storiesCount: 8,
     },
     partner1: {
-      name: userDetail.name,
-      age: age,
-      photo: userDetail.photo,
+      name: "철수",
+      age: 29,
+      motto: "매일 행복하게",
+      photo: null,
     },
     partner2: {
-      name: userDetail.partnerName,
-      age: userDetail.partnerAge,
-      photo: userDetail.partnerPhoto,
+      name: "영희",
+      age: 27,
+      motto: "우리의 여행 기록하기",
+      photo: null,
     },
-  };
+  });
 
   const menuOptions: MenuOption[] = [
-    {
-      id: "linkSelection",
-      label: "부부 연동",
-      icon: "heart-multiple",
-      screen: "LinkSelection",
-    },
     {
       id: "accountRegister",
       label: "계좌 등록",
       icon: "account-edit",
       screen: "AccountVerification",
+      params: undefined,
     },
     {
       id: "goals",
@@ -160,51 +131,25 @@ export default function ProfileMainScreen({
       icon: "flag-checkered",
       screen: "GoalList",
     },
+    {
+      id: "settings",
+      label: "앱 설정",
+      icon: "cog",
+      screen: "Settings",
+    },
+    {
+      id: "help",
+      label: "도움말 및 지원",
+      icon: "help-circle",
+      screen: "Help",
+    },
   ];
 
   const handleMenuPress = (option: MenuOption) => {
-    switch (option.screen) {
-      case "ProfileEdit":
-        navigation.navigate("ProfileEdit", { partner: "partner1" });
-        break;
-      case "GoalList":
-        navigation.navigate("GoalList");
-        break;
-      case "AccountVerification":
-        navigation.navigate("AccountVerification");
-        break;
-      case "LinkSelection":
-        navigation.navigate("LinkSelection");
-        break;
-      case "LinkGeneration":
-        navigation.navigate("LinkGeneration");
-        break;
-      case "LinkConfirm":
-        navigation.navigate("LinkConfirm", { linkCode: "" });
-        break;
-      case "LinkSuccess":
-        navigation.navigate("LinkSuccess");
-        break;
-      case "LinkError":
-        navigation.navigate("LinkError", { errorType: "generic" });
-        break;
-      case "ProfileMain":
-        navigation.navigate("ProfileMain");
-        break;
-      case "GoalDetail":
-        navigation.navigate("GoalDetail", {
-          goal: {
-            id: "",
-            title: "",
-            description: "",
-            targetAmount: 0,
-            currentAmount: 0,
-            deadline: "",
-            createdAt: "",
-            updatedAt: "",
-          },
-        });
-        break;
+    if (option.screen === "ProfileEdit") {
+      navigation.navigate("ProfileEdit", option.params as { partner: string });
+    } else {
+      navigation.navigate(option.screen);
     }
   };
 
@@ -332,6 +277,9 @@ export default function ProfileMainScreen({
               <Text style={styles.partnerAge}>
                 {profileData.partner1.age}세
               </Text>
+              <Text style={styles.partnerMotto}>
+                "{profileData.partner1.motto}"
+              </Text>
             </Pressable>
 
             <Pressable
@@ -377,17 +325,50 @@ export default function ProfileMainScreen({
               <Text style={styles.partnerAge}>
                 {profileData.partner2.age}세
               </Text>
+              <Text style={styles.partnerMotto}>
+                "{profileData.partner2.motto}"
+              </Text>
             </Pressable>
           </View>
         </View>
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>메뉴</Text>
 
+          <Pressable
+            style={[styles.menuItem, styles.highlightedMenuItem]}
+            onPress={() => navigation.navigate("LinkGeneration")}
+          >
+            <View
+              style={[
+                styles.menuIconContainer,
+                { backgroundColor: `${theme.colors.primary}30` },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="heart-multiple"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </View>
+            <Text style={styles.menuItemText}>부부 연동</Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={24}
+              color={theme.colors.textLight}
+            />
+          </Pressable>
+
           {menuOptions.map((option) => (
             <Pressable
               key={option.id}
               style={styles.menuItem}
-              onPress={() => handleMenuPress(option)}
+              onPress={() => {
+                if (option.screen === "Settings" || option.screen === "Help") {
+                  Alert.alert("개발 중", "이 기능은 현재 개발 중입니다.");
+                } else {
+                  handleMenuPress(option);
+                }
+              }}
             >
               <View style={styles.menuIconContainer}>
                 <MaterialCommunityIcons
@@ -660,6 +641,13 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     marginTop: 2,
   },
+  partnerMotto: {
+    fontSize: 12,
+    fontStyle: "italic",
+    color: theme.colors.textLight,
+    marginTop: theme.spacing.sm,
+    textAlign: "center",
+  },
   menuSection: {
     backgroundColor: theme.colors.white,
     marginTop: theme.spacing.md,
@@ -711,14 +699,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textLight,
     marginTop: theme.spacing.xs,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    fontSize: 16,
-    color: theme.colors.error,
-    textAlign: "center",
   },
 });

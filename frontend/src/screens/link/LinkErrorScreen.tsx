@@ -1,75 +1,177 @@
 import React, { FC } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RouteProp } from "@react-navigation/native";
 import { theme } from "../../utils/theme";
-import { ProfileStackParamList } from "../../types";
+import { RootStackScreenProps } from "../../types";
 
-type LinkErrorScreenProps = NativeStackScreenProps<
-  ProfileStackParamList,
+type ErrorType = "expired" | "invalid" | "already_linked" | "generic";
+
+type RootStackParamList = {
+  Main: undefined;
+  LinkError: {
+    errorType?: ErrorType;
+  };
+};
+
+type LinkErrorScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
   "LinkError"
 >;
 
-type ErrorContent = {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+type LinkErrorScreenRouteProp = RouteProp<RootStackParamList, "LinkError">;
+
+interface LinkErrorScreenProps {
+  navigation: LinkErrorScreenNavigationProp;
+  route: LinkErrorScreenRouteProp;
+}
+
+type ErrorDetails = {
   title: string;
   message: string;
+  icon:
+    | "clock-alert"
+    | "link-variant-off"
+    | "account-multiple"
+    | "alert-circle";
 };
 
-const LinkErrorScreen: FC<LinkErrorScreenProps> = ({ navigation, route }) => {
-  const { errorType } = route.params;
+const LinkErrorScreen: FC<RootStackScreenProps<"LinkError">> = ({
+  navigation,
+  route,
+}) => {
+  const { errorType = "generic" } = route.params || {};
 
-  const getErrorContent = (): ErrorContent => {
+  const getErrorDetails = (): ErrorDetails => {
     switch (errorType) {
       case "expired":
         return {
+          title: "만료된 링크",
+          message:
+            "이 초대 링크는 만료되었습니다. 배우자에게 새로운 링크를 요청해 주세요.",
           icon: "clock-alert",
-          title: "만료된 초대 링크",
-          message: "이 초대 링크는 만료되었습니다. 새로운 링크를 요청해주세요.",
         };
       case "invalid":
         return {
-          icon: "link-variant-off",
           title: "유효하지 않은 링크",
-          message: "올바르지 않은 초대 링크입니다. 다시 확인해주세요.",
+          message:
+            "이 초대 링크는 유효하지 않습니다. 올바른 링크인지 확인해 주세요.",
+          icon: "link-variant-off",
         };
       case "already_linked":
         return {
-          icon: "account-multiple-check",
-          title: "이미 연동된 계정",
-          message: "이미 다른 계정과 연동되어 있습니다.",
+          title: "이미 연동됨",
+          message:
+            "귀하는 이미 다른 사용자와 연동되어 있습니다. 관리자에게 문의하여 기존 연동을 해제한 후 다시 시도해 주세요.",
+          icon: "account-multiple",
         };
       default:
         return {
+          title: "오류 발생",
+          message:
+            "연동 과정에서 오류가 발생했습니다. 다시 시도하거나 관리자에게 문의해 주세요.",
           icon: "alert-circle",
-          title: "오류가 발생했습니다",
-          message: "잠시 후 다시 시도해주세요.",
         };
     }
   };
 
-  const { icon, title, message } = getErrorContent();
-
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
+  const errorDetails = getErrorDetails();
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>연동 오류</Text>
+        <Pressable
+          style={styles.closeButton}
+          onPress={() =>
+            navigation.navigate("Main", { screen: "Library", params: {} })
+          }
+        >
           <MaterialCommunityIcons
-            name={icon}
+            name="close"
+            size={24}
+            color={theme.colors.text}
+          />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.errorIconContainer}>
+          <MaterialCommunityIcons
+            name={errorDetails.icon}
             size={80}
             color={theme.colors.error}
           />
         </View>
 
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.errorTitle}>{errorDetails.title}</Text>
+        <Text style={styles.errorMessage}>{errorDetails.message}</Text>
 
-        <Pressable style={styles.button} onPress={handleGoBack}>
-          <Text style={styles.buttonText}>돌아가기</Text>
+        <View style={styles.troubleshootContainer}>
+          <Text style={styles.troubleshootTitle}>해결 방법</Text>
+
+          <View style={styles.troubleshootItem}>
+            <MaterialCommunityIcons
+              name="numeric-1-circle"
+              size={24}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.troubleshootText}>
+              배우자에게 새로운 초대 링크를 요청해 보세요.
+            </Text>
+          </View>
+
+          <View style={styles.troubleshootItem}>
+            <MaterialCommunityIcons
+              name="numeric-2-circle"
+              size={24}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.troubleshootText}>
+              앱을 최신 버전으로 업데이트했는지 확인해 주세요.
+            </Text>
+          </View>
+
+          <View style={styles.troubleshootItem}>
+            <MaterialCommunityIcons
+              name="numeric-3-circle"
+              size={24}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.troubleshootText}>
+              문제가 지속되면 고객센터로 문의해 주세요.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <Pressable
+          style={styles.supportButton}
+          onPress={() => {
+            // In a real app, navigate to support screen or open email/chat
+            alert("고객센터로 연결합니다...");
+          }}
+        >
+          <MaterialCommunityIcons
+            name="headset"
+            size={20}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.supportButtonText}>고객센터 문의</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.homeButton}
+          onPress={() =>
+            navigation.navigate("Main", { screen: "Library", params: {} })
+          }
+        >
+          <Text style={styles.homeButtonText}>홈으로 이동</Text>
         </Pressable>
       </View>
     </View>
@@ -81,35 +183,109 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  content: {
-    flex: 1,
+  header: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    backgroundColor: theme.colors.white,
+    paddingTop: theme.spacing.xl * 1.5,
+    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
+    ...theme.shadows.small,
   },
-  iconContainer: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    right: theme.spacing.md,
+    top: theme.spacing.xl * 1.5,
+    padding: theme.spacing.sm,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: theme.spacing.xl,
+    alignItems: "center",
+  },
+  errorIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: `${theme.colors.error}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.error,
+    marginBottom: theme.spacing.md,
     textAlign: "center",
   },
-  message: {
+  errorMessage: {
     fontSize: 16,
-    color: theme.colors.textLight,
+    color: theme.colors.text,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: theme.spacing.xl,
+    lineHeight: 24,
   },
-  button: {
+  troubleshootContainer: {
+    width: "100%",
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xl,
+    ...theme.shadows.small,
+  },
+  troubleshootTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  troubleshootItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+  },
+  troubleshootText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    marginLeft: theme.spacing.md,
+    flex: 1,
+  },
+  footer: {
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    ...theme.shadows.medium,
+  },
+  supportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  supportButtonText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: theme.spacing.sm,
+  },
+  homeButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
   },
-  buttonText: {
+  homeButtonText: {
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
