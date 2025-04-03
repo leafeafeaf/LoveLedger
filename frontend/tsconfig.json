@@ -12,7 +12,7 @@
       "@types/*": ["src/types/*"],
       "@navigation/*": ["src/navigation/*"],
       "@hooks/*": ["src/hooks/*"],
-      "@env": [".env"]
+      "@env": ["./.env"]
     }
   }
 }
