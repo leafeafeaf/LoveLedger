@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 import requests
 import chromedriver_autoinstaller
 import re
+import os
 
 def request_page(url):
     headers = {
@@ -30,15 +31,24 @@ def request_page(url):
 url = "https://namu.wiki/w/밈(인터넷%20용어)/대한민국"
 
 soup = request_page(url)
-divs = soup.find_all('div', class_='fYTOcmXG')
+divs = soup.find_all('div', class_='IChv+Mfo')
 
+json_path= 'C:\\Users\\SSAFY\\Desktop\\loveledger\\LoveLedger\\rag\\mim_korea_1.json'
+
+# # 1. 기존 데이터 불러오기 (없으면 빈 리스트)
+# if os.path.exists(json_path):
+#     with open(json_path, "r", encoding="utf-8") as f:
+#         all_results = json.load(f)
+# else:
+#     all_results = []
+
+all_results = []
 
 # div마다 처리
-for i, div in enumerate(divs):
+for j, div in enumerate(divs):
     
     # a 태그가 있을 경우 링크 추출
     a_tags = div.find_all('a')
-    # print(a_tags)
     if(len(a_tags)>0):
         a = a_tags[0]
         href = a.get('href')
@@ -46,23 +56,37 @@ for i, div in enumerate(divs):
             base = "https://namu.wiki"
             full_url = base + href 
             text = a.get_text(strip=True)
-            print(f"--- div[{i}] ---")
-            print("내용:", div.get_text(strip=True))
-            print(f"🔗 링크 텍스트: {text} / 링크 URL: {full_url}")
             print()
 
             soup = request_page(full_url)
 
-            blockquotes = soup.find_all('blockquote', class_='_47dRqTXz')
-            # 한글만 추출하는 정규표현식
-            pattern  = re.compile(r"[가-힣0-9\.\']+")
+            contents = []
+            blockquotes = soup.find_all('blockquote', class_='_3CwFnhnr')
+            print(f"--- div[{j}] ---")
+            print(f"🔗 링크 텍스트: {text} / 링크 URL: {full_url}")
 
             # 출력
             for i, blockquote in enumerate(blockquotes):
-                all_text = blockquote.get_text(separator=' ', strip=True)  # 모든 텍스트
-                korean = pattern .findall(all_text)              # 한글만 추출
-                if korean:
+                block = blockquote.get_text(separator='\n', strip=True)  # 모든 텍스트
+
+                if block:
                     # print(f"--- div[{i}] ---")
-                    print(' '.join(korean))
-                    print()
+                    contents.append(block)
+
+            print(contents)
+            print()
+
+            if len(contents)>0:
+                result = {
+                    'title' : text,
+                    'content' : contents,
+                    'links' : full_url
+                }
+                all_results.append(result)
+
+with open(json_path,"w",encoding='utf-8') as f:
+    json.dump(all_results, f, ensure_ascii=False, indent=2)
+                
+print(f"데이터 저장 완료: {json_path}")
+
     

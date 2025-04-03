@@ -9,36 +9,44 @@ hf = HuggingFaceEmbeddings(model_name='jhgan/ko-sroberta-multitask')
 
 def main() -> None:
     # 인터넷 밈_json 파일
-    file_path = "밈(인터넷_용어)대한민국.json"
+    file_path = "mim_korea.json"
 
     # 저장할 파일
-    result_path = "embeded.json"
+    result_path = "embeding.json"
     result = []
 
     with open(file_path,"r",encoding="utf-8") as file:
         data = json.load(file)
-        links_data = data['links']
 
-        for i,link in enumerate(links_data):
+        for i,datas in enumerate(data):
+            title_data = datas['title']
+            content_data = datas['content']
+            links_data = datas['links']
 
-            text_data = link["text"]
-            href_data = link["href"]
+            title_response = FAISS.from_texts([title_data], embedding=hf)
+            content_response = FAISS.from_texts(content_data,embedding=hf)
+    
+            # 제목 데이터 벡터화
+            print("title_response.index.ntotal : ",title_response.index.ntotal)
+            title_vectors_data = []
+            for k in range(title_response.index.ntotal):
+                vec = title_response.index.reconstruct(k)
+                title_vectors_data.append(vec.tolist())
+            print(i,title_vectors_data)
 
-            # print(text_data)
-            # print(href_data)
-
-            response = FAISS.from_texts(text_data,embedding=hf)
-            
-            vectors_data = []
-            for k in range(response.index.ntotal):
-                vec = response.index.reconstruct(k)
-                vectors_data.append(vec.tolist())
-            print(i,vectors_data)
+            # 내용용 데이터 벡터화
+            content_vectors_data = []
+            for k in range(content_response.index.ntotal):
+                vec = content_response.index.reconstruct(k)
+                content_vectors_data.append(vec.tolist())
+            print(i,content_vectors_data)
 
             result.append({
-                "Vector" : vectors_data,
-                "text" : text_data,
-                "href" : href_data,
+                "title" : title_data,
+                "title_Vector" : title_vectors_data,
+                "content" : content_data,
+                "content_Vector" : content_vectors_data,
+                "links" : links_data
             })
     
     with open(result_path,'w',encoding="utf-8") as json_file:
