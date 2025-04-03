@@ -19,7 +19,6 @@ import { LibraryNavigator } from "./navigation/LibraryNavigator";
 
 // 개별 화면 임포트
 import TransactionEditScreen from "./screens/daily/DailyEditScreen";
-import LinkSelectionScreen from "./screens/link/LinkSelectionScreen";
 import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
@@ -104,17 +103,20 @@ const AppRouter = () => {
             />
 
             {/* Library 스택 */}
-            <Stack.Screen name="Library" component={LibraryNavigator} />
+            <Stack.Screen
+              name="Library"
+              component={LibraryNavigator}
+            />
 
             {/* Library 관련 상세 화면들 - 모달로 표시 */}
-            <Stack.Screen
-              name="DiaryDetail"
-              component={DiaryDetailScreen}
+            <Stack.Screen 
+              name="DiaryDetail" 
+              component={DiaryDetailScreen} 
               options={{ presentation: "modal" }}
             />
-            <Stack.Screen
-              name="StoryDetail"
-              component={StoryDetailScreen}
+            <Stack.Screen 
+              name="StoryDetail" 
+              component={StoryDetailScreen} 
               options={{ presentation: "modal" }}
             />
 
@@ -123,10 +125,6 @@ const AppRouter = () => {
               <Stack.Screen
                 name="TransactionEdit"
                 component={TransactionEditScreen}
-              />
-              <Stack.Screen
-                name="LinkSelection"
-                component={LinkSelectionScreen}
               />
               <Stack.Screen
                 name="LinkGeneration"

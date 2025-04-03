@@ -17,8 +17,6 @@ import contentReducer from "./contentSlice";
 import datePickerReducer from "./datePickerSlice";
 import tokenReducer from "./tokenSlice";
 import accountReducer from "./accountSlice";
-import userReducer from "./slices/userSlice";
-import inviteReducer from "./inviteSlice";
 
 // Redux Persist 설정
 const persistConfig = {
@@ -40,8 +38,6 @@ export const store = configureStore({
     datePicker: datePickerReducer,
     token: persistedTokenReducer,
     account: accountReducer,
-    user: userReducer,
-    invite: inviteReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
