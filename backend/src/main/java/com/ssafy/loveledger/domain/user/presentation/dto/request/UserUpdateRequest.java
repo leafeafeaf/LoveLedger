@@ -16,5 +16,6 @@ public class UserUpdateRequest {
     private Boolean gender;
     private LocalDate birthDay; // YYYYMMDD 형식 문자열
     private Boolean isMarried;
+    private String picture;
 
 }

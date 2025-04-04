@@ -57,9 +57,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             //TODO 금융 API user key
 
             User savedUser = userRepository.save(user);
-            log.info("############  user = {}", savedUser);
-
-
             // 해당 사용자의 라이브러리 생성
             Library library = Library.builder()
                 .user(savedUser) // 사용자 ID 설정
@@ -84,8 +81,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             User existingUser = existData.get();
 
             existingUser.setEmail(oauth2Response.getEmail());
-            existingUser.setName(oauth2Response.getName());
-            existingUser.setPicture(oauth2Response.getPicture());
+            // 이름은 사용자가 처음 가입할 때만 설정하고, 이후에는 유지
+            // (사용자가 직접 변경한 이름이 있다면 그대로 보존)
+            if (existingUser.getName() == null || existingUser.getName().isEmpty()) {
+                existingUser.setName(oauth2Response.getName());
+            }
+
+            if (existingUser.getPicture() == null || existingUser.getPicture().isEmpty()) {
+                existingUser.setPicture(oauth2Response.getPicture());
+            }
             userRepository.save(existingUser);
 
             // 기존 사용자의 라이브러리 조회
