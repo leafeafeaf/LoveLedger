@@ -31,7 +31,8 @@
     "react-native-toast-message": "^2.2.1",
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0",
-    "sonner-native": "latest"
+    "sonner-native": "latest",
+    "expo-linking": "~7.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

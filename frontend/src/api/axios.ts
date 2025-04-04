@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 const baseURL =
-  process.env.REACT_APP_API_URL || "http://j12b205.p.ssafy.io/api";
+  process.env.REACT_APP_API_URL || "https://j12b205.p.ssafy.io/api";
 
 export const axiosInstance = axios.create({
   baseURL,
