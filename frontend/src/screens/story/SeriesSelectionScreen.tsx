@@ -42,16 +42,17 @@ export default function SeriesSelectionScreen({
       if (!newSeriesName.trim()) {
         Alert.alert("알림", "시리즈 이름을 입력해주세요.");
         return;
-      }
-      //TODO 시리즈 ID를 알 방법이 없음    
+      } 
       createSeries(newSeriesName, {
         onSuccess: async (response) => {
+          console.log(response);
+
           await queryClient.invalidateQueries({ queryKey: ["series"] });
           console.log(settings)
-
+          
           navigation.navigate("StoryGeneration", {
             settings,
-            series: { name: newSeriesName, },
+            series: { name: newSeriesName, seriesid : response.data.seriesId},
           });
         },
         onError: (error) => {
