@@ -36,11 +36,43 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(userId)));
 
-        DetailUserResponse.CoupleInfo coupleInfo = getCoupleInfo(userId);
+        // 2. 커플 정보 조회
+        Optional<Couple> coupleOpt = coupleRepository.findByUserId(userId);
+        boolean isMarried = false;
+        String marryDate = null;
+        int marriageDuration = 0;
+        DetailUserResponse.CoupleInfo coupleInfo = DetailUserResponse.CoupleInfo.empty();
 
+        // 3. 커플 정보가 있는 경우 처리
+        if (coupleOpt.isPresent()) {
+            Couple couple = coupleOpt.get();
+            isMarried = couple.isMarried();
+
+            if (couple.getMarryDate() != null) {
+                marryDate = couple.getMarryDate().format(DATE_FORMATTER);
+                marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(), LocalDate.now());
+            }
+
+            // 4. 파트너 정보 조회
+            Long partnerId = userId.equals(couple.getHusbandId()) ? couple.getWifeId() : couple.getHusbandId();
+            User partner = userRepository.findById(partnerId)
+                .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(partnerId)));
+
+            // 5. 커플 정보 구성
+            coupleInfo = DetailUserResponse.CoupleInfo.builder()
+                .coupleId(couple.getId())
+                .darlingEmail(partner.getEmail())
+                .darlingName(partner.getName())
+                .darlingBirthDay(partner.getBirthDay() != null ? partner.getBirthDay().format(DATE_FORMATTER) : null)
+                .darlingPicture(partner.getPicture())
+                .build();
+        }
+
+        // 6. 사용자 생일 포맷팅
         String formattedBirthday = Optional.ofNullable(user.getBirthDay())
             .map(birthday -> birthday.format(DATE_FORMATTER))
             .orElse(null);
+
 
         // 7. DTO 생성 및 반환
         return DetailUserResponse.builder()
@@ -48,13 +80,11 @@ public class UserService {
             .name(user.getName())
             .birthDay(formattedBirthday)
             .gender(user.getGender())
-            .isMarried(coupleInfo.isMarried())
-            .marryDate(coupleInfo.getMarryDate())
-            .darling(coupleInfo.getDarling())
-            .darlingName(coupleInfo.getDarlingName())
-            .darlingBirthDay(coupleInfo.getDarlingBirthDay())
-            .marriageDuration(coupleInfo.getMarriageDuration())
+            .isMarried(isMarried)
+            .marryDate(marryDate)
+            .marriageDuration(marriageDuration)
             .picture(user.getPicture())
+            .coupleInfo(coupleInfo)
             .build();
     }
 
@@ -118,37 +148,6 @@ public class UserService {
             .birthDay(savedUser.getBirthDay() != null ? savedUser.getBirthDay().format(DATE_FORMATTER) : null)
             .isMarried(savedUser.getIsMarried())
             .picture(savedUser.getPicture())  // picture 필드 추가
-            .build();
-    }
-
-    private DetailUserResponse.CoupleInfo getCoupleInfo(Long userId) {
-        Optional<Couple> coupleOpt = coupleRepository.findByUserId(userId);
-
-        if (coupleOpt.isEmpty()) {
-            return DetailUserResponse.CoupleInfo.empty();
-        }
-
-        Couple couple = coupleOpt.get();
-        String marryDate = null;
-        int marriageDuration = 0;
-
-        if (couple.getMarryDate() != null) {
-            marryDate = couple.getMarryDate().format(DATE_FORMATTER);
-            marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(), LocalDate.now());
-        }
-
-        Long partnerId = userId.equals(couple.getHusbandId()) ? couple.getWifeId() : couple.getHusbandId();
-
-        User partner = userRepository.findById(partnerId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(partnerId)));
-
-        return DetailUserResponse.CoupleInfo.builder()
-            .isMarried(couple.isMarried())
-            .marryDate(marryDate)
-            .darling(partner.getEmail())
-            .darlingName(partner.getName())
-            .darlingBirthDay(partner.getBirthDay() != null ? partner.getBirthDay().format(DATE_FORMATTER) : null)
-            .marriageDuration(marriageDuration)
             .build();
     }
 }
