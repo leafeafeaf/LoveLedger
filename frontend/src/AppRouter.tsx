@@ -42,8 +42,8 @@ const linking = {
           linkCode: (code: string) => code ?? '',
         },
       },
-      LinkSuccess: 'link-success',
-      LinkError: 'link-error',
+      LinkSuccessScreen: 'link-success',
+      LinkErrorScreen: 'link-error',
     },
   },
 };

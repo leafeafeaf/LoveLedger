@@ -61,6 +61,31 @@ export const useGoogleLogin = () => {
     );
   };
 
+  // URL 처리 함수
+  const handleUrl = async (url: string) => {
+    if (url.includes("loveledger://")) {
+      const tokenMatch = url.match(/accessToken=([^&]+)/);
+      const isRegisteredMatch = url.match(/isRegistered=([^&]+)/);
+
+      if (tokenMatch) {
+        const token = decodeURIComponent(tokenMatch[1]);
+        const isRegistered = isRegisteredMatch
+          ? isRegisteredMatch[1] === "true"
+          : false;
+
+        handleLoginSuccess({
+          token,
+          userInfo: {
+            id: "",
+            name: "",
+            email: "",
+          },
+          isNewUser: !isRegistered,
+        });
+      }
+    }
+  };
+
   // 웹 환경에서 리디렉션 후 해시에서 토큰 추출
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -78,31 +103,24 @@ export const useGoogleLogin = () => {
   // 모바일 환경에서 딥링크 처리 설정
   useEffect(() => {
     if (Platform.OS !== "web") {
-      const handleDeepLink = async ({ url }: { url: string }) => {
-        if (url.includes("oauth-callback") || url.includes("access_token")) {
-          const response = await extractTokenFromUrl(url);
-          if (response) {
-            handleLoginSuccess(response);
-          }
-        }
-      };
-
-      // 앱이 실행 중인 상태에서 딥링크로 열렸을 때
-      const subscription = Linking.addEventListener("url", handleDeepLink);
-
-      // 앱이 종료된 상태에서 딥링크로 열렸을 때
-      const getInitialUrl = async () => {
+      // 앱이 실행될 때 딥 링크 처리
+      const handleInitialURL = async () => {
         const initialUrl = await Linking.getInitialURL();
         if (initialUrl) {
-          handleDeepLink({ url: initialUrl });
+          handleUrl(initialUrl);
         }
       };
 
-      getInitialUrl();
-
-      return () => {
-        subscription.remove();
+      // 앱이 이미 실행 중일 때 딥 링크 처리
+      const handleURLChange = (event: { url: string }) => {
+        handleUrl(event.url);
       };
+
+      handleInitialURL();
+
+      // 리스너 등록
+      const subscription = Linking.addEventListener("url", handleURLChange);
+      return () => subscription.remove();
     }
   }, [dispatch]);
 
@@ -129,7 +147,6 @@ export const useGoogleLogin = () => {
             );
             setIsLoading(false);
           }
-          // 성공 처리는 useEffect의 토큰 추출 부분에서 처리됨
         },
         () => {
           // 타임아웃 처리

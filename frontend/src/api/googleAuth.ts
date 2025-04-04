@@ -66,6 +66,23 @@ export const handleGoogleLogin = async (
       const supported = await Linking.canOpenURL(getGoogleAuthUrl());
 
       if (supported) {
+        // URL 이벤트 리스너 추가
+        const urlListener = Linking.addEventListener('url', ({ url }) => {
+          // URL에서 토큰 추출 시도
+          if (url.includes('loveledger://')) {
+            urlListener.remove(); // 리스너 제거
+            clearLoginTimer(); // 타이머 제거
+            extractTokenAndCheckUser(url).then(response => {
+              if (response) {
+                onLogin(response);
+              } else {
+                onLogin(null, new Error('토큰 추출 실패'));
+              }
+            });
+          }
+        });
+
+        // 브라우저 열기
         await Linking.openURL(getGoogleAuthUrl());
       } else {
         clearLoginTimer();
