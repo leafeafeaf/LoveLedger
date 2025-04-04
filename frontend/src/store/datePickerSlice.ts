@@ -20,44 +20,26 @@ const datePickerSlice = createSlice({
   name: "datePicker",
   initialState,
   reducers: {
-    setSelectedDate: (state, action: PayloadAction<Date | null>) => {
-      if (action.payload) {
-        try {
-          state.selectedDate = action.payload.toISOString();
-        } catch (error) {
-          console.error("Date 변환 오류:", error);
-          state.selectedDate = null;
-        }
-      } else {
-        state.selectedDate = null;
-      }
+    setSelectedDate: (state, action: PayloadAction<string | null>) => {
+      state.selectedDate = action.payload;
       state.isCustomDate = !!action.payload;
     },
-    setStartDate: (state, action: PayloadAction<Date | null>) => {
-      if (action.payload) {
-        try {
-          state.startDate = action.payload.toISOString();
-        } catch (error) {
-          console.error("Date 변환 오류:", error);
-          state.startDate = null;
-        }
-      } else {
-        state.startDate = null;
-      }
+    setStartDate: (state, action: PayloadAction<string | null>) => {
+      state.startDate = action.payload;
       state.isCustomDate = !!action.payload;
     },
-    setEndDate: (state, action: PayloadAction<Date | null>) => {
-      if (action.payload) {
-        try {
-          state.endDate = action.payload.toISOString();
-        } catch (error) {
-          console.error("Date 변환 오류:", error);
-          state.endDate = null;
-        }
-      } else {
-        state.endDate = null;
-      }
+    setEndDate: (state, action: PayloadAction<string | null>) => {
+      state.endDate = action.payload;
       state.isCustomDate = !!action.payload;
+    },
+    setDateRange: (
+      state,
+      action: PayloadAction<{ startDate: string; endDate: string }>
+    ) => {
+      state.startDate = action.payload.startDate;
+      state.endDate = action.payload.endDate;
+      state.isRange = true;
+      state.isCustomDate = true;
     },
     setRangeMode: (state, action: PayloadAction<boolean>) => {
       state.isRange = action.payload;
@@ -67,21 +49,6 @@ const datePickerSlice = createSlice({
       state.endDate = null;
       state.selectedDate = null;
       state.isCustomDate = false;
-    },
-    setDateRange: (
-      state,
-      action: PayloadAction<{ startDate: Date; endDate: Date }>
-    ) => {
-      try {
-        state.startDate = action.payload.startDate.toISOString();
-        state.endDate = action.payload.endDate.toISOString();
-      } catch (error) {
-        console.error("Date 변환 오류:", error);
-        state.startDate = null;
-        state.endDate = null;
-      }
-      state.isRange = true;
-      state.isCustomDate = true;
     },
   },
 });

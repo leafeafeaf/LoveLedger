@@ -22,6 +22,7 @@ type RootStackParamList = {
       period: string;
     };
     series: {
+      seriesid: number,
       name: string;
     };
   };
@@ -150,7 +151,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
     };
 
     const themeId = themeIdMap[settings.themeStyle] || 1;
-    const seriesId = "id" in series ? series.id : Date.now();
+    const seriesId = "seriesid" in series ? (series as { seriesid: number }).seriesid : 0;
     const [startDate, endDate] = (settings.period || "").split("~").map(date => date.trim());
 
     // API 호출
@@ -167,16 +168,16 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
             title: response.data.title,
             content: response.data.content,
           };
+          
+          console.log(response);
           dispatch(storyGenerationSuccess(story));
           
           // 5초 후에 다음 화면으로 이동
-          setTimeout(() => {
-            navigation.navigate("StoryPreview", {
+          navigation.navigate("StoryPreview", {
               settings,
               series,
               story,
             });
-          }, 5000);
         },
         onError: (error) => {
           console.error("스토리 생성 중 오류 발생:", error);

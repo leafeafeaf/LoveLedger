@@ -95,7 +95,6 @@ export type StoryStackParamList = {
     settings: StorySettings;
     series: Series | NewSeries;
     story: Story;
-    coverImage: string;
     coverStyle: string;
   };
   StoryList: undefined;
@@ -306,7 +305,7 @@ export type GoalTransaction = {
 
 // 시리즈 타입
 export type Series = {
-  id: number;
+  seriesid: number;
   title: string;
   episodes: number;
   lastUpdated: string;
@@ -323,6 +322,7 @@ export type SeriesData = {
 // 새 시리즈 타입
 export type NewSeries = {
   name: string;
+  seriesid : number;
 };
 
 // 스토리 타입
