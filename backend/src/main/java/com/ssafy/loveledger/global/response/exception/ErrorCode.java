@@ -38,6 +38,9 @@ public enum ErrorCode {
 
     //invite
     INVALID_REQUEST(400, "I001", "자기자신과 연동은 안됩니다.", null),
+    ACTIVE_INVITE_EXISTS(409, "C004", "이미 활성화된 초대 링크가 존재합니다.", null),
+//    ACTIVE_INVITE_EXISTS(409, "C004", "이미 활성화된 초대 링크가 존재합니다.", "INVITE_LINK_DATA"),
+
 
     //Series
     SERIES_NOT_FOUND(404, "S001", "해당 시리즈(ID: %s)를 찾을 수 없습니다.", null),

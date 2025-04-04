@@ -34,20 +34,8 @@ public class InviteController {
      * @return 생성된 초대 링크
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<InviteLinkResponse>> generateInviteLink(
+    public InviteLinkResponse generateInviteLink(
         @AuthenticationPrincipal CustomOAuth2User oAuth2User) {
-
-        if (oAuth2User == null) {
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<InviteLinkResponse>builder()
-                    .status("401")
-                    .message("인증 정보가 올바르지 않습니다")
-                    .timestamp(LocalDateTime.now()
-                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build()
-            );
-        }
-
         // 현재 로그인한 사용자의 ID를 가져옵니다
         Long userId = oAuth2User.getUserId();
 
@@ -59,15 +47,7 @@ public class InviteController {
             .link(inviteLink)
             .build();
 
-        return ResponseEntity.ok(
-            ApiResponse.<InviteLinkResponse>builder()
-                .status("200")
-                .message("정상적으로 반환하였습니다.")
-                .data(response)
-                .timestamp(LocalDateTime.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                .build()
-        );
+        return response;
     }
     /**
      * 초대 링크의 유효성을 검증합니다.
