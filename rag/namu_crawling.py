@@ -31,9 +31,9 @@ def request_page(url):
 url = "https://namu.wiki/w/밈(인터넷%20용어)/대한민국"
 
 soup = request_page(url)
-divs = soup.find_all('div', class_='IChv+Mfo')
+divs = soup.find_all('div', class_='M8xPxt04')
 
-json_path= 'C:\\Users\\SSAFY\\Desktop\\loveledger\\LoveLedger\\rag\\mim_korea_1.json'
+json_path= 'C:\\Users\\SSAFY\\Desktop\\loveledger\\LoveLedger\\rag\\mimmim_korea.json'
 
 # # 1. 기존 데이터 불러오기 (없으면 빈 리스트)
 # if os.path.exists(json_path):
@@ -61,7 +61,8 @@ for j, div in enumerate(divs):
             soup = request_page(full_url)
 
             contents = []
-            blockquotes = soup.find_all('blockquote', class_='_3CwFnhnr')
+            contents.append(text)
+            blockquotes = soup.find_all('blockquote', class_='xVa8AJLF')
             print(f"--- div[{j}] ---")
             print(f"🔗 링크 텍스트: {text} / 링크 URL: {full_url}")
 
@@ -70,16 +71,14 @@ for j, div in enumerate(divs):
                 block = blockquote.get_text(separator='\n', strip=True)  # 모든 텍스트
 
                 if block:
-                    # print(f"--- div[{i}] ---")
                     contents.append(block)
 
             print(contents)
             print()
 
-            if len(contents)>0:
+            if len(contents)>len(text):
                 result = {
-                    'title' : text,
-                    'content' : contents,
+                    'script' : contents,
                     'links' : full_url
                 }
                 all_results.append(result)

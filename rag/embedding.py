@@ -9,32 +9,22 @@ hf = HuggingFaceEmbeddings(model_name='jhgan/ko-sroberta-multitask')
 
 def main() -> None:
     # 인터넷 밈_json 파일
-    file_path = "mim_korea.json"
+    file_path = "mimmim_korea.json"
 
     # 저장할 파일
-    result_path = "embeding.json"
+    result_path = "mimmim_embeding.json"
     result = []
 
     with open(file_path,"r",encoding="utf-8") as file:
         data = json.load(file)
 
         for i,datas in enumerate(data):
-            title_data = datas['title']
-            content_data = datas['content']
+            content_data = datas['script']
             links_data = datas['links']
 
-            title_response = FAISS.from_texts([title_data], embedding=hf)
             content_response = FAISS.from_texts(content_data,embedding=hf)
     
-            # 제목 데이터 벡터화
-            print("title_response.index.ntotal : ",title_response.index.ntotal)
-            title_vectors_data = []
-            for k in range(title_response.index.ntotal):
-                vec = title_response.index.reconstruct(k)
-                title_vectors_data.append(vec.tolist())
-            print(i,title_vectors_data)
-
-            # 내용용 데이터 벡터화
+            # 제목+내용 데이터 벡터화
             content_vectors_data = []
             for k in range(content_response.index.ntotal):
                 vec = content_response.index.reconstruct(k)
@@ -42,10 +32,8 @@ def main() -> None:
             print(i,content_vectors_data)
 
             result.append({
-                "title" : title_data,
-                "title_Vector" : title_vectors_data,
-                "content" : content_data,
-                "content_Vector" : content_vectors_data,
+                "script" : content_data,
+                "script_Vector" : content_vectors_data,
                 "links" : links_data
             })
     
