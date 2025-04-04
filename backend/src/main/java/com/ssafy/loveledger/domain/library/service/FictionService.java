@@ -192,8 +192,6 @@ public class FictionService {
             formatFictionList(fictionList), gender, isMarried
         );
 
-        log.info(prompt);
-
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
             .thenApply(geminiUtil::mapResponseToMap);
 
@@ -245,8 +243,6 @@ public class FictionService {
             1. 반드시 입력값의 그림체에 해당하는 그림체로 귀엽게 만들어주세요.
             2. 반드시 이미지 url로 출력해주세요.
             """.formatted(drawStyle, title, content);
-
-        log.info(prompt);
 
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
             .thenApply(geminiUtil::mapResponseToMap);
