@@ -13,7 +13,7 @@ export const verifyAccount = async (
   token: string
 ): Promise<AccountVerifyResponse> => {
   const response = await axios.post(
-    `${BASE_URL}/account/verify/request`,
+    `${BASE_URL}/account/verify/request`, 
     data,
     {
       headers: {

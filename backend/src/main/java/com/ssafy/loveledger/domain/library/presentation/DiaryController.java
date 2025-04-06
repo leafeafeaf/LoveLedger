@@ -3,6 +3,7 @@ package com.ssafy.loveledger.domain.library.presentation;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryCreateResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.library.service.DiaryService;
@@ -34,11 +35,12 @@ public class DiaryController {
     private final UserUtil userUtil;
 
     @PostMapping
-    public void createDiary(@RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
+    public DiaryCreateResponse createDiary(
+        @RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
         User user = userUtil.getCurrentUser();
         log.info("user {} creates diary", user.getId());
 
-        diaryService.createDiary(user, diaryCreateRequest);
+        return diaryService.createDiary(user, diaryCreateRequest);
     }
 
     @GetMapping

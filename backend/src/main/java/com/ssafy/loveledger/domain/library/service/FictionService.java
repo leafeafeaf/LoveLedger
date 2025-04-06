@@ -14,11 +14,19 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.Fict
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionContentCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionReadRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.*;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionAllReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionArtReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionContentReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionDetailReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import com.ssafy.loveledger.global.util.GeminiUtil;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,11 +35,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -50,7 +53,7 @@ public class FictionService {
     public void createFiction(FictionAllCreateRequest fictionCreateReq) {
 
         Fiction fiction = Fiction.builder()
-            .series(Series.builder().id(fictionCreateReq.getSereisId()).build())
+            .series(Series.builder().id(fictionCreateReq.getSeriesId()).build())
             .Title(fictionCreateReq.getTitle())
             .artURL(fictionCreateReq.getImageUrl())
             .content(fictionCreateReq.getContent())
@@ -79,7 +82,8 @@ public class FictionService {
 
     // 시리즈별 소설 전부 조회
     @Transactional
-    public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size, String sort) {
+    public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size,
+        String sort) {
 
         // 사용자 체크
         libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
@@ -92,7 +96,8 @@ public class FictionService {
         // Pageable 객체 생성 (페이지 번호는 0부터 시작해야 하므로 pageno - 1)
         Pageable pageable = PageRequest.of(pageNo - 1, size, Sort.by(direction, "id"));
 
-        Page<Series> seriesPage = seriesRepository.findByLibraryId(user.getLibrary().getId(), pageable);
+        Page<Series> seriesPage = seriesRepository.findByLibraryId(user.getLibrary().getId(),
+            pageable);
 
         return seriesPage.map(series -> {
             List<FictionReadResponse> fictionDtos = series.getFiction().stream()
@@ -133,7 +138,8 @@ public class FictionService {
 
     // AI 소설 생성.
     @Transactional(readOnly = true)
-    public FictionContentReadRes getFictionContentAI(User user, FictionContentCreateReq fictionContentCreateReq) {
+    public FictionContentReadRes getFictionContentAI(User user,
+        FictionContentCreateReq fictionContentCreateReq) {
 
         Long themeId = fictionContentCreateReq.getThemeId();
         Long seriesId = fictionContentCreateReq.getSeriesId();
@@ -144,7 +150,8 @@ public class FictionService {
 
         // series 있는지 확인
         Series series = seriesRepository.findById(seriesId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND, String.valueOf(seriesId)));
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND,
+                String.valueOf(seriesId)));
 
         // 유저 시리즈인지 확인
         if (!series.getLibrary().equals(user.getLibrary())) {
@@ -153,11 +160,13 @@ public class FictionService {
 
         // Theme 검증
         Theme theme = themeRepository.findById(themeId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.THEME_NOT_FOUND, String.valueOf(themeId)));
+            .orElseThrow(
+                () -> new LoveLedgerException(ErrorCode.THEME_NOT_FOUND, String.valueOf(themeId)));
 
         // 최근 10개의 소설 불러오기
         Pageable topTen = PageRequest.of(0, 10);
-        List<FictionReadRequest> fictionList = fictionRepository.findTop10BySeriesId(seriesId, topTen);
+        List<FictionReadRequest> fictionList = fictionRepository.findTop10BySeriesId(seriesId,
+            topTen);
 
         // 계좌 불러오기
         List<Account> accounts = user.getAccount();
@@ -179,7 +188,8 @@ public class FictionService {
 
         // 프롬프트 만들기
         String prompt = geminiUtil.createPromptByTheme(
-            theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList), gender, isMarried
+            theme.getName(), startDate, endDate, formatHistoryList(histories),
+            formatFictionList(fictionList), gender, isMarried
         );
 
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
@@ -204,7 +214,6 @@ public class FictionService {
         String drawStyle = fictionArtCreateReq.getDrawStyle();
         String title = fictionArtCreateReq.getTitle();
         String content = fictionArtCreateReq.getContent();
-
 
         String prompt = """
             당신은 그림체, 소설의 제목과 내용에 따라 한 장의 그림을 생성하여 이미지 url로 보여주는 AI 비서입니다.\s
