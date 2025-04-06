@@ -5,6 +5,15 @@ import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { StoryScreenProps } from "../../types";
+import { useFictionContent } from "../../hooks/useFictionContent";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import {
+  startStoryGeneration,
+  updateStoryGenerationProgress,
+  storyGenerationSuccess,
+  storyGenerationFailure,
+} from "../../store/contentSlice";
 
 type RootStackParamList = {
   StoryGeneration: {
@@ -16,7 +25,7 @@ type RootStackParamList = {
       name: string;
     };
   };
-  CoverSelection: {
+  StoryPreview: {
     settings: {
       themeStyle: string;
       period: string;
@@ -52,13 +61,27 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
   route,
 }) => {
   const { settings, series } = route.params;
+  const dispatch = useDispatch();
+  const { isGenerating, progress, error } = useSelector(
+    (state: RootState) => state.content.storyGeneration
+  );
 
   const bookAnimation = useRef(new Animated.Value(0)).current;
   const pageAnimation = useRef(new Animated.Value(0)).current;
   const loadingTextOpacity = useRef(new Animated.Value(0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
 
+  const { mutate, isPending, error: apiError } = useFictionContent();
+
   useEffect(() => {
+    // 애니메이션 시작
+    startAnimations();
+
+    // API 호출
+    generateStory();
+  }, []);
+
+  const startAnimations = () => {
     // Book open animation
     Animated.timing(bookAnimation, {
       toValue: 1,
@@ -107,38 +130,70 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
       duration: 5000,
       useNativeDriver: false,
       easing: Easing.inOut(Easing.quad),
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) {
+        dispatch(updateStoryGenerationProgress(100));
+      }
+    });
+  };
 
-    // Navigate to cover selection after 5 seconds
-    const timer = setTimeout(() => {
-      navigation.navigate("CoverSelection", {
-        settings,
-        series,
-        // Mock generated story content
-        story: {
-          title: "A Golden Weekend",
-          content:
-            "Once upon a time in a quaint little cafe, two souls met under the warm glow of autumn light. The first cup of coffee cost $4.50 — a small price for what would become the beginning of their greatest adventure together.\n\nTheir weekend was filled with laughter and new discoveries. They explored the local art exhibition ($15 for two tickets), shared a delicious lunch at the riverside restaurant ($45), and walked through the park as golden leaves crunched beneath their feet.\n\nIn the evening, they found themselves at a cozy bookstore, each picking a novel that reminded them of the other. The books ($28 total) would later become treasured mementos of this perfect day.\n\nAs night fell, they stood beneath the stars, making promises that would bloom into beautiful memories in the days to come.",
+  const generateStory = () => {
+    dispatch(startStoryGeneration());
+
+    // 테마 ID 매핑
+    const themeIdMap: { [key: string]: number } = {
+      romantic: 1,
+      fantasy: 2,
+      paparazzi: 3,
+      healing: 4,
+      comedy: 5,
+    };
+
+    const themeId = themeIdMap[settings.themeStyle] || 1;
+    const seriesId = "id" in series ? series.id : Date.now();
+    const [startDate, endDate] = (settings.period || "").split("~").map(date => date.trim());
+
+    // API 호출
+    mutate(
+      {
+        themeId,
+        seriesid: seriesId,
+        startdate: startDate,
+        enddate: endDate,
+      },
+      {
+        onSuccess: (response) => {
+          const story = {
+            title: response.data.title,
+            content: response.data.content,
+          };
+          dispatch(storyGenerationSuccess(story));
+          
+          // 5초 후에 다음 화면으로 이동
+          setTimeout(() => {
+            navigation.navigate("StoryPreview", {
+              settings,
+              series,
+              story,
+            });
+          }, 5000);
         },
-      });
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, []);
+        onError: (error) => {
+          console.error("스토리 생성 중 오류 발생:", error);
+          dispatch(storyGenerationFailure(error.message));
+        },
+      }
+    );
+  };
 
   // Determine what status message to show
   const getStatusMessage = () => {
-    let progressValue = 0;
-    loadingProgress.addListener(({ value }) => {
-      progressValue = value;
-    });
-
-    if (progressValue < 30) {
-      return "Analyzing your memories...";
-    } else if (progressValue < 60) {
-      return "Crafting your story...";
+    if (progress < 30) {
+      return "당신의 소중한 추억을 하나하나 살펴보고 있어요...";
+    } else if (progress < 60) {
+      return "추억을 아름다운 이야기로 엮어가고 있어요...";
     } else {
-      return "Adding final touches...";
+      return "마지막 마무리로 이야기에 영혼을 불어넣고 있어요...";
     }
   };
 
@@ -214,8 +269,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
         </View>
 
         <Text style={styles.progressHint}>
-          Creating a {settings.themeStyle} story based on your {settings.period}{" "}
-          history
+          우리의 이야기를 {settings.themeStyle} 스타일로 글을 쓰는 중입니다
         </Text>
       </View>
     </View>

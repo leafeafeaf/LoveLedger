@@ -3,8 +3,10 @@ import { StoryStackParamList } from "../types";
 import StorySettingsScreen from "../screens/story/StorySettingsScreen";
 import SeriesSelectionScreen from "../screens/story/SeriesSelectionScreen";
 import StoryGenerationScreen from "../screens/story/StoryGenerationScreen";
+import StoryPreviewScreen from "../screens/story/StoryPreviewScreen";
 import CoverSelectionScreen from "../screens/story/CoverSelectionScreen";
-import StorySaveScreen from "../screens/story/StorySaveScreen";
+import CoverPreviewScreen from "../screens/story/CoverPreviewScreen";
+import PublishingScreen from "../screens/story/PublishingScreen";
 
 const Stack = createNativeStackNavigator<StoryStackParamList>();
 
@@ -18,8 +20,10 @@ export function StoryNavigator() {
       <Stack.Screen name="StorySettings" component={StorySettingsScreen} />
       <Stack.Screen name="SeriesSelection" component={SeriesSelectionScreen} />
       <Stack.Screen name="StoryGeneration" component={StoryGenerationScreen} />
+      <Stack.Screen name="StoryPreview" component={StoryPreviewScreen} />
       <Stack.Screen name="CoverSelection" component={CoverSelectionScreen} />
-      <Stack.Screen name="StorySave" component={StorySaveScreen} />
+      <Stack.Screen name="CoverPreview" component={CoverPreviewScreen} />
+      <Stack.Screen name="Publishing" component={PublishingScreen} />
     </Stack.Navigator>
   );
 }

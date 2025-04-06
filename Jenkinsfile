@@ -38,7 +38,7 @@ pipeline {
                     export DOCKER_CONFIG=/home/ubuntu/jenkins/.docker
                     mkdir -p $DOCKER_CONFIG
                     
-                    docker build --build-arg HOME=$HOME -t loveledger-backend -f backend/Dockerfile .
+                    docker build --build-arg HOME=$HOME -t loveledger-backend -f backend/DockerFile .
                 '''
             }
         }

@@ -18,7 +18,7 @@ public enum ErrorCode {
 
     //Account
     ACCOUNT_NOT_FOUND(404, "A001", "해당 사용자의 계좌 정보를 찾을 수 없습니다.", null),
-
+    ACCOUNT_CANT_CREATED(409, "A002", "해당 계좌를 추가할 수 없습니다.", null),
     //History
     HISTORY_NOT_FOUND(404, "H001", "거래 내역을 찾을 수 없습니다.", null),
     TRANSACTION_SIZE_MISMATCH(400, "T001", "거래 IDs와 TargetName 의 개수가 일치해야 합니다.", null),
@@ -49,7 +49,7 @@ public enum ErrorCode {
     FICTION_NOT_FOUND(404, "F001", "해당 소설(ID: %s)를 찾을 수 없습니다.", null),
 
     // Goal
-    GOAL_NOT_FOUND(409, "G001", "사용자의 목표를 찾을 수 없습니다.", null),
+    GOAL_NOT_FOUND(404, "G001", "사용자의 목표를 찾을 수 없습니다.", null),
     GOAL_Exist(409, "G002", "사용자의 목표가 존재합니다.", null),
 
     // Validation Error Codes

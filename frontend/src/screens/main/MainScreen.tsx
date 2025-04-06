@@ -28,12 +28,18 @@ import {
   RootStackParamList,
   StoryStackParamList,
   ProfileStackParamList,
-} from "../../navigation/navigation";
+} from "../../types/index";
 import type { Transaction } from "../../types/index";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import PartnerSwitch from "../../components/profile/PartnerSwitch";
 import { dailyFinanceData, transactionHistoryData } from "../../../dummyData";
+import { useCalendarDailySum } from "../../hooks/useCalendarDailySum";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import type { DailySum } from "../../types";
+import { useTransactions } from "@hooks/useTransactions";
+import Slider from "@react-native-community/slider";
 
 type MainScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Main">,
@@ -63,36 +69,37 @@ const formatCurrency = (amount: number): string => {
 };
 
 // Helper function to get finance data for a specific date
-const getFinanceForDate = (date: Date, activeView: string) => {
+const getFinanceForDate = (
+  date: Date,
+  activeView: string,
+  dailySums: DailySum[] | undefined
+): { earn: number; consume: number } | null => {
+  if (!dailySums || !Array.isArray(dailySums)) return null;
+
   const dateString = `${date.getFullYear()}-${String(
     date.getMonth() + 1
   ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  let financeData = { earn: 0, consume: 0 };
+  const dailySum = dailySums.find((sum) => sum.targetDate === dateString);
 
-  dailyFinanceData.data.days
-    .filter((day) => {
-      if (activeView === "you") return day.userId === "user1";
-      if (activeView === "partner") return day.userId === "user2";
-      return true; // combined view
-    })
-    .forEach((day) => {
-      if (day.day === dateString) {
-        financeData.earn += day.earn;
-        financeData.consume += day.consume;
-      }
-    });
+  if (!dailySum) return null;
 
-  return financeData.earn > 0 || financeData.consume > 0 ? financeData : null;
+  console.log(`[${dateString}] 수입: ${dailySum.totalEarnSum}, 지출: ${dailySum.totalConsumeSum}`);
+
+  return {
+    earn: dailySum.totalEarnSum,
+    consume: dailySum.totalConsumeSum,
+  };
 };
 
 // Helper function to get transactions for a specific date
-const getTransactionsForDate = (date: Date): Transaction[] => {
+const getTransactionsForDate = (
+  date: Date,
+  transactions: Transaction[]
+): Transaction[] => {
   const dateString = `${date.getFullYear()}-${String(
     date.getMonth() + 1
   ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  return transactionHistoryData.data.history.filter(
-    (transaction) => transaction.time?.startsWith(dateString) ?? false
-  );
+  return transactions.filter((transaction) => transaction.date === dateString);
 };
 
 // Helper function to safely get value from Animated.Value
@@ -259,7 +266,7 @@ const FABComponent = React.memo(
                 toggleFabMenu();
                 navigation.navigate("Diary", {
                   screen: "DiaryCreate",
-                  params: {},
+                  params: undefined,
                 });
               }}
             >
@@ -317,29 +324,69 @@ interface CalendarDayProps {
   navigation: MainScreenNavigationProp & NavigateType;
   onSelectDate: (date: Date) => void;
   isSelected?: boolean;
+  dayCellWidth: number;
+  thresholdAmount: number;
 }
 
 const CalendarDay = React.memo(
-  ({ day, navigation, onSelectDate, isSelected }: CalendarDayProps) => {
+  ({
+    day,
+    navigation,
+    onSelectDate,
+    isSelected,
+    dayCellWidth,
+    thresholdAmount,
+  }: CalendarDayProps & { thresholdAmount: number }) => {
+    // 투명도 계산 함수
+    const calculateOpacity = (amount: number) => {
+      const absAmount = Math.abs(amount);
+      if (absAmount >= thresholdAmount) return 0.5; // 최대 투명도 50%
+      if (absAmount >= thresholdAmount * 0.75) return 0.375; // 75% 이상
+      if (absAmount >= thresholdAmount * 0.5) return 0.25; // 50% 이상
+      if (absAmount >= thresholdAmount * 0.25) return 0.125; // 25% 이상
+      return 0.03; // 최소 투명도 3%
+    };
+
     if (day.isEmpty) {
-      return <View key={`empty-${day.index}`} style={styles.emptyDay} />;
+      return (
+        <View
+          key={`empty-${day.index}`}
+          style={[
+            styles.emptyDay,
+            {
+              width: dayCellWidth,
+              height: dayCellWidth,
+            },
+          ]}
+        />
+      );
     }
 
     const financeData = day.financeData;
+    const totalAmount = financeData
+      ? financeData.earn - financeData.consume  // 수입에서 지출을 빼서 순수입을 계산
+      : 0;
+    const isPositive = totalAmount > 0;
+    const opacity = calculateOpacity(totalAmount);
 
     return (
       <Pressable
         style={[
           styles.dayCard,
+          {
+            width: dayCellWidth,
+            height: dayCellWidth,
+          },
           financeData &&
-            (financeData.earn > 0 || financeData.consume > 0) &&
-            styles.dayCardWithEntry,
+            totalAmount !== 0 && {
+              backgroundColor: isPositive
+                ? `rgba(193, 225, 193, ${opacity})`
+                : `rgba(255, 87, 51, ${opacity})`,
+            },
           day.isToday && styles.todayCard,
           isSelected && {
             backgroundColor: theme.colors.primary,
             transform: [{ scale: 1.1 }],
-            borderWidth: 2,
-            borderColor: theme.colors.primary,
           },
         ]}
         onPress={() => {
@@ -352,18 +399,17 @@ const CalendarDay = React.memo(
           {day.date?.getDate()}
         </Text>
 
-        {financeData && (financeData.earn > 0 || financeData.consume > 0) && (
+        {financeData && totalAmount !== 0 && (
           <View style={styles.financeIndicator}>
-            {financeData.earn > 0 && (
-              <Text style={styles.earnText}>
-                +{(financeData.earn / 10000).toFixed(1)}만
-              </Text>
-            )}
-            {financeData.consume > 0 && (
-              <Text style={styles.consumeText}>
-                -{(financeData.consume / 10000).toFixed(1)}만
-              </Text>
-            )}
+            <Text
+              style={[
+                styles.totalAmountText,
+                { color: isPositive ? "#2E7D32" : "#D32F2F" },
+              ]}
+            >
+              {totalAmount > 0 ? "+" : "-"}
+              {Math.abs(totalAmount / 10000).toFixed(1)}만
+            </Text>
           </View>
         )}
       </Pressable>
@@ -383,7 +429,7 @@ interface DailySummaryProps {
 const DailySummary = React.memo(
   ({ selectedDate, transactions }: DailySummaryProps) => {
     const total = transactions.reduce((acc: number, curr) => {
-      return curr.remittance ? acc - curr.amount : acc + curr.amount;
+      return curr.remittance ? acc + curr.amount : acc - curr.amount;
     }, 0);
 
     return (
@@ -405,7 +451,7 @@ const DailySummary = React.memo(
               {formatCurrency(
                 transactions.reduce(
                   (acc: number, curr) =>
-                    !curr.remittance ? acc + curr.amount : acc,
+                    curr.remittance ? acc + curr.amount : acc,
                   0
                 )
               )}
@@ -418,7 +464,7 @@ const DailySummary = React.memo(
               {formatCurrency(
                 transactions.reduce(
                   (acc: number, curr) =>
-                    curr.remittance ? acc + curr.amount : acc,
+                    !curr.remittance ? acc + curr.amount : acc,
                   0
                 )
               )}
@@ -444,6 +490,16 @@ const DailySummary = React.memo(
   }
 );
 
+const generateCalendarWeeks = (
+  days: CalendarDayItem[]
+): CalendarDayItem[][] => {
+  const weeks: CalendarDayItem[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
+};
+
 export default function MainScreen({ navigation }: MainScreenProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [displayedMonth, setDisplayedMonth] = useState(new Date());
@@ -454,11 +510,24 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
+  const [thresholdAmount, setThresholdAmount] = useState(100000);
   const dimensions = useWindowDimensions();
+  const screenWidth = dimensions.width;
+  const calendarWidth = screenWidth - theme.spacing.xl * 2;
+  const dayCellWidth = (calendarWidth - 30) / 7;
 
   const translateX = useRef(new Animated.Value(0)).current;
   const fabAnimation = useRef(new Animated.Value(0)).current;
   const menuAnimation = useRef(new Animated.Value(0)).current;
+
+  const { data: dailySumsData } = useCalendarDailySum(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth() + 1
+  );
+  const dailySums = dailySumsData?.data || [];
+
+  const { data: transactionsData } = useTransactions();
+  const transactions = transactionsData?.data || [];
 
   // 이전 달과 다음 달 계산
   const prevMonth = useMemo(() => {
@@ -474,9 +543,12 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   }, [displayedMonth]);
 
   useEffect(() => {
-    const transactions = getTransactionsForDate(selectedDate);
-    setSelectedDayTransactions(transactions);
-  }, [selectedDate]);
+    const dailyTransactions = getTransactionsForDate(
+      selectedDate,
+      transactions
+    );
+    setSelectedDayTransactions(dailyTransactions);
+  }, [selectedDate, transactions?.length]);
 
   const toggleFabMenu = () => {
     const toValue = showFabMenu ? 0 : 1;
@@ -508,67 +580,83 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const generateCalendarDays = (date: Date): CalendarDayItem[] => {
-    const days: CalendarDayItem[] = [];
-    const totalDays = getDaysInMonth(date);
-    const firstDay = getFirstDayOfMonth(date);
+  const generateCalendarDays = useMemo(
+    () =>
+      (date: Date): CalendarDayItem[] => {
+        const days: CalendarDayItem[] = [];
+        const totalDays = getDaysInMonth(date);
+        const firstDay = getFirstDayOfMonth(date);
 
-    // 빈 날짜 추가
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ isEmpty: true, index: i });
-    }
+        // 빈 날짜 추가
+        for (let i = 0; i < firstDay; i++) {
+          days.push({ isEmpty: true, index: i });
+        }
 
-    // 실제 날짜 추가
-    for (let i = 1; i <= totalDays; i++) {
-      const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
-      const isToday = calendarDate.toDateString() === new Date().toDateString();
-      const financeData = getFinanceForDate(calendarDate, activeView);
+        // 실제 날짜 추가
+        for (let i = 1; i <= totalDays; i++) {
+          const calendarDate = new Date(date.getFullYear(), date.getMonth(), i);
+          const isToday =
+            calendarDate.toDateString() === new Date().toDateString();
+          const financeData = getFinanceForDate(
+            calendarDate,
+            activeView,
+            dailySums
+          );
 
-      days.push({
-        date: calendarDate,
-        isToday,
-        financeData,
-      });
-    }
+          days.push({
+            date: calendarDate,
+            isToday,
+            financeData,
+          });
+        }
 
-    return days;
-  };
+        // 마지막 주가 7일이 안 될 경우 빈 셀로 채움
+        const remainingDays = 7 - (days.length % 7);
+        if (remainingDays < 7) {
+          for (let i = 0; i < remainingDays; i++) {
+            days.push({ isEmpty: true, index: days.length + i });
+          }
+        }
+
+        return days;
+      },
+    [activeView, dailySums]
+  );
 
   // 이전 달, 현재 달, 다음 달 캘린더 데이터 미리 계산
   const prevMonthCalendar = useMemo(
     () => generateCalendarDays(prevMonth),
-    [prevMonth, activeView]
+    [prevMonth, generateCalendarDays]
   );
   const currentMonthCalendar = useMemo(
     () => generateCalendarDays(displayedMonth),
-    [displayedMonth, activeView]
+    [displayedMonth, generateCalendarDays]
   );
   const nextMonthCalendar = useMemo(
     () => generateCalendarDays(nextMonth),
-    [nextMonth, activeView]
+    [nextMonth, generateCalendarDays]
   );
 
   const handleSelectDate = (date: Date) => {
-    const currentDate = new Date().toISOString().split("T")[0];
-    const transactions = getTransactionsForDate(date).map((t) => {
-      const transactionDate = t.time ? t.time.split("T")[0] : currentDate;
-      return {
+    const dailyTransactions = getTransactionsForDate(date, transactions).map(
+      (t) => ({
         id: t.id.toString(),
+        transactionid: t.id.toString(),
         amount: t.amount,
-        date: transactionDate,
-        time: t.time || undefined,
-        notes: t.notes || undefined,
+        date: t.date,
+        time: t.time || "",
         remittance: t.remittance,
-        targetname: t.targetname || undefined,
-        category: t.category || undefined,
-      } as Transaction;
-    });
+        targetname: t.targetname || "",
+        category: t.category || "",
+        accountNo: t.id.toString().split("-")[0],
+      })
+    );
 
     navigation.navigate("Daily", {
       screen: "DailyDetail",
       params: {
         selectedDate: date.toISOString(),
-        transactions,
+        transactions: dailyTransactions,
       },
     });
   };
@@ -584,7 +672,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
               onPress={() =>
                 navigation.navigate("Profile", {
                   screen: "ProfileMain",
-                  params: {},
+                  params: undefined,
                 })
               }
             >
@@ -613,13 +701,24 @@ export default function MainScreen({ navigation }: MainScreenProps) {
             }월`}
           </Text>
         </View>
-        <View style={styles.weekdayHeader}>
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <Text key={day} style={styles.weekdayText}>
-              {day}
-            </Text>
-          ))}
+
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>
+            {`우리의 예산 : ${(thresholdAmount / 10000).toFixed(0)}만원`}
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={10000}
+            maximumValue={500000}
+            step={10000}
+            value={thresholdAmount}
+            onValueChange={setThresholdAmount}
+            minimumTrackTintColor={theme.colors.primary}
+            maximumTrackTintColor={theme.colors.border}
+            thumbTintColor={theme.colors.primary}
+          />
         </View>
+
         <PanGestureHandler
           onGestureEvent={(event) => {
             if (!isAnimating) {
@@ -657,7 +756,6 @@ export default function MainScreen({ navigation }: MainScreenProps) {
             <Animated.View
               style={[
                 styles.calendarContainer,
-                styles.adjacentCalendar,
                 {
                   transform: [
                     {
@@ -674,22 +772,46 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                 },
               ]}
             >
-              <View style={styles.calendar}>
-                {prevMonthCalendar.map((day, index) => (
-                  <CalendarDay
-                    key={`prev-${
-                      day.isEmpty ? `empty-${index}` : day.date?.toString()
-                    }`}
-                    day={day}
-                    navigation={navigation}
-                    onSelectDate={handleSelectDate}
-                    isSelected={
-                      selectedDate &&
-                      day.date &&
-                      selectedDate.toDateString() === day.date.toDateString()
-                    }
-                  />
-                ))}
+              <View style={styles.calendarContent}>
+                {/* 요일 헤더 */}
+                <View style={styles.weekRow}>
+                  {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                    <View
+                      key={day}
+                      style={[styles.cell, { width: dayCellWidth }]}
+                    >
+                      <Text style={styles.weekdayText}>{day}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* 날짜 그리드 */}
+                {generateCalendarWeeks(prevMonthCalendar).map(
+                  (week, weekIndex) => (
+                    <View key={`prev-week-${weekIndex}`} style={styles.weekRow}>
+                      {week.map((day, dayIndex) => (
+                        <CalendarDay
+                          key={`prev-${
+                            day.isEmpty
+                              ? `empty-${dayIndex}`
+                              : day.date?.toString()
+                          }`}
+                          day={day}
+                          navigation={navigation}
+                          onSelectDate={handleSelectDate}
+                          isSelected={
+                            selectedDate &&
+                            day.date &&
+                            selectedDate.toDateString() ===
+                              day.date.toDateString()
+                          }
+                          dayCellWidth={dayCellWidth}
+                          thresholdAmount={thresholdAmount}
+                        />
+                      ))}
+                    </View>
+                  )
+                )}
               </View>
             </Animated.View>
 
@@ -703,22 +825,49 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                 },
               ]}
             >
-              <View style={styles.calendar}>
-                {currentMonthCalendar.map((day, index) => (
-                  <CalendarDay
-                    key={`current-${
-                      day.isEmpty ? `empty-${index}` : day.date?.toString()
-                    }`}
-                    day={day}
-                    navigation={navigation}
-                    onSelectDate={handleSelectDate}
-                    isSelected={
-                      selectedDate &&
-                      day.date &&
-                      selectedDate.toDateString() === day.date.toDateString()
-                    }
-                  />
-                ))}
+              <View style={styles.calendarContent}>
+                {/* 요일 헤더 */}
+                <View style={styles.weekRow}>
+                  {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                    <View
+                      key={day}
+                      style={[styles.cell, { width: dayCellWidth }]}
+                    >
+                      <Text style={styles.weekdayText}>{day}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* 날짜 그리드 */}
+                {generateCalendarWeeks(currentMonthCalendar).map(
+                  (week, weekIndex) => (
+                    <View
+                      key={`current-week-${weekIndex}`}
+                      style={styles.weekRow}
+                    >
+                      {week.map((day, dayIndex) => (
+                        <CalendarDay
+                          key={`current-${
+                            day.isEmpty
+                              ? `empty-${dayIndex}`
+                              : day.date?.toString()
+                          }`}
+                          day={day}
+                          navigation={navigation}
+                          onSelectDate={handleSelectDate}
+                          isSelected={
+                            selectedDate &&
+                            day.date &&
+                            selectedDate.toDateString() ===
+                              day.date.toDateString()
+                          }
+                          dayCellWidth={dayCellWidth}
+                          thresholdAmount={thresholdAmount}
+                        />
+                      ))}
+                    </View>
+                  )
+                )}
               </View>
             </Animated.View>
 
@@ -726,7 +875,6 @@ export default function MainScreen({ navigation }: MainScreenProps) {
             <Animated.View
               style={[
                 styles.calendarContainer,
-                styles.adjacentCalendar,
                 {
                   transform: [
                     {
@@ -743,22 +891,46 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                 },
               ]}
             >
-              <View style={styles.calendar}>
-                {nextMonthCalendar.map((day, index) => (
-                  <CalendarDay
-                    key={`next-${
-                      day.isEmpty ? `empty-${index}` : day.date?.toString()
-                    }`}
-                    day={day}
-                    navigation={navigation}
-                    onSelectDate={handleSelectDate}
-                    isSelected={
-                      selectedDate &&
-                      day.date &&
-                      selectedDate.toDateString() === day.date.toDateString()
-                    }
-                  />
-                ))}
+              <View style={styles.calendarContent}>
+                {/* 요일 헤더 */}
+                <View style={styles.weekRow}>
+                  {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                    <View
+                      key={day}
+                      style={[styles.cell, { width: dayCellWidth }]}
+                    >
+                      <Text style={styles.weekdayText}>{day}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* 날짜 그리드 */}
+                {generateCalendarWeeks(nextMonthCalendar).map(
+                  (week, weekIndex) => (
+                    <View key={`next-week-${weekIndex}`} style={styles.weekRow}>
+                      {week.map((day, dayIndex) => (
+                        <CalendarDay
+                          key={`next-${
+                            day.isEmpty
+                              ? `empty-${dayIndex}`
+                              : day.date?.toString()
+                          }`}
+                          day={day}
+                          navigation={navigation}
+                          onSelectDate={handleSelectDate}
+                          isSelected={
+                            selectedDate &&
+                            day.date &&
+                            selectedDate.toDateString() ===
+                              day.date.toDateString()
+                          }
+                          dayCellWidth={dayCellWidth}
+                          thresholdAmount={thresholdAmount}
+                        />
+                      ))}
+                    </View>
+                  )
+                )}
               </View>
             </Animated.View>
           </View>
@@ -777,7 +949,6 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     </GestureHandlerRootView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -808,21 +979,8 @@ const styles = StyleSheet.create({
     // 폰트 수정하고 싶으면 여기서 수정, 지금 마음에 안들긴 하는데 나중에 같이 수정보자자
     fontFamily: "OTEnjoystoriesBA",
   },
-  weekdayHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.sm,
-  },
-  weekdayText: {
-    width: "13.28%",
-    textAlign: "center",
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-  },
   calendarWrapper: {
-    height: "70%",
+    height: 420,
     position: "relative",
     overflow: "hidden",
   },
@@ -832,37 +990,39 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: theme.spacing.xl,
   },
-  adjacentCalendar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+  calendarContent: {
+    flex: 1,
+    justifyContent: "space-between",
   },
-  calendar: {
+  weekRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: 4,
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  cell: {
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  weekdayText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textLight,
   },
   emptyDay: {
-    width: "13.28%",
-    aspectRatio: 0.85,
-    padding: 2,
+    backgroundColor: "transparent",
   },
   dayCard: {
-    width: "13.28%",
-    aspectRatio: 0.85,
-    padding: 2,
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.md,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: 8,
+    aspectRatio: 1,
+    overflow: "hidden",
   },
   dayCardWithEntry: {
-    backgroundColor: theme.colors.secondary,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    backgroundColor: "transparent",
   },
   todayCard: {
     backgroundColor: theme.colors.primary,
@@ -872,22 +1032,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text,
+    marginTop: 2,
   },
   todayText: {
     color: theme.colors.white,
   },
   financeIndicator: {
-    marginTop: 3,
+    marginTop: 2,
     alignItems: "center",
   },
-  earnText: {
+  totalAmountText: {
     fontSize: 10,
-    color: theme.colors.success || "green",
-    fontWeight: "600",
-  },
-  consumeText: {
-    fontSize: 10,
-    color: theme.colors.error || "red",
     fontWeight: "600",
   },
   dailyOverview: {
@@ -1047,5 +1202,25 @@ const styles = StyleSheet.create({
   logo: {
     width: 600,
     height: 200,
+  },
+  sliderContainer: {
+    position: "absolute",
+    left: theme.spacing.xl,
+    bottom: 90,
+    width: 200,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xs,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    marginBottom: theme.spacing.xs,
+    textAlign: "center",
+  },
+  slider: {
+    width: "100%",
+    height: 40,
   },
 });

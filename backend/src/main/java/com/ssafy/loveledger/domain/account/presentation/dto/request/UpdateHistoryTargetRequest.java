@@ -12,6 +12,5 @@ import lombok.Setter;
 @Setter
 public class UpdateHistoryTargetRequest {
 
-    private String accountNo;
     private String updatedTargetName;
 }
