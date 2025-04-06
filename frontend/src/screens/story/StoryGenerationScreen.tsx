@@ -143,11 +143,10 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
 
     // 테마 ID 매핑
     const themeIdMap: { [key: string]: number } = {
-      romantic: 1,
-      fantasy: 2,
-      paparazzi: 3,
-      healing: 4,
-      comedy: 5,
+      일상: 1,
+      판타지: 2,
+      파파라치: 3,
+      뉴스: 4
     };
 
     const themeId = themeIdMap[settings.themeStyle] || 1;
