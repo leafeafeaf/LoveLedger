@@ -183,7 +183,7 @@ public class FictionService {
         );
 
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
-            .thenApply(geminiUtil::mapResponseToMap);
+            .thenApply(geminiUtil::mapFictionResponseToMap);
 
         Map<String, Object> result = response.join();
 
