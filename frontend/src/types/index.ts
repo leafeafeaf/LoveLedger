@@ -128,7 +128,7 @@ export type DiaryStackParamList = {
 export type DailyStackParamList = {
   DailyDetail: {
     selectedDate: string;
-    transactions: Transaction[];
+    transactions: TransactionDetail[];
   };
 };
 
@@ -552,4 +552,23 @@ export interface InviteValidateResponse {
     isValid: boolean;
     expiresAt?: string;
   };
+}
+export interface TransactionHistory {
+  transactionId: string;
+  time: string;
+  remittance: boolean;
+  targetname: string;
+  category_id: number | null;
+  afterAmount: number;
+  amount: number;
+  memo: string;
+  transactionTypeName: string;
+  summary: string;
+  updatedTargetName: string | null;
+}
+
+export interface TransactionChange {
+  original: TransactionHistory;
+  modified: TransactionHistory;
+  isSelected: boolean;
 }

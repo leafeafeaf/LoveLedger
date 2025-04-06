@@ -58,10 +58,10 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
               storySavingSuccess({
                 ...story,
                 id: "seriesid" in series ? series.seriesid.toString() : Date.now().toString(),
-                coverImage:coverImageRes,
+                coverImage: coverImageRes,
               })
             );
-  
+
             // 여기선 자동 이동은 하지 않음, 저장 버튼 눌러야 넘어감
           },
           onError: (error) => {
@@ -79,8 +79,8 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
     let coverImageUrl = coverImage;
     const seriesId = "seriesid" in series ? series.seriesid : Date.now();
     const [startDate, endDate] = (settings.period || "").split("~")
-    .map((date) => date.trim());
-    
+      .map((date) => date.trim());
+
     if (!coverImageUrl) {
       coverImageUrl = "https://image.pollinations.ai/prompt/watercolor%2C%20a%20cute%20girl%20named%20Kim%20Juhyun%20with%20a%20flustered%20expression%2C%20running%20across%20a%20crosswalk%20in%20front%20of%20Seoul%20Transportation%20Corporation%2C%20a%20handsome%20man%20named%20Park%20Sunwoo%20with%20a%20bright%20smile%20is%20holding%20her%20arm%20and%20running%20with%20her%2C%20sunlight%20shining%20brightly%2C%20soft%20pastel%20colors%2C%20a%20sense%20of%20romantic%20excitement"
     }
@@ -90,7 +90,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
     console.log("seriesId:", seriesId);
     console.log("imageUrl:", coverImageUrl);
 
-    
+
 
     //서버에 소설을 저장
     dispatch(startStorySaving());
@@ -106,7 +106,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
       {
         onSuccess: (response) => {
           console.log("저장 성공", response);
-  
+
           dispatch(
             storySavingSuccess({
               ...story,
@@ -115,13 +115,20 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
             })
           );
           dispatch(clearCoverImage());
-  
+
           // ✅ 저장 성공 후 메인 화면 또는 퍼블리싱 화면으로 이동
-          navigation.getParent()?.navigate("Main");
+          navigation.getParent()?.reset({
+            index: 0,
+            routes: [
+              {
+                name: "Main", // 또는 "Home"
+              },
+            ],
+          });
         },
         onError: (error) => {
           let errorMessage = "소설 저장 중 오류가 발생했습니다.";
-  
+
           switch (error.message) {
             case "INVALID_DATE_RANGE":
               errorMessage = "날짜 범위가 올바르지 않습니다.";
@@ -136,7 +143,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
               errorMessage = "제목이 40자를 초과할 수 없습니다.";
               break;
           }
-  
+
           console.error("저장 오류", error);
           dispatch(storySavingFailure(errorMessage));
           Alert.alert("저장 실패", errorMessage);
@@ -167,11 +174,17 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <View style={styles.coverContainer}>
-            <Image
-              source={{ uri: coverImage }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
+            {coverImage ? (
+              <Image
+                source={{ uri: encodeURI(coverImage) }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.imageLoadingContainer}>
+    <Text style={styles.imageLoadingText}>이미지를 불러오는 중입니다...</Text>
+  </View>
+            )}
             <View style={styles.coverOverlay}>
               <Text style={styles.storyTitle}>{story.title}</Text>
               <Text style={styles.seriesTitle}>
@@ -270,6 +283,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  imageLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  imageLoadingText: {
+    fontSize: 18,
+    color: theme.colors.textLight, // 또는 원하는 색상
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
 

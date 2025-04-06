@@ -148,6 +148,10 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
     { id: 4, label: "필기체", icon: "format-text" },
   ];
 
+  const formatDateToYYYYMMDD = (date: Date) => {
+    return date.toLocaleDateString("sv-SE"); // "YYYY-MM-DD" 형식 (스웨덴 표준)
+  };
+
   // 테마 옵션 렌더링
   const renderThemeOption = ({ item }: { item: ThemeItem }) => {
     const isSelected = selectedTheme?.id === item.id;
@@ -232,8 +236,8 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   const handleSelectRange = (start: Date, end: Date) => {
     // Redux 상태 업데이트는 이미 DatePicker 컴포넌트 내부에서 처리됨
     // setShowDatePicker(false); // 모달 닫기 제거
-    const formattedStart = start.toISOString().split("T")[0];
-    const formattedEnd = end.toISOString().split("T")[0];
+    const formattedStart = formatDateToYYYYMMDD(start);
+    const formattedEnd = formatDateToYYYYMMDD(end);
 
     setSelectedPeriod({
       id: CUSTOM_DATE_ID,
@@ -287,8 +291,8 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
               styles.selectedCustomDate,
             ]}
             onPress={() => {
-              const formattedStart = startDate ? startDate.toISOString().split("T")[0] : "";
-              const formattedEnd = endDate ? endDate.toISOString().split("T")[0] : "";
+              const formattedStart = startDate ? formatDateToYYYYMMDD(startDate) : "";
+              const formattedEnd = endDate ? formatDateToYYYYMMDD(endDate) : "";
               const rangeLabel =
                 formattedStart && formattedEnd
                   ? `${formattedStart} ~ ${formattedEnd}`

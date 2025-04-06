@@ -8,7 +8,7 @@ export interface DiaryContent {
   targetDate: string;
   createdAt: string;
   updatedAt: string;
-  mood: string;
+  mood: number;
 }
 
 interface FictionDetail {

@@ -358,7 +358,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
                 <Pressable
                   style={styles.transactionContent}
                   onPress={() =>
-                    navigation.navigate("TransactionEdit", { 
+                    navigation.replace("TransactionEdit", { 
                       transaction: {
                         id: transaction.transactionId,
                         transactionid: transaction.transactionId,

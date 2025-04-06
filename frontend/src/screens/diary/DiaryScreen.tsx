@@ -28,7 +28,7 @@ type DiaryScreenProps = NativeStackScreenProps<
 // 감정 아이콘 타입 정의
 type MoodIconType =
   | "emoticon-happy"
-  | "emoticon-excited"
+  | "emoticon-angry"
   | "emoticon-cool"
   | "emoticon-sad";
 
@@ -49,11 +49,15 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   const { mutate: createDiary, isPending } = useDiaryCreate();
 
   const moods: Mood[] = [
-    { id: "happy", icon: "emoticon-happy", label: "행복" },
-    { id: "excited", icon: "emoticon-excited", label: "신나" },
-    { id: "peaceful", icon: "emoticon-cool", label: "평온" },
-    { id: "sad", icon: "emoticon-sad", label: "슬픔" },
+    { id: "1", icon: "emoticon-happy", label: "행복" },
+    { id: "2", icon: "emoticon-angry", label: "화남" },
+    { id: "3", icon: "emoticon-cool", label: "평온" },
+    { id: "4", icon: "emoticon-sad", label: "슬픔" },
   ];
+
+  const formatDateToYYYYMMDD = (date: Date) => {
+    return date.toLocaleDateString("sv-SE"); // "YYYY-MM-DD" 형식 (스웨덴 표준)
+  };
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -70,14 +74,14 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
       {
         title: title.trim(),
         content: content.trim(),
-        targetDate: selectedDate.toISOString().split('T')[0],
+        targetDate: formatDateToYYYYMMDD(selectedDate),
         mood: selectedMood,
       },
       {
         onSuccess: (response) => {
-          navigation.navigate("DiaryEditDaily", {
+          navigation.replace("DiaryEditDaily", {
             diaryId: response.data.id,
-            selectedDate: selectedDate.toISOString(),
+            selectedDate: formatDateToYYYYMMDD(selectedDate),
           });
         },
         onError: (error) => {
@@ -180,19 +184,6 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
             ))}
           </View>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>지출 내역</Text>
-          <TextInput
-            style={styles.amountInput}
-            placeholder="금액을 입력하세요"
-            value={expense}
-            onChangeText={setExpense}
-            keyboardType="numeric"
-            placeholderTextColor={theme.colors.textLight}
-          />
-        </View>
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>일기 내용</Text>
           <TextInput
