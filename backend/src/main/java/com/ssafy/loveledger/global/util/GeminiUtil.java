@@ -84,16 +84,41 @@ public class GeminiUtil {
             💡 참고 팁
             - 각 회차에 랜덤으로 **잠입 로맨스 / 웃픈 현실 / 미스터리 도청 / 정체불명의 인물 / 잘못 찍힌 사진 한 장** 같은 아이디어를 흘려주세요.
             
-            반드시 아래 조건을 지켜주세요:
-            1. JSON 객체는 다음 구조를 따릅니다:
-            {
-              "title": "제목",
-              "content": "소설 내용 (줄바꿈은 \\\\n 으로 표현)"
-            }
-            2. "title"과 "content" 값에 들어가는 문자열은 반드시 일반 쌍따옴표(")만 사용해주세요. 스마트 따옴표(“”)는 사용하지 마세요.
-            3. JSON 전체는 Markdown 코드 블록 안에 ```json 으로 감싸 주세요. (예: ```json ... ```)
-            4. JSON 문자열 안의 줄바꿈은 \\\\n 로 이스케이프 처리해 주세요.
-            5. content 안에 쌍따옴표(")가 필요할 경우 반드시 백슬래시(\\")로 escape 처리해 주세요.
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
+            
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             
             """);
         promptMap.put("중세 판타지", """
@@ -173,17 +198,41 @@ public class GeminiUtil {
             - 필요하다면 '고대 마법사 협회', '운명의 서', '룬석을 깨우는 자', '타락한 궁정', '빛과 어둠의 신' 같은 고유 개념을 창작해서 세계관을 풍성하게 만들어주세요.
             - 각 화는 독립적으로도 읽히되, 큰 줄기 속 연결된 **운명적 이야기**의 일부여야 합니다.
             
-            반드시 아래 조건을 지켜주세요:
-            1. JSON 객체는 다음 구조를 따릅니다:
-            {
-              "title": "제목",
-              "content": "소설 내용 (줄바꿈은 \\\\n 으로 표현)"
-            }
-            2. "title"과 "content" 값에 들어가는 문자열은 반드시 일반 쌍따옴표(")만 사용해주세요. 스마트 따옴표(“”)는 사용하지 마세요.
-            3. JSON 전체는 Markdown 코드 블록 안에 ```json 으로 감싸 주세요. (예: ```json ... ```)
-            4. JSON 문자열 안의 줄바꿈은 \\\\n 로 이스케이프 처리해 주세요.
-            5. content 안에 쌍따옴표(")가 필요할 경우 반드시 백슬래시(\\")로 escape 처리해 주세요.
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
             
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             """);
         promptMap.put("러브 코미디", """
             당신은 사용자의 금융 거래 내역을 바탕으로 **유쾌하고 기발한 러브 코미디 시리즈**를 창작하는 AI 로맨틱 시나리오 작가입니다. \s
@@ -274,17 +323,41 @@ public class GeminiUtil {
             
             이 조건에 따라, 당신은 사용자의 지갑 속 흔적들을 유쾌하고 따뜻한 사랑 이야기로 되살리는 로맨틱 시나리오 장인이 됩니다.
             
-            반드시 아래 조건을 지켜주세요:
-            1. JSON 객체는 다음 구조를 따릅니다:
-            {
-              "title": "제목",
-              "content": "소설 내용 (줄바꿈은 \\\\n 으로 표현)"
-            }
-            2. "title"과 "content" 값에 들어가는 문자열은 반드시 일반 쌍따옴표(")만 사용해주세요. 스마트 따옴표(“”)는 사용하지 마세요.
-            3. JSON 전체는 Markdown 코드 블록 안에 ```json 으로 감싸 주세요. (예: ```json ... ```)
-            4. JSON 문자열 안의 줄바꿈은 \\\\n 로 이스케이프 처리해 주세요.
-            5. content 안에 쌍따옴표(")가 필요할 경우 반드시 백슬래시(\\")로 escape 처리해 주세요.
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
             
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             """);
 
     }
@@ -370,45 +443,72 @@ public class GeminiUtil {
 
     public Map<String, Object> mapFictionResponseToMap(String response) {
         log.info("Gemini 응답 : {}", response);
-        
+
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> resultMap = new HashMap<>();
 
         try {
             JsonNode rootNode = objectMapper.readTree(response);
             JsonNode candidatesNode = rootNode.path("candidates");
+
             if (candidatesNode.isArray() && !candidatesNode.isEmpty()) {
                 JsonNode contentNode = candidatesNode.get(0).path("content");
                 JsonNode partsNode = contentNode.path("parts");
+
                 if (partsNode.isArray() && !partsNode.isEmpty()) {
-                    String text = partsNode.get(0).path("text").asText();
+                    String rawText = partsNode.get(0).path("text").asText();
 
-                    // 코드블록 제거 (```json\n ~ ``` 제거)
-                    text = text.replaceAll("^```json\\n?|```$", "").trim();
+                    // 1. 코드 블록 제거 (```json ~ ```)
+                    String jsonText = rawText
+                        .replaceAll("(?s)^```json\\s*", "")
+                        .replaceAll("\\s*```$", "")
+                        .trim();
 
-                    // 이스케이프된 줄바꿈 처리
-                    text = text.replaceAll("\\\\n", "\n");
+                    // 2. JSON 파싱을 위한 처리
+                    Map<String, Object> tempMap = null;
 
-                    // JSON 형식이면 파싱, 아니면 그대로 저장
-                    if (text.startsWith("{") && text.endsWith("}")) {
+                    try {
+                        // 먼저 파싱 시도 (이 때 줄바꿈이 이스케이프 돼 있으면 성공함)
+                        tempMap = objectMapper.readValue(jsonText, HashMap.class);
+                    } catch (Exception e) {
+                        log.warn("1차 JSON 파싱 실패: {}", e.getMessage());
+                        // 실패하면 → 줄바꿈 문자들을 이스케이프 처리 후 다시 시도
+                        String escapedJsonText = jsonText
+                            .replace("\r\n", "\\n")
+                            .replace("\n", "\\n");
+
                         try {
-                            resultMap = objectMapper.readValue(text, HashMap.class);
-                        } catch (Exception e) {
-                            log.warn("내부 JSON 파싱 실패: {}", e.getMessage());
-                            resultMap.put("response", text);
+                            tempMap = objectMapper.readValue(escapedJsonText, HashMap.class);
+                        } catch (Exception ex) {
+                            log.warn("2차 JSON 파싱 실패: {}", ex.getMessage());
+                            log.warn("문제된 JSON 문자열:\n{}", jsonText);
+                            resultMap.put("error", "Invalid JSON format after retry");
+                            return resultMap;
                         }
-                    } else {
-                        resultMap.put("response", text);
                     }
+
+                    // 3. content 안의 줄바꿈 이스케이프를 실제 줄바꿈으로 변환
+                    if (tempMap.containsKey("content")) {
+                        Object contentObj = tempMap.get("content");
+                        if (contentObj instanceof String) {
+                            String content = (String) contentObj;
+                            content = content.replace("\\n", "\n");  // \n → 실제 개행
+                            tempMap.put("content", content);
+                        }
+                    }
+
+                    resultMap = tempMap;
+
                 } else {
-                    resultMap.put("error", "No valid content found in parts");
+                    resultMap.put("error", "No valid parts found");
                 }
             } else {
                 resultMap.put("error", "No valid candidates found");
             }
+
         } catch (Exception e) {
-            log.error("JSON 파싱 실패: {}", e.getMessage());
-            resultMap.put("error", "Failed to parse response");
+            log.error("전체 파싱 실패: {}", e.getMessage());
+            resultMap.put("error", "Failed to parse Gemini response");
         }
 
         return resultMap;
