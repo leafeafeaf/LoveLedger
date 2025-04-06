@@ -368,6 +368,52 @@ public class GeminiUtil {
         return resultMap;
     }
 
+    public Map<String, Object> mapFictionResponseToMap(String response) {
+        log.info("Gemini 응답 : {}", response);
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> resultMap = new HashMap<>();
+
+        try {
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode candidatesNode = rootNode.path("candidates");
+            if (candidatesNode.isArray() && !candidatesNode.isEmpty()) {
+                JsonNode contentNode = candidatesNode.get(0).path("content");
+                JsonNode partsNode = contentNode.path("parts");
+                if (partsNode.isArray() && !partsNode.isEmpty()) {
+                    String text = partsNode.get(0).path("text").asText();
+
+                    // 코드블록 제거 (```json\n ~ ``` 제거)
+                    text = text.replaceAll("^```json\\n?|```$", "").trim();
+
+                    // 이스케이프된 줄바꿈 처리
+                    text = text.replaceAll("\\\\n", "\n");
+
+                    // JSON 형식이면 파싱, 아니면 그대로 저장
+                    if (text.startsWith("{") && text.endsWith("}")) {
+                        try {
+                            resultMap = objectMapper.readValue(text, HashMap.class);
+                        } catch (Exception e) {
+                            log.warn("내부 JSON 파싱 실패: {}", e.getMessage());
+                            resultMap.put("response", text);
+                        }
+                    } else {
+                        resultMap.put("response", text);
+                    }
+                } else {
+                    resultMap.put("error", "No valid content found in parts");
+                }
+            } else {
+                resultMap.put("error", "No valid candidates found");
+            }
+        } catch (Exception e) {
+            log.error("JSON 파싱 실패: {}", e.getMessage());
+            resultMap.put("error", "Failed to parse response");
+        }
+
+        return resultMap;
+    }
+
     public String createPromptByTheme(
         String themeName, LocalDate startDate, LocalDate endDate, String histories, String fictions, Boolean gender, Boolean isMarried) {
         log.info(themeName);
