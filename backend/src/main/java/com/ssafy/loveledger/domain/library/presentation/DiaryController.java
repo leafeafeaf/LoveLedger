@@ -11,7 +11,6 @@ import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -85,15 +84,14 @@ public class DiaryController {
     }
 
     @PostMapping("/{diaryId}/history")
-    public CompletableFuture<Map<String, Object>> getEditHistoryList(
+    public Map<String, Object> getEditHistoryList(
         @PathVariable long diaryId) {
         User user = userUtil.getCurrentUser();
 
         log.info("user {} starts edit history with diary {}", user.getId(), diaryId);
 
         return diaryService.getEditHistoryList(user, diaryId)
-            .thenApply(historyList ->
-                historyList);
+            .join();
     }
 
     @PatchMapping("/history")
