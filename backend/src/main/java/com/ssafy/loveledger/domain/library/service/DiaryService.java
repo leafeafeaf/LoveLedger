@@ -8,6 +8,7 @@ import com.ssafy.loveledger.domain.library.domain.repository.DiaryRepository;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryCreateResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -40,7 +41,8 @@ public class DiaryService {
     private final GeminiUtil geminiUtil;
 
     @Transactional
-    public void createDiary(User user, @Valid DiaryCreateRequest diaryCreateRequest) {
+    public DiaryCreateResponse createDiary(User user,
+        @Valid DiaryCreateRequest diaryCreateRequest) {
         //Diary 생성
         Diary diary = Diary.builder()
             .library(user.getLibrary())
@@ -52,6 +54,8 @@ public class DiaryService {
 
         //일기 저장
         diaryRepository.save(diary);
+
+        return DiaryCreateResponse.builder().id(diary.getId()).build();
     }
 
     @Transactional(readOnly = true)
