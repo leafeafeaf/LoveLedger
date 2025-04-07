@@ -84,7 +84,7 @@ public class GoalService {
             .startDate(goal.getStartDate())
             .goalDate(goal.getGoalDate())
             .title(goal.getTitle())
-            .contentUrl(goal.getContentURL())
+            .contentURL(goal.getContentURL())
             .build();
     }
 }

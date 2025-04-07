@@ -27,7 +27,7 @@ public class GoalUpdateRequest {
     @NotBlank(message = "제목은 필수 사항입니다.")
     public String title;
 
-    @NotBlank(message = "목표 그림 주소는 필수 사항입니다.")
+    //    @NotBlank(message = "목표 그림 주소는 필수 사항입니다.")
     public String contentURL;
 
     @AssertTrue(message = "시작 날짜는 2000-01-01 이후여야 합니다.")
