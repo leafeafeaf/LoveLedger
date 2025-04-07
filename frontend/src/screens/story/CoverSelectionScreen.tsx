@@ -42,82 +42,81 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
 
   const coverStyles: CoverStyle[] = [
     { id: "webtoon", label: "웹툰", icon: "book-open-page-variant" },
-    { id: "fairytale", label: "그래픽", icon: "desktop-classic" },
+    { id: "ghibli", label: "지브리", icon: "desktop-classic" },
     { id: "realistic", label: "실사", icon: "camera" },
     { id: "watercolor", label: "수채화", icon: "palette" },
     { id: "oilpainting", label: "유화", icon: "brush" },
     { id: "sketch", label: "스케치", icon: "pencil" },
   ];
 
-  const { mutate, isPending: mutationLoading, error: apiError } = useFictionArt();
+  // useEffect(() => {
+  //   generateCover();
+  // }, [selectedStyle]);
 
-  useEffect(() => {
-    generateCover();
-  }, [selectedStyle]);
+  // const generateCover = async () => {
+  //   dispatch(startCoverGeneration(selectedStyle));
 
-  const generateCover = async () => {
-    dispatch(startCoverGeneration(selectedStyle));
+  //   try {
+  //     // 테마 ID 매핑
+  //     const themeIdMap: { [key: string]: number } = {
+  //       webtoon: 1,
+  //       fairytale: 2,
+  //       realistic: 3,
+  //       watercolor: 4,
+  //       oilpainting: 5,
+  //       sketch: 6,
+  //     };
 
-    try {
-      // 테마 ID 매핑
-      const themeIdMap: { [key: string]: number } = {
-        webtoon: 1,
-        fairytale: 2,
-        realistic: 3,
-        watercolor: 4,
-        oilpainting: 5,
-        sketch: 6,
-      };
+  //     const themeId = themeIdMap[selectedStyle] || 1;
 
-      const themeId = themeIdMap[selectedStyle] || 1;
-
-      // API 호출
-      mutate(
-        {
-          context: story.content || "",
-          themeId,
-          title: story.title,
-        },
-        {
-          onSuccess: (response) => {
-            if (response?.data?.imageUrl) {
-              dispatch(coverGenerationSuccess(response.data.imageUrl));
-            }
-          },
-          onError: (error) => {
-            console.error("커버 이미지 생성 중 오류 발생:", error);
-            dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
-          },
-        }
-      );
-    } catch (error) {
-      dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
-    }
-  };
+  //     // API 호출
+  //     // mutate(
+  //     //   {
+  //     //     context: story.content || "",
+  //     //     themeId,
+  //     //     title: story.title,
+  //     //   },
+  //     //   {
+  //     //     onSuccess: (response) => {
+  //     //       if (response?.data?.imageUrl) {
+  //     //         dispatch(coverGenerationSuccess(response.data.imageUrl));
+  //     //       }
+  //     //     },
+  //     //     onError: (error) => {
+  //     //       console.error("커버 이미지 생성 중 오류 발생:", error);
+  //     //       dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
+  //     //     },
+  //     //   }
+  //     // );
+  //   } catch (error) {
+  //     dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
+  //   }
+  // };
 
   const handleStyleSelect = (styleId: string) => {
+    console.log(styleId)
     dispatch(setCoverStyle(styleId));
   };
 
   const handleNext = () => {
-    if (!coverImage) return;
+    console.log("coverPreview로 이동")
 
     const storySettings: StorySettings = {
       themeStyle: settings.themeStyle,
       toneStyle: "default",
       lengthStyle: "default",
+      period: settings.period
     };
 
     navigation.navigate("CoverPreview", {
       settings: storySettings,
       series: {
-        id: "title" in series ? series.id : Date.now(),
+        seriesid: series.seriesid,
         title: "title" in series ? series.title : series.name,
         episodes: 1,
         lastUpdated: new Date().toISOString(),
       },
       story,
-      coverImage,
       coverStyle: selectedStyle,
     });
   };
@@ -207,7 +206,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
         <Pressable
           style={styles.nextButton}
           onPress={handleNext}
-          disabled={isGenerating || !coverImage}
+          disabled={!settings.themeStyle}
         >
           <Text style={styles.nextButtonText}>Next</Text>
           <MaterialCommunityIcons

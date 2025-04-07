@@ -14,6 +14,7 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  Linking
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
@@ -30,6 +31,7 @@ import { SignUpRequest } from "../../types";
 import { useUpdateUserInfo } from "../../hooks/useUserApi";
 import { useTokenIntegration } from "../../hooks/useTokenIntegration";
 import { axiosInstance } from "../../api/axios";
+import { StackActions, useNavigation } from "@react-navigation/native";
 
 // TestQueryButton 컴포넌트 (내부에 정의)
 const TestQueryButton = () => {
@@ -37,72 +39,48 @@ const TestQueryButton = () => {
     useTokenIntegration();
   const [queryResult, setQueryResult] = useState<string | null>(null);
 
-  const handleQueryTest = async () => {
-    try {
-      // 테스트 사용자 ID
-      const userId = 1;
-      console.log(`[React Query 테스트] GET /test/token/${userId}`);
+  // const handleQueryTest = async () => {
+  //   try {
+  //     // 테스트 사용자 ID
+  //     const userId = 1;
+  //     console.log(`[React Query 테스트] GET /test/token/${userId}`);
 
-      // React Query를 사용하여 토큰 요청
-      const result = await fetchTokenWithQuery(userId);
+  //     // React Query를 사용하여 토큰 요청
+  //     const result = await fetchTokenWithQuery(userId);
 
-      // 결과 로깅
-      console.log("[React Query 응답]", JSON.stringify(result.data, null, 2));
+  //     // 결과 로깅
+  //     console.log("[React Query 응답]", JSON.stringify(result.data, null, 2));
 
-      // 상태 업데이트
-      setQueryResult(JSON.stringify(result.data, null, 2));
-    } catch (err: any) {
-      console.error("[React Query 오류]", err);
-      setQueryResult(`오류: ${err.message}`);
-    }
-  };
+  //     // 상태 업데이트
+  //     setQueryResult(JSON.stringify(result.data, null, 2));
+  //   } catch (err: any) {
+  //     console.error("[React Query 오류]", err);
+  //     setQueryResult(`오류: ${err.message}`);
+  //   }
+  // };
 
-  const handleReduxTest = async () => {
-    try {
-      // 테스트 사용자 ID
-      const userId = 1;
-      console.log(`[Redux 테스트] GET /test/token/${userId}`);
+  // const handleReduxTest = async () => {
+  //   try {
+  //     // 테스트 사용자 ID
+  //     const userId = 1;
+  //     console.log(`[Redux 테스트] GET /test/token/${userId}`);
 
-      // Redux를 사용하여 토큰 요청
-      await fetchTokenWithRedux(userId);
+  //     // Redux를 사용하여 토큰 요청
+  //     await fetchTokenWithRedux(userId);
 
-      // 결과 로깅 (Redux 스토어 상태는 컴포넌트에 자동으로 반영됨)
-      console.log("[Redux 토큰 상태]", token);
+  //     // 결과 로깅 (Redux 스토어 상태는 컴포넌트에 자동으로 반영됨)
+  //     console.log("[Redux 토큰 상태]", token);
 
-      // 상태 업데이트
-      setQueryResult(`Redux 토큰: ${token}`);
-    } catch (err: any) {
-      console.error("[Redux 테스트 오류]", err);
-      setQueryResult(`오류: ${err.message}`);
-    }
-  };
+  //     // 상태 업데이트
+  //     setQueryResult(`Redux 토큰: ${token}`);
+  //   } catch (err: any) {
+  //     console.error("[Redux 테스트 오류]", err);
+  //     setQueryResult(`오류: ${err.message}`);
+  //   }
+  // };
 
   return (
     <View style={tokenTestStyles.container}>
-      <Pressable
-        style={tokenTestStyles.button}
-        onPress={handleQueryTest}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={tokenTestStyles.buttonText}>React Query 테스트</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={tokenTestStyles.button}
-        onPress={handleReduxTest}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={tokenTestStyles.buttonText}>Redux 테스트</Text>
-        )}
-      </Pressable>
-
       {queryResult && (
         <View style={tokenTestStyles.resultContainer}>
           <Text style={tokenTestStyles.resultText} numberOfLines={4}>
@@ -162,6 +140,7 @@ const KAKAO_ICON = require("../../../assets/images/login/kakao-talk.png");
 
 export default function LoginScreen() {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const { isLoading: authLoading, error } = useAppSelector(
     (state) => state.auth
   );
@@ -194,9 +173,29 @@ export default function LoginScreen() {
 
   // 신규 사용자 여부에 따라 회원가입 모달 표시
   useEffect(() => {
-    if (isNewUser) {
-      setShowSignUpModal(true);
-    }
+    const check = async () => {
+      console.log("isNewUser가 수정되었어요")
+
+      if (isNewUser === null) return; // 값 결정 안 됐으면 아무 것도 안 함
+
+      const token = await AsyncStorage.getItem("token");
+      console.log("Token 확인:", token);
+      console.log("isNewUser 확인:", isNewUser);
+
+      if (isNewUser === null) return;
+
+      if (isNewUser === true) {
+        console.log("모달 열기")
+        setShowSignUpModal(true);
+      }else if (isNewUser === false) {
+        console.log("메인으로 이동")
+        navigation.dispatch(
+          StackActions.replace("Main")
+        );
+      }
+    };
+
+    check();
   }, [isNewUser]);
 
   // 구글 로그인 타임아웃 표시
@@ -234,7 +233,7 @@ export default function LoginScreen() {
 
       // 실제 소셜 로그인 구현 대신 성공 시뮬레이션
       setTimeout(async () => {
-        // 토큰 생성 (first-time을 포함해 신규 사용자 표시)
+        // 토큰 생성 (first-time을 포함해 신규 사용자 표시 << 이걸 왜할까)
         const token = isFirstTime
           ? `dummy-token-${provider}-first-time-123`
           : `dummy-token-${provider}-123`;
@@ -246,11 +245,6 @@ export default function LoginScreen() {
         dispatch(
           loginSuccess({
             token,
-            userInfo: {
-              id: "1",
-              name: `${provider} 사용자`,
-              email: `user@${provider}.com`,
-            },
           })
         );
 
@@ -304,7 +298,7 @@ export default function LoginScreen() {
   };
 
   // 회원가입 추가 정보 제출
-  const handleSignUpSubmit = () => {
+  const handleSignUpSubmit = async () => {
     if (!signUpData.name || !signUpData.birthDay) {
       dispatch(loginFailure("모든 필수 항목을 입력해주세요."));
       return;
@@ -315,9 +309,18 @@ export default function LoginScreen() {
       return;
     }
 
-    // 회원가입 추가 정보 업데이트
-    updateUserInfoMutation.mutate(signUpData);
-    setShowSignUpModal(false);
+    try {
+      // 회원가입 추가 정보 업데이트
+      await updateUserInfoMutation.mutateAsync(signUpData);
+      setShowSignUpModal(false);
+      // 메인 화면으로 이동
+      console.log("모달 완료 후 메인 이동")
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
+    } catch (error) {
+      dispatch(loginFailure("회원 정보 업데이트에 실패했습니다."));
+    }
   };
 
   // 구글 로그인 버튼 렌더링 함수
@@ -424,8 +427,8 @@ export default function LoginScreen() {
                     style={[
                       styles.input,
                       signUpData.birthDay &&
-                        !validateBirthDay(signUpData.birthDay) &&
-                        styles.inputError,
+                      !validateBirthDay(signUpData.birthDay) &&
+                      styles.inputError,
                     ]}
                     placeholder="생일 (YYYYMMDD 형식으로 입력해주세요)"
                     value={signUpData.birthDay}
@@ -517,6 +520,7 @@ export default function LoginScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 20}
       >
         {/* 회원가입 추가 정보 모달 */}
+
         {renderSignUpModal()}
 
         <ScrollView
@@ -575,98 +579,6 @@ export default function LoginScreen() {
             <Text style={styles.helpText}>
               로그인하면 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
             </Text>
-
-            {/* 테스트용! */}
-            <View style={styles.testButtonsContainer}>
-              <Pressable
-                style={styles.testButton}
-                onPress={async () => {
-                  console.log("테스트 로그인 버튼 클릭");
-                  try {
-                    // 테스트 사용자 ID
-                    const userId = 1;
-
-                    console.log(`API 요청 준비: GET /test/token/${userId}`);
-                    console.log(
-                      "baseURL 확인:",
-                      axiosInstance.defaults.baseURL
-                    );
-
-                    // 직접 axios로 요청 보내기
-                    console.log("axios 요청 보내기 시작...");
-                    const response = await axiosInstance.get(
-                      `/test/token/${userId}`
-                    );
-
-                    console.log(
-                      "[API 응답]",
-                      JSON.stringify(response.data, null, 2)
-                    );
-
-                    if (response.data && response.data.success) {
-                      // 토큰 저장 및 로그인 처리
-                      const token = response.data.data.accessToken;
-                      await AsyncStorage.setItem("token", token);
-
-                      // 만료 시간 저장
-                      const expiresAt =
-                        Date.now() + response.data.data.expiresIn;
-                      await AsyncStorage.setItem(
-                        "tokenExpiresAt",
-                        expiresAt.toString()
-                      );
-
-                      // Redux 상태 업데이트
-                      dispatch(
-                        loginSuccess({
-                          token,
-                          userInfo: {
-                            id: userId.toString(),
-                            name: "테스트 사용자",
-                            email: "test@example.com",
-                          },
-                        })
-                      );
-                    }
-                  } catch (err: any) {
-                    console.error("API 오류 상세 정보:", err);
-                    if (err.message) console.log("오류 메시지:", err.message);
-                    if (err.code) console.log("오류 코드:", err.code);
-                    if (err.config) console.log("요청 설정:", err.config);
-
-                    // 오류 시 기존 테스트 로그인으로 대체
-                    const token = "test-token-123";
-                    await AsyncStorage.setItem("token", token);
-                    dispatch(
-                      loginSuccess({
-                        token,
-                        userInfo: {
-                          id: "1",
-                          name: "테스트 사용자",
-                          email: "test@example.com",
-                        },
-                      })
-                    );
-                  }
-                }}
-              >
-                <Text style={styles.testButtonText}>테스트 로그인</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.testButton}
-                onPress={() => {
-                  // 회원가입 모달 바로 열기
-                  setShowSignUpModal(true);
-                }}
-              >
-                <Text style={styles.testButtonText}>테스트 회원가입</Text>
-              </Pressable>
-            </View>
-
-            {/* React Query 통합 테스트 */}
-            <TestQueryButton />
-            {/* 테스트용! */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

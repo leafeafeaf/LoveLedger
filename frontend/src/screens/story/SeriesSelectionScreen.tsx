@@ -11,12 +11,10 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import { Series, StorySettings } from "../../types";
 import { StoryScreenProps } from "../../types";
 import Header from "../../components/common/Header";
 import { useSeriesCreate } from "../../hooks/useSeriesCreate";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../../store";
 import { fetchFictionListStart, fetchFictionListSuccess, fetchFictionListFailure } from "../../store/contentSlice";
 import { axiosInstance } from "../../api/axios";
 import { useSeriesList } from "../../hooks/useSeriesList";
@@ -34,40 +32,27 @@ export default function SeriesSelectionScreen({
   const [selectedSeries, setSelectedSeries] = useState<number | null>(null);
   
   const { mutate: createSeries, isPending } = useSeriesCreate();
-  const { data: seriesData, isLoading: isSeriesLoading } = useSeriesList();
-  const series = seriesData?.series || [];
+  const { data: series = [], isLoading: isSeriesLoading } = useSeriesList();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
 
-  const refreshFictionList = async () => {
-    try {
-      dispatch(fetchFictionListStart());
-      const response = await axiosInstance.get("/fiction", {
-        params: {
-          pageno: 1,
-          size: 50,
-          sort: "DESC"
-        }
-      });
-      dispatch(fetchFictionListSuccess(response.data.data));
-    } catch (error) {
-      dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
-    }
-  };
-
+  
   const handleNext = () => {
     if (mode === "new") {
       if (!newSeriesName.trim()) {
         Alert.alert("알림", "시리즈 이름을 입력해주세요.");
         return;
-      }
-      
+      } 
       createSeries(newSeriesName, {
-        onSuccess: async () => {
+        onSuccess: async (response) => {
+          console.log(response);
+
           await queryClient.invalidateQueries({ queryKey: ["series"] });
+          console.log(settings)
+          
           navigation.navigate("StoryGeneration", {
             settings,
-            series: { name: newSeriesName },
+            series: { name: newSeriesName, seriesid : response.data.seriesId},
           });
         },
         onError: (error) => {
@@ -75,28 +60,37 @@ export default function SeriesSelectionScreen({
         },
       });
     } else {
-      const selectedSeriesData = series.find((s) => s.seriesid === selectedSeries);
+      const selectedSeriesData = series.find((s) => s.seriesId === selectedSeries);
       if (selectedSeriesData) {
+        console.log(settings)
+        console.log("셀렉트 데이터를 좀 보자 : ")
+        console.log(selectedSeriesData)
+
         navigation.navigate("StoryGeneration", {
           settings,
-          series: { name: selectedSeriesData.seriesname },
+          series: { 
+            name: selectedSeriesData.title,
+            seriesid: selectedSeriesData.seriesId },
         });
       }
     }
   };
 
-  const renderSeriesItem = ({ item }: { item: { seriesid: number; seriesname: string } }) => (
+  const renderSeriesItem = ({ item }: { item: { seriesId: number; title: string } }) => (
     <Pressable
       style={[
         styles.seriesCard,
-        selectedSeries === item.seriesid && styles.selectedSeriesCard,
+        selectedSeries === item.seriesId && styles.selectedSeriesCard,
       ]}
-      onPress={() => setSelectedSeries(item.seriesid)}
+      onPress={() => {
+        console.log(`선택: ${item.title} (ID: ${item.seriesId})`);
+        setSelectedSeries(item.seriesId)
+      }}
     >
       <View style={styles.seriesHeader}>
-        <Text style={styles.seriesTitle}>{item.seriesname}</Text>
+        <Text style={styles.seriesTitle}>{item.title}</Text>
       </View>
-      {selectedSeries === item.seriesid && (
+      {selectedSeries === item.seriesId && (
         <View style={styles.checkmark}>
           <MaterialCommunityIcons
             name="check-circle"
@@ -187,7 +181,7 @@ export default function SeriesSelectionScreen({
               <FlatList
                 data={series}
                 renderItem={renderSeriesItem}
-                keyExtractor={(item) => item.seriesid.toString()}
+                keyExtractor={(item) => item.seriesId.toString()}
                 contentContainerStyle={styles.seriesList}
               />
             )}

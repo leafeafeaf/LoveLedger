@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-type MoodType = 'happy' | 'excited' | 'peaceful' | 'sad';
+type MoodType = 'happy' | 'angry' | 'peaceful' | 'sad';
 
 interface MoodIconProps {
   mood: MoodType;
@@ -20,7 +20,7 @@ const MoodIcon: React.FC<MoodIconProps> = ({
 }) => {
   const moodData = {
     happy: { icon: 'emoticon-happy', label: '행복' },
-    excited: { icon: 'emoticon-excited', label: '설렘' },
+    angry: { icon: 'emoticon-angry', label: '화남' },
     peaceful: { icon: 'emoticon-cool', label: '평온' },
     sad: { icon: 'emoticon-sad', label: '슬픔' },
   };

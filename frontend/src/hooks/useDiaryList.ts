@@ -15,7 +15,7 @@ export interface DiaryContent {
   targetDate: string;
   createdAt: string;
   updatedAt: string | null;
-  mood?: string;  // 기분 정보 추가
+  mood?: number;  // 기분 정보 추가
 }
 
 interface DiaryResponse {

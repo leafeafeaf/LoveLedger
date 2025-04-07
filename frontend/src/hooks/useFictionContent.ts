@@ -28,11 +28,16 @@ interface FictionContentError {
 export const useFictionContent = () => {
   return useMutation<FictionContentResponse, FictionContentError, FictionContentRequest>({
     mutationFn: async ({ themeId, seriesid, startdate, enddate }) => {
-      const response = await axiosInstance.post<FictionContentResponse>("/fiction/content", {
+      console.log(themeId)
+      console.log(seriesid)
+      console.log(startdate)
+      console.log(enddate)
+
+      const response = await axiosInstance.post<FictionContentResponse>("/fictions/content", {
         themeId,
-        seriesid,
-        startdate,
-        enddate,
+        seriesId : seriesid,
+        startDate : startdate,
+        endDate : enddate,
       });
       return response.data;
     },
