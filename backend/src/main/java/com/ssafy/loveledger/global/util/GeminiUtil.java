@@ -25,6 +25,7 @@ public class GeminiUtil {
     private final String backUrl;
 
     private static final Map<String, String> promptMap = new HashMap<>();
+    private static final Map<String, String> promptArt = new HashMap<>();
 
     static {
         promptMap.put("파파라치", """
@@ -78,6 +79,7 @@ public class GeminiUtil {
             8. 너무 무겁거나 자극적인 표현은 피하고, 창의적이고 대중적인 스토리라인을 유지해 주세요.
             9. 금액은 되도록 최소한으로 언급해주세요.
             10. 가독성이 좋게 줄바꿈도 해주세요.
+            11. 이모티콘은 최소한으로 사용해주세요.
             
             ---
             
@@ -191,6 +193,8 @@ public class GeminiUtil {
                - 내용은 최소 3문단 이상으로 구성하고, 몰입감 있는 서사와 대사로 연출해 주세요
                - 민감한 표현은 자제하고, 누구나 즐길 수 있는 고급스럽고 창의적인 표현을 사용해 주세요
                - 가독성이 좋게 줄바꿈도 해주세요.
+            
+            7. 이모티콘은 최소한으로 사용해주세요.
             
             ---
             
@@ -310,6 +314,8 @@ public class GeminiUtil {
                - 밝고 따뜻한 톤 유지
                - 자극적이거나 무거운 소재는 피하고, **현실 공감 + 설렘 + 웃음 코드**를 중심으로 구성
             
+            8. 이모티콘은 최소한으로 사용해주세요.
+            
             ---
             
             ✨ 추가 팁 (선택적으로 활용)
@@ -359,6 +365,16 @@ public class GeminiUtil {
             
             이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             """);
+
+    }
+
+    static {
+        promptArt.put("webtoon", "밝고 선명한 선으로 구성된 만화 스타일. 인물의 표정과 감정 표현이 과장되어 있고, 장면은 마치 컷 만화처럼 구성된다. 깔끔한 배경과 평면적인 채색이 특징이며, 인물 중심의 연출이 강조된다. 감정을 시각적으로 드러내는 효과선이나 말풍선 효과 없이도 장면의 극적 분위기를 전달한다.");
+        promptArt.put("realistic", "사진처럼 사실적이고 정교한 묘사. 인물의 피부 질감, 조명, 의상 주름까지 디테일하게 표현되며, 실제 배경을 보는 듯한 깊이와 사실감을 갖춘다. 색감은 현실에 가깝고 자연광이나 인공조명에 따른 명암과 분위기가 명확하게 반영된다. 인물의 감정도 섬세한 표정과 자세를 통해 표현된다.");
+        promptArt.put("watercolor", "번진 듯한 물감 터치와 부드러운 색감이 특징이며, 투명하고 은은한 느낌을 준다. 종이 질감이 보일 정도로 자연스럽고, 경계가 선명하지 않아 몽환적이고 감성적인 분위기를 연출한다. 인물이나 배경도 날카로운 윤곽선 없이 흐릿하게 스며들듯 표현된다.");
+        promptArt.put("oilpainting", "유화는 붓터치가 살아있고, 색감이 풍부하며, 레이어와 명암 표현이 탁월하다. 그림 전체가 세부보다는 분위기와 감성 중심으로 구성되어 있고, 붓의 물성이나 물감의 두께가 회화적 질감을 부여한다.");
+        promptArt.put("sketch", "연필이나 펜으로 빠르게 그린 듯한 선 중심의 드로잉 스타일. 흑백 혹은 제한된 색상으로 표현되며, 라인과 명암만으로 인물의 형태와 감정을 묘사한다. 거칠지만 생동감 있는 선이 특징이며, 인물의 동세나 장면의 순간성을 강조하는 데 효과적이다.");
+        promptArt.put("ghibli", "스튜디오 지브리 애니메이션을 연상시키는 따뜻하고 디테일한 그림체. 부드러운 색감과 풍부한 배경 묘사, 감정을 담은 눈망울과 순수한 인물이 특징이다. 자연 배경과 도시 풍경 모두 섬세하게 표현되며, 현실과 환상이 섞인 듯한 서정적인 분위기를 자아낸다.");
 
     }
 
@@ -520,5 +536,10 @@ public class GeminiUtil {
         String template = promptMap.get(themeName);
 
         return template.formatted(startDate, endDate, histories, fictions, gender, isMarried);
+    }
+
+    public String getVisualFeature(String drawStyle) {
+
+        return promptArt.get(drawStyle);
     }
 }
