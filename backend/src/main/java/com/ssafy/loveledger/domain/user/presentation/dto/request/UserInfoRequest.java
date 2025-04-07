@@ -28,4 +28,9 @@ public class UserInfoRequest {
 
     @NotNull(message = "결혼여부는 필수 입력값입니다")
     private Boolean isMarried;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate marryDate;
+
 }

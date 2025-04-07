@@ -42,7 +42,7 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
 
   const coverStyles: CoverStyle[] = [
     { id: "webtoon", label: "웹툰", icon: "book-open-page-variant" },
-    { id: "fairytale", label: "그래픽", icon: "desktop-classic" },
+    { id: "ghibli", label: "지브리", icon: "desktop-classic" },
     { id: "realistic", label: "실사", icon: "camera" },
     { id: "watercolor", label: "수채화", icon: "palette" },
     { id: "oilpainting", label: "유화", icon: "brush" },

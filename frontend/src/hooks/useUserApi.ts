@@ -24,11 +24,6 @@ export const useUpdateUserInfo = () => {
         dispatch(
           loginSuccess({
             token,
-            userInfo: {
-              id: "", // 서버에서 받은 사용자 ID를 넣어주어야 함
-              name: variables.name,
-              email: "", // 서버에서 받은 이메일 정보를 넣어주어야 함
-            },
           })
         );
       } else {
