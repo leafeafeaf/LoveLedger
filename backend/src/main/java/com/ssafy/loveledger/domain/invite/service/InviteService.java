@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.invite.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -166,6 +167,74 @@ public class InviteService {
 
         return inviterId;
     }
+
+
+    /**
+     * 사용자가 생성한 현재 활성화된 초대 링크를 조회합니다.
+     *
+     * @param userId 초대 링크를 조회할 사용자의 ID
+     * @return 초대 링크 정보 (없을 경우 예외 발생)
+     */
+    public Map<String, Object> getCurrentInviteLink(Long userId) throws JsonProcessingException {
+        // 사용자 정보 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(userId)));
+
+        // 사용자가 이미 커플 관계에 있는지 확인
+        if (user.getCouple() != null) {
+            throw new LoveLedgerException(ErrorCode.ALREADY_COUPLED, String.valueOf(userId));
+        }
+
+        // 사용자의 초대 코드 조회
+        String userInviteKey = INVITE_KEY_PREFIX + "user:" + userId;
+        String inviteCode = redisTemplate.opsForValue().get(userInviteKey);
+
+
+        // 초대 코드에 대한 상세 정보 조회
+        String inviteDataJson = redisTemplate.opsForValue().get(INVITE_KEY_PREFIX + "code:" + inviteCode);
+
+
+
+            // JSON 파싱
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode inviteData = objectMapper.readTree(inviteDataJson);
+
+            // 만료 시간 확인
+            LocalDateTime expiresAt = LocalDateTime.parse(
+                inviteData.get("expiresAt").asText(),
+                DateTimeFormatter.ISO_DATE_TIME
+            );
+
+            // 만료 확인
+            boolean isExpired = LocalDateTime.now().isAfter(expiresAt);
+            if (isExpired) {
+                throw new LoveLedgerException(ErrorCode.INVITE_EXPIRED);
+            }
+
+            // 초대 링크 생성
+            String webUrl = baseUrl + "/couple/join/" + inviteCode;
+            String androidDeepLink = "intent://couple/join/" + inviteCode +
+                "#Intent;scheme=" + uriScheme +
+                ";package=com.ssafy.loveledger;" +
+                "S.browser_fallback_url=" + webUrl + ";" +
+                "end";
+
+            // 결과 반환
+            Map<String, Object> result = new HashMap<>();
+            result.put("inviteCode", inviteCode);
+            result.put("link", androidDeepLink);
+            result.put("createdAt", inviteData.get("createdAt").asText());
+            result.put("expiresAt", expiresAt.format(DATE_FORMATTER));
+            result.put("remainingHours", java.time.Duration.between(LocalDateTime.now(), expiresAt).toHours());
+
+            return result;
+
+    }
+
+
+
+
+
 
     /**
      * 사용자 ID와 시간 정보를 바탕으로 고유한 초대 코드를 생성합니다.
