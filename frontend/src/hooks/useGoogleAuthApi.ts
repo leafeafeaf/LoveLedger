@@ -4,7 +4,6 @@ import {
   extractTokenFromHash,
   extractTokenFromUrl,
   clearLoginTimer,
-  SocialLoginResponse,
 } from "../api/googleAuth";
 import { useAppDispatch } from "./reduxHooks";
 import {
@@ -19,6 +18,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 /**
  * 구글 소셜 로그인을 위한 커스텀 훅
  */
+
+type ParsedSocialLogin = {
+  isNewUser: boolean;
+  token: string;
+};
+
 export const useGoogleLogin = () => {
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +31,7 @@ export const useGoogleLogin = () => {
   const [loginAttemptTimestamp, setLoginAttemptTimestamp] = useState<
     number | null
   >(null);
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 로그인 시도 취소 함수
@@ -48,14 +53,14 @@ export const useGoogleLogin = () => {
   }, []);
 
   // 로그인 성공 처리 함수
-  const handleLoginSuccess = (response: SocialLoginResponse) => {
+  const handleLoginSuccess = (response: ParsedSocialLogin) => {
     setIsLoading(false);
     setError(null);
     setIsNewUser(response.isNewUser);
     dispatch(
       loginSuccess({
         token: response.token,
-        userInfo: response.userInfo,
+        isNewUser : response.isNewUser
       })
     );
   };
@@ -77,33 +82,27 @@ export const useGoogleLogin = () => {
   // 모바일 환경에서 딥링크 처리 설정
   useEffect(() => {
     if (Platform.OS !== "web") {
+      let initialHandled = false;
+  
       const handleDeepLink = async ({ url }: { url: string }) => {
+        // 이미 처리했으면 무시
+        if (initialHandled) return;
+  
         if (url.includes("accessToken")) {
           const response = await extractTokenFromUrl(url);
           if (response) {
             handleLoginSuccess(response);
+            initialHandled = true;
           }
         }
       };
-
-      // 앱이 실행 중인 상태에서 딥링크로 열렸을 때
       const subscription = Linking.addEventListener("url", handleDeepLink);
-
-      // 앱이 종료된 상태에서 딥링크로 열렸을 때
-      const getInitialUrl = async () => {
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          handleDeepLink({ url: initialUrl });
-        }
-      };
-
-      getInitialUrl();
-
+  
       return () => {
         subscription.remove();
       };
     }
-  }, [dispatch]);
+  }, []);
 
   // 구글 로그인 처리 함수
   const googleLogin = async () => {
@@ -114,7 +113,7 @@ export const useGoogleLogin = () => {
 
     setIsLoading(true);
     setError(null);
-    setIsNewUser(false);
+    setIsNewUser(null);
     dispatch(loginStart());
     setLoginAttemptTimestamp(Date.now());
 

@@ -88,80 +88,62 @@ const AppRouter = () => {
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          // 인증되지 않은 상태
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : (
-          // 인증된 상태
-          <>
-            <Stack.Screen name="Main" component={MainNavigator} />
+        {/* 인증 여부와 관계없이 항상 Auth 화면으로 이동 */}
+        <Stack.Screen name="Auth" component={AuthNavigator} />
 
-            {/* 스토리 스택 */}
-            <Stack.Screen
-              name="Story"
-              component={StoryNavigator}
-              options={{ presentation: "modal" }}
-            />
+        {/* 나머지 화면들 */}
+        <Stack.Screen name="Main" component={MainNavigator} />
 
-            {/* 다이어리 스택 */}
-            <Stack.Screen
-              name="Diary"
-              component={DiaryNavigator}
-              options={{ presentation: "modal" }}
-            />
-
-            {/* Daily 스택 */}
-            <Stack.Screen
-              name="Daily"
-              component={DailyNavigator}
-              options={{ presentation: "modal" }}
-            />
-
-            {/* 프로필 스택 */}
-            <Stack.Screen
-              name="Profile"
-              component={ProfileNavigator}
-              options={{ presentation: "modal" }}
-            />
-
-            {/* Library 스택 */}
-            <Stack.Screen
-              name="Library"
-              component={LibraryNavigator}
-            />
-
-            {/* Library 관련 상세 화면들 - 모달로 표시 */}
-            <Stack.Screen 
-              name="DiaryDetail" 
-              component={DiaryDetailScreen} 
-              options={{ presentation: "modal" }}
-            />
-            <Stack.Screen 
-              name="StoryDetail" 
-              component={StoryDetailScreen} 
-              options={{ presentation: "modal" }}
-            />
-
-            {/* 기타 모달 스크린들 */}
-            <Stack.Group screenOptions={{ presentation: "modal" }}>
-              <Stack.Screen
-                name="TransactionEdit"
-                component={TransactionEditScreen}
-              />
-              <Stack.Screen
-                name="LinkGeneration"
-                component={LinkGenerationScreen}
-              />
-              <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
-              <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
-              <Stack.Screen name="LinkError" component={LinkErrorScreen} />
-            </Stack.Group>
-          </>
-        )}
+        <Stack.Screen
+          name="Story"
+          component={StoryNavigator}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="Diary"
+          component={DiaryNavigator}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="Daily"
+          component={DailyNavigator}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileNavigator}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen name="Library" component={LibraryNavigator} />
+        <Stack.Screen
+          name="DiaryDetail"
+          component={DiaryDetailScreen}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="StoryDetail"
+          component={StoryDetailScreen}
+          options={{ presentation: "modal" }}
+        />
+        {/* 기타 모달 스크린들 */}
+        <Stack.Group screenOptions={{ presentation: "modal" }}>
+          <Stack.Screen
+            name="TransactionEdit"
+            component={TransactionEditScreen}
+          />
+          <Stack.Screen
+            name="LinkGeneration"
+            component={LinkGenerationScreen}
+          />
+          <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
+          <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
+          <Stack.Screen name="LinkError" component={LinkErrorScreen} />
+        </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   loadingContainer: {

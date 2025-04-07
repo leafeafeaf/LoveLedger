@@ -37,13 +37,13 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{ 
         token: string; 
-        userInfo: UserInfo;
+        // userInfo: UserInfo;
         isNewUser?: boolean;  // isNewUser 추가
       }>
     ) => {
       state.isAuthenticated = true;
       state.userToken = action.payload.token;
-      state.userInfo = action.payload.userInfo;
+      // state.userInfo = action.payload.userInfo;
       state.isLoading = false;
       state.error = null;
     },
@@ -56,6 +56,7 @@ const authSlice = createSlice({
       state.userToken = null;
       state.userInfo = null;
       state.error = null;
+      AsyncStorage.clear();
     },
     updateUserInfo: (state, action: PayloadAction<Partial<UserInfo>>) => {
       if (state.userInfo) {

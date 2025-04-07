@@ -31,7 +31,7 @@ import { SignUpRequest } from "../../types";
 import { useUpdateUserInfo } from "../../hooks/useUserApi";
 import { useTokenIntegration } from "../../hooks/useTokenIntegration";
 import { axiosInstance } from "../../api/axios";
-import { useNavigation } from "@react-navigation/native";
+import { StackActions, useNavigation } from "@react-navigation/native";
 
 // TestQueryButton 컴포넌트 (내부에 정의)
 const TestQueryButton = () => {
@@ -39,72 +39,48 @@ const TestQueryButton = () => {
     useTokenIntegration();
   const [queryResult, setQueryResult] = useState<string | null>(null);
 
-  const handleQueryTest = async () => {
-    try {
-      // 테스트 사용자 ID
-      const userId = 1;
-      console.log(`[React Query 테스트] GET /test/token/${userId}`);
+  // const handleQueryTest = async () => {
+  //   try {
+  //     // 테스트 사용자 ID
+  //     const userId = 1;
+  //     console.log(`[React Query 테스트] GET /test/token/${userId}`);
 
-      // React Query를 사용하여 토큰 요청
-      const result = await fetchTokenWithQuery(userId);
+  //     // React Query를 사용하여 토큰 요청
+  //     const result = await fetchTokenWithQuery(userId);
 
-      // 결과 로깅
-      console.log("[React Query 응답]", JSON.stringify(result.data, null, 2));
+  //     // 결과 로깅
+  //     console.log("[React Query 응답]", JSON.stringify(result.data, null, 2));
 
-      // 상태 업데이트
-      setQueryResult(JSON.stringify(result.data, null, 2));
-    } catch (err: any) {
-      console.error("[React Query 오류]", err);
-      setQueryResult(`오류: ${err.message}`);
-    }
-  };
+  //     // 상태 업데이트
+  //     setQueryResult(JSON.stringify(result.data, null, 2));
+  //   } catch (err: any) {
+  //     console.error("[React Query 오류]", err);
+  //     setQueryResult(`오류: ${err.message}`);
+  //   }
+  // };
 
-  const handleReduxTest = async () => {
-    try {
-      // 테스트 사용자 ID
-      const userId = 1;
-      console.log(`[Redux 테스트] GET /test/token/${userId}`);
+  // const handleReduxTest = async () => {
+  //   try {
+  //     // 테스트 사용자 ID
+  //     const userId = 1;
+  //     console.log(`[Redux 테스트] GET /test/token/${userId}`);
 
-      // Redux를 사용하여 토큰 요청
-      await fetchTokenWithRedux(userId);
+  //     // Redux를 사용하여 토큰 요청
+  //     await fetchTokenWithRedux(userId);
 
-      // 결과 로깅 (Redux 스토어 상태는 컴포넌트에 자동으로 반영됨)
-      console.log("[Redux 토큰 상태]", token);
+  //     // 결과 로깅 (Redux 스토어 상태는 컴포넌트에 자동으로 반영됨)
+  //     console.log("[Redux 토큰 상태]", token);
 
-      // 상태 업데이트
-      setQueryResult(`Redux 토큰: ${token}`);
-    } catch (err: any) {
-      console.error("[Redux 테스트 오류]", err);
-      setQueryResult(`오류: ${err.message}`);
-    }
-  };
+  //     // 상태 업데이트
+  //     setQueryResult(`Redux 토큰: ${token}`);
+  //   } catch (err: any) {
+  //     console.error("[Redux 테스트 오류]", err);
+  //     setQueryResult(`오류: ${err.message}`);
+  //   }
+  // };
 
   return (
     <View style={tokenTestStyles.container}>
-      <Pressable
-        style={tokenTestStyles.button}
-        onPress={handleQueryTest}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={tokenTestStyles.buttonText}>React Query 테스트</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={tokenTestStyles.button}
-        onPress={handleReduxTest}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={tokenTestStyles.buttonText}>Redux 테스트</Text>
-        )}
-      </Pressable>
-
       {queryResult && (
         <View style={tokenTestStyles.resultContainer}>
           <Text style={tokenTestStyles.resultText} numberOfLines={4}>
@@ -197,16 +173,30 @@ export default function LoginScreen() {
 
   // 신규 사용자 여부에 따라 회원가입 모달 표시
   useEffect(() => {
-    console.log("isNewUser 확인 : " + isNewUser);
-    console.log(AsyncStorage.getItem("token"));
-    if (isNewUser) {
-      setShowSignUpModal(true);
-    } else {
-      // 기존 사용자인 경우 메인 화면으로 이동
-      navigation.navigate("Main" as never);
-    }
+    const check = async () => {
+      console.log("isNewUser가 수정되었어요")
 
-  }, [isNewUser, isLoading, navigation]);
+      if (isNewUser === null) return; // 값 결정 안 됐으면 아무 것도 안 함
+
+      const token = await AsyncStorage.getItem("token");
+      console.log("Token 확인:", token);
+      console.log("isNewUser 확인:", isNewUser);
+
+      if (isNewUser === null) return;
+
+      if (isNewUser === true) {
+        console.log("모달 열기")
+        setShowSignUpModal(true);
+      }else if (isNewUser === false) {
+        console.log("메인으로 이동")
+        navigation.dispatch(
+          StackActions.replace("Main")
+        );
+      }
+    };
+
+    check();
+  }, [isNewUser]);
 
   // 구글 로그인 타임아웃 표시
   const [showingTimeout, setShowingTimeout] = useState(false);
@@ -255,11 +245,6 @@ export default function LoginScreen() {
         dispatch(
           loginSuccess({
             token,
-            userInfo: {
-              id: "1",
-              name: `${provider} 사용자`,
-              email: `user@${provider}.com`,
-            },
           })
         );
 
@@ -329,7 +314,10 @@ export default function LoginScreen() {
       await updateUserInfoMutation.mutateAsync(signUpData);
       setShowSignUpModal(false);
       // 메인 화면으로 이동
-      navigation.navigate("Main" as never);
+      console.log("모달 완료 후 메인 이동")
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
     } catch (error) {
       dispatch(loginFailure("회원 정보 업데이트에 실패했습니다."));
     }
@@ -439,8 +427,8 @@ export default function LoginScreen() {
                     style={[
                       styles.input,
                       signUpData.birthDay &&
-                        !validateBirthDay(signUpData.birthDay) &&
-                        styles.inputError,
+                      !validateBirthDay(signUpData.birthDay) &&
+                      styles.inputError,
                     ]}
                     placeholder="생일 (YYYYMMDD 형식으로 입력해주세요)"
                     value={signUpData.birthDay}
@@ -532,7 +520,7 @@ export default function LoginScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 20}
       >
         {/* 회원가입 추가 정보 모달 */}
-        
+
         {renderSignUpModal()}
 
         <ScrollView
