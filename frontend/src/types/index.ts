@@ -73,6 +73,7 @@ export type StoryStackParamList = {
   StorySettings: {
     themeStyle?: string;
     toneStyle?: string;
+    selectedDate?: string;
   };
   SeriesSelection: {
     settings: StorySettings;

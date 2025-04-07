@@ -31,14 +31,32 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const refreshFictionList = async () => {
     try {
       dispatch(fetchFictionListStart());
-      const response = await axiosInstance.get("/fiction", {
+      const response = await axiosInstance.get("/fictions", {
         params: {
           pageno: 1,
           size: 50,
           sort: "DESC"
         }
       });
-      dispatch(fetchFictionListSuccess(response.data.data));
+
+      if (response.data.data && response.data.data.content) {
+        // API 응답 데이터 구조를 Redux store에 맞게 변환
+        const transformedData = {
+          series: response.data.data.content.map((item: any) => ({
+            seriesid: item.seriesId,
+            seriesname: item.seriesName,
+            fictions: item.fictions.map((fiction: any) => ({
+              fictionId: fiction.fictionId,
+              title: fiction.title,
+              artUrl: fiction.artUrl,
+              createdAt: fiction.createdAt
+            }))
+          }))
+        };
+        dispatch(fetchFictionListSuccess(transformedData));
+      } else {
+        dispatch(fetchFictionListFailure("잘못된 API 응답 구조입니다."));
+      }
     } catch (error) {
       dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
     }
@@ -67,7 +85,7 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const handleDelete = async () => {
     try {
       dispatch(deleteFictionStart());
-      await axiosInstance.delete(`/fiction/${item.id}`);
+      await axiosInstance.delete(`/fictions/${item.id}`);
       dispatch(deleteFictionSuccess());
       await refreshFictionList(); // 삭제 후 목록 새로고침
       Alert.alert('성공', '소설이 삭제되었습니다.');

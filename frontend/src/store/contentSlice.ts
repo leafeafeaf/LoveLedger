@@ -12,12 +12,16 @@ export interface DiaryContent {
 }
 
 interface FictionDetail {
-  id: string;
   title: string;
-  content: string;
-  arturl: string;
+  artUrl: string;
   createdAt: string;
-  seriesname?: string;
+  content: string;
+}
+
+interface FictionDetailState {
+  data: FictionDetail | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 interface ContentState {
@@ -52,11 +56,7 @@ interface ContentState {
     isLoading: boolean;
     error: string | null;
   };
-  fictionDetail: {
-    data: FictionDetail | null;
-    isLoading: boolean;
-    error: string | null;
-  };
+  fictionDetail: FictionDetailState;
   fictionDelete: {
     isLoading: boolean;
     error: string | null;

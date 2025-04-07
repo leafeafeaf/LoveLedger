@@ -54,7 +54,11 @@ interface FontItem {
 // 네비게이션 타입 정의
 type RootStackParamList = {
   Main: undefined;
-  StorySettings: undefined;
+  StorySettings: {
+    themeStyle?: string;
+    toneStyle?: string;
+    selectedDate?: string;
+  };
   SeriesSelection: {
     settings: {
       themeStyle: string;
@@ -83,7 +87,7 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   route,
 }) => {
   // Redux 상태 사용
-  const { startDate, endDate, isCustomDate, resetAllDates } = useDatePicker();
+  const { startDate, endDate, isCustomDate, resetAllDates, selectStartDate, selectEndDate } = useDatePicker();
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodItem | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<ThemeItem | null>(null);
@@ -93,6 +97,23 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
 
   // CUSTOM_DATE_ID를 초기화 시에 사용
   const CUSTOM_DATE_ID = 0;
+
+  // route.params에서 selectedDate를 받아와서 초기 날짜 범위 설정
+  useEffect(() => {
+    const params = route.params as { selectedDate?: string };
+    if (params?.selectedDate) {
+      const date = new Date(params.selectedDate);
+      selectStartDate(date);
+      selectEndDate(date);
+      
+      // 직접 설정 모드로 설정
+      setSelectedPeriod({
+        id: CUSTOM_DATE_ID,
+        label: `${formatDateToYYYYMMDD(date)} ~ ${formatDateToYYYYMMDD(date)}`,
+        icon: "calendar-week",
+      });
+    }
+  }, [route.params]);
 
   // Effect 제거 - 대신 컴포넌트 초기화 시 startDate나 endDate가 있으면 직접 설정으로 초기화
   useEffect(() => {
@@ -208,6 +229,12 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
       // 알림 처리
       return;
     }
+    
+    // 직접 설정 모드에서 시작일과 종료일이 모두 선택되었는지 확인
+    if (selectedPeriod.id === CUSTOM_DATE_ID && (!startDate || !endDate)) {
+      return;
+    }
+    
     console.log(selectedPeriod)
 
     navigation.navigate("SeriesSelection", {
@@ -278,6 +305,8 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
         onSelectDate={handleSelectDate}
         isRange={true}
         onSelectRange={handleSelectRange}
+        startDate={startDate as Date | undefined}
+        endDate={endDate as Date | undefined}
       />
       <ScrollView style={styles.content}>
         <View style={styles.section}>
@@ -399,7 +428,17 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <Pressable style={styles.nextButton} onPress={goToSeriesSelection}>
+        <Pressable 
+          style={[
+            styles.nextButton,
+            (!selectedPeriod || !selectedTheme || !selectedFont || 
+              (selectedPeriod.id === CUSTOM_DATE_ID && (!startDate || !endDate))) && 
+            styles.nextButtonDisabled
+          ]} 
+          onPress={goToSeriesSelection}
+          disabled={!selectedPeriod || !selectedTheme || !selectedFont || 
+            (selectedPeriod.id === CUSTOM_DATE_ID && (!startDate || !endDate))}
+        >
           <Text style={styles.nextButtonText}>Next</Text>
           <MaterialCommunityIcons
             name="arrow-right"
@@ -565,6 +604,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     gap: theme.spacing.sm,
+  },
+  nextButtonDisabled: {
+    backgroundColor: theme.colors.textLight,
+    opacity: 0.7,
   },
   nextButtonText: {
     fontSize: 16,

@@ -27,11 +27,8 @@ export const useUpdateTransactionHistory = () => {
     },
 
     onSuccess: (data) => {
-      if (data.success) {
-        Alert.alert("성공", "거래 내역이 성공적으로 수정되었습니다.");
-      } else {
-        Alert.alert("실패", "서버 응답: " + data.message);
-      }
+      // 알림 제거 - DiaryEditDailyScreen에서 처리
+      console.log("거래 내역 수정 성공:", data.message);
     },
 
     onError: (error: any) => {

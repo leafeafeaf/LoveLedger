@@ -195,26 +195,21 @@ export default function DatePicker({
         i
       );
       const isToday = date.toDateString() === today.toDateString();
-      const isSelected = selectedDate
-        ? date.toDateString() === selectedDate.toDateString()
-        : tempSelectedDate
-          ? date.toDateString() === tempSelectedDate.toDateString()
-          : false;
-
-      // 범위 선택 로직
-      let isStartDate = false;
-      let isEndDate = false;
-      let isPeriod = false;
-
-      if (isRange && tempRangeStart) {
-        isStartDate = date.toDateString() === tempRangeStart.toDateString();
-
-        if (tempRangeEnd) {
-          isEndDate = date.toDateString() === tempRangeEnd.toDateString();
-          // 시작일과 종료일 사이의 기간에 속하는지 확인 (시작일, 종료일 제외)
-          isPeriod = date > tempRangeStart && date < tempRangeEnd;
-        }
-      }
+      
+      // 단일 날짜 선택 모드
+      const isSelected = isRange 
+        ? false 
+        : (selectedDate 
+            ? date.toDateString() === selectedDate.toDateString() 
+            : tempSelectedDate 
+              ? date.toDateString() === tempSelectedDate.toDateString() 
+              : false);
+      
+      // 범위 선택 모드
+      const isStartDate = isRange && tempRangeStart ? date.toDateString() === tempRangeStart.toDateString() : false;
+      const isEndDate = isRange && tempRangeEnd ? date.toDateString() === tempRangeEnd.toDateString() : false;
+      const isPeriod = isRange && tempRangeStart && tempRangeEnd ? 
+        date > tempRangeStart && date < tempRangeEnd : false;
 
       days.push({
         date,
@@ -227,14 +222,7 @@ export default function DatePicker({
     }
 
     return days;
-  }, [
-    displayedMonth,
-    selectedDate,
-    tempSelectedDate,
-    tempRangeStart,
-    tempRangeEnd,
-    isRange,
-  ]);
+  }, [displayedMonth, selectedDate, tempSelectedDate, isRange, tempRangeStart, tempRangeEnd]);
 
   // 이전 달의 캘린더 데이터
   const prevMonthCalendar = useMemo((): CalendarDayItem[] => {
@@ -386,51 +374,40 @@ export default function DatePicker({
 
   // 날짜 선택 처리 함수
   const handleDateSelect = (date: Date) => {
-    try {
-      if (!isRange) {
-        // 단일 날짜 선택
-        setTempSelectedDate(date);
-        // Redux 상태 업데이트 - 클론한 날짜 객체를 사용하여 참조가 변경되도록 함
-        selectDate(new Date(date.getTime()));
-        // onSelectDate(date); // 모달 닫기 제거
+    if (isRange) {
+      // 범위 선택 모드
+      if (!tempRangeStart || (tempRangeStart && tempRangeEnd)) {
+        // 시작 날짜 선택 또는 범위 재설정
+        setTempRangeStart(date);
+        setTempRangeEnd(null);
+        selectStartDate(date);
+        selectEndDate(null);
       } else {
-        // 범위 선택 모드
-        if (!tempRangeStart || (tempRangeStart && tempRangeEnd)) {
-          // 시작일 설정
+        // 종료 날짜 선택
+        if (date < tempRangeStart) {
+          // 종료 날짜가 시작 날짜보다 이전인 경우 순서 변경
+          setTempRangeEnd(tempRangeStart);
           setTempRangeStart(date);
-          setTempRangeEnd(null);
-          // Redux 상태 업데이트 - 클론한 날짜 객체 사용
-          selectStartDate(new Date(date.getTime()));
-          selectEndDate(null);
+          selectEndDate(tempRangeStart);
+          selectStartDate(date);
         } else {
-          // 종료일 설정 (시작일보다 이전 날짜 선택 시 시작일과 종료일 교체)
-          if (date < tempRangeStart) {
-            setTempRangeEnd(tempRangeStart);
-            setTempRangeStart(date);
-
-            // Redux 상태 업데이트
-            selectStartDate(new Date(date.getTime()));
-            selectEndDate(new Date(tempRangeStart.getTime()));
-
-            // 콜백 호출 (모달 닫기 제거)
-            if (onSelectRange) {
-              onSelectRange(date, tempRangeStart);
-            }
-          } else {
-            setTempRangeEnd(date);
-
-            // Redux 상태 업데이트
-            selectEndDate(new Date(date.getTime()));
-
-            // 콜백 호출 (모달 닫기 제거)
-            if (onSelectRange && tempRangeStart) {
-              onSelectRange(tempRangeStart, date);
-            }
-          }
+          setTempRangeEnd(date);
+          selectEndDate(date);
+        }
+        
+        // 범위 선택 완료 시 콜백 호출
+        if (onSelectRange && tempRangeStart) {
+          const start = date < tempRangeStart ? date : tempRangeStart;
+          const end = date < tempRangeStart ? tempRangeStart : date;
+          onSelectRange(start, end);
         }
       }
-    } catch (error) {
-      console.error("날짜 선택 처리 오류:", error);
+    } else {
+      // 단일 날짜 선택 모드
+      setTempSelectedDate(date);
+      selectDate(date);
+      onSelectDate(date);
+      onClose();
     }
   };
 
@@ -855,35 +832,34 @@ export default function DatePicker({
             </View>
 
             <View style={[styles.footer]}>
-              <Pressable style={styles.cancelButton} onPress={handleCancel}>
-                <Text style={styles.cancelButtonText}>초기화</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.applyButton,
-                  (!tempSelectedDate && !isRange) ||
-                  (isRange && !tempRangeStart)
-                    ? styles.applyButtonDisabled
-                    : {},
-                ]}
-                onPress={handleApplySelection}
-                disabled={
-                  (!tempSelectedDate && !isRange) ||
-                  (isRange && !tempRangeStart)
-                }
-              >
-                <Text
-                  style={[
-                    styles.applyButtonText,
-                    (!tempSelectedDate && !isRange) ||
-                    (isRange && !tempRangeStart)
-                      ? styles.applyButtonTextDisabled
-                      : {},
-                  ]}
-                >
-                  적용
-                </Text>
-              </Pressable>
+              {isRange ? (
+                <>
+                  <Pressable style={styles.cancelButton} onPress={handleCancel}>
+                    <Text style={styles.cancelButtonText}>초기화</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.applyButton,
+                      !tempRangeStart
+                        ? styles.applyButtonDisabled
+                        : {},
+                    ]}
+                    onPress={handleApplySelection}
+                    disabled={!tempRangeStart}
+                  >
+                    <Text
+                      style={[
+                        styles.applyButtonText,
+                        !tempRangeStart
+                          ? styles.applyButtonTextDisabled
+                          : {},
+                      ]}
+                    >
+                      적용
+                    </Text>
+                  </Pressable>
+                </>
+              ) : null}
             </View>
           </Pressable>
         </Pressable>
@@ -979,10 +955,11 @@ const styles = StyleSheet.create({
   },
   selectedDay: {
     backgroundColor: theme.colors.primary,
-    transform: [{ scale: 1.1 }],
+    borderRadius: 8,
   },
   selectedDayText: {
     color: theme.colors.white,
+    fontWeight: "bold",
   },
   todayCell: {
     backgroundColor: "#E1F5FE", // 연한 하늘색 배경

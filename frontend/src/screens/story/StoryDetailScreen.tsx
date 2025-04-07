@@ -41,9 +41,16 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
     const fetchFictionDetail = async () => {
       try {
         dispatch(fetchFictionDetailStart());
-        const response = await axiosInstance.get(`/fiction/${id}`);
-        dispatch(fetchFictionDetailSuccess(response.data.data));
+        const response = await axiosInstance.get(`/fictions/${id}`);
+        console.log('Fiction Detail API Response:', JSON.stringify(response.data, null, 2));
+        
+        if (response.data.data) {
+          dispatch(fetchFictionDetailSuccess(response.data.data));
+        } else {
+          dispatch(fetchFictionDetailFailure("소설 데이터가 없습니다."));
+        }
       } catch (error) {
+        console.error('Error fetching fiction detail:', error);
         dispatch(fetchFictionDetailFailure(error instanceof Error ? error.message : "소설을 불러오는데 실패했습니다."));
       }
     };
@@ -70,10 +77,10 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
   const storyData = {
     id,
     title: data.title,
-    series: data.seriesname || 'Medium Raw',
+    series: 'Medium Raw', // API 응답에 series 정보가 없으므로 기본값 사용
     content: data.content,
     date: data.createdAt,
-    coverImage: { uri: data.arturl },
+    coverImage: { uri: data.artUrl },
   };
 
   // 컨텐츠를 여러 페이지로 나누기

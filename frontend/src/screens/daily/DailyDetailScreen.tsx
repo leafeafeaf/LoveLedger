@@ -30,6 +30,8 @@ import {
   fetchAccountDetailSuccess, 
   fetchAccountDetailFailure 
 } from "../../store/financeSlice";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 type DailyDetailScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<DailyStackParamList, "DailyDetail">,
@@ -107,6 +109,7 @@ const FABComponent: FC<{
   menuAnimation: Animated.Value;
   position: { x: number; y: number };
   setPosition: (pos: { x: number; y: number }) => void;
+  selectedDate: string;
 }> = ({
   navigation,
   showFabMenu,
@@ -115,7 +118,9 @@ const FABComponent: FC<{
   menuAnimation,
   position,
   setPosition,
+  selectedDate,
 }) => {
+  const selectedDateObj = new Date(selectedDate);
   const { width, height } = useWindowDimensions();
   const pan = useRef(new Animated.ValueXY()).current;
 
@@ -193,6 +198,7 @@ const FABComponent: FC<{
               params: {
                 themeStyle: undefined,
                 toneStyle: undefined,
+                selectedDate: selectedDateObj.toISOString()
               },
             });
           }}
@@ -211,7 +217,9 @@ const FABComponent: FC<{
             toggleFabMenu();
             navigation.navigate("Diary", {
               screen: "DiaryCreate",
-              params: {},
+              params: {
+                date: selectedDateObj.toISOString()
+              },
             });
           }}
         >
@@ -269,7 +277,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
   const { selectedDate } = route.params;
   const selectedDateObj = new Date(selectedDate);
   
-  const { data, isLoading, error } = useAccountDetail({
+  const { data, isLoading, error, refetch } = useAccountDetail({
     year: selectedDateObj.getFullYear(),
     month: selectedDateObj.getMonth() + 1,
     day: selectedDateObj.getDate(),
@@ -277,6 +285,13 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
     size: 30,
     sort: 'DESC'
   });
+
+  // 화면이 포커스를 받을 때마다 데이터를 새로 불러옵니다.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   useEffect(() => {
     if (data) {
@@ -423,6 +438,7 @@ const DailyDetailScreen: FC<DailyScreenProps<"DailyDetail">> = ({
         menuAnimation={menuAnimation}
         position={fabPosition}
         setPosition={setFabPosition}
+        selectedDate={selectedDate}
       />
     </View>
   );
