@@ -1,4 +1,3 @@
-// screens/diary/DiaryEditScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -14,12 +13,14 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { DiaryStackParamList } from "../../types";
+import { DiaryStackParamList, TransactionHistory, TransactionChange } from "../../types";
 import Header from "../../components/common/Header";
 import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types";
-import axios from "axios";
+import { useTransactionHistory} from "../../hooks/useTransactionHistory";
+import { useUpdateTransactionHistory} from "../../hooks/useUpdateTransactionHistory";
+
 
 type DiaryEditDailyScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<DiaryStackParamList, "DiaryEditDaily">,
@@ -40,22 +41,22 @@ interface MoodOption {
   icon: string;
 }
 
-interface TransactionHistory {
-  transactionId: number;
-  time: string;
-  remittance: boolean;
-  targetName: string;
-  updatedTargetName: string;
-  category: string;
-  afterAmount: number;
-  amount: number;
-}
+// interface TransactionHistory {
+//   transactionId: number;
+//   time: string;
+//   remittance: boolean;
+//   targetName: string;
+//   updatedTargetName: string;
+//   category: string;
+//   afterAmount: number;
+//   amount: number;
+// }
 
-interface TransactionChange {
-  original: TransactionHistory;
-  modified: TransactionHistory;
-  isSelected: boolean;
-}
+// interface TransactionChange {
+//   original: TransactionHistory;
+//   modified: TransactionHistory;
+//   isSelected: boolean;
+// }
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("ko-KR", {
@@ -79,38 +80,12 @@ export default function DiaryEditDailyScreen({
     fetchTransactionHistory();
   }, []);
 
-  const fetchTransactionHistory = async () => {
-    try {
-      const response = await axios.post(
-        `/diary/${diaryId}/history`,
-        {},
-        {
-          headers: {
-            Authorization: "access-token", // TODO: 실제 토큰으로 교체
-          },
-        }
-      );
-
-      const history: TransactionHistory[] = response.data.data.history;
-      const transactionChanges: TransactionChange[] = history.map((item) => ({
-        original: item,
-        modified: {
-          ...item,
-          targetName: item.updatedTargetName,
-          amount: item.afterAmount,
-        },
-        isSelected: true,
-      }));
-
-      setChanges(transactionChanges);
-    } catch (error) {
-      Alert.alert("오류", "거래 내역을 불러오는데 실패했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { mutate: fetchTransactionHistory } = useTransactionHistory(diaryId, setChanges, setIsLoading);
+  const updateMutation = useUpdateTransactionHistory();
 
   const toggleChangeSelection = (index: number) => {
+    console.log(index);
+
     setChanges((prev) =>
       prev.map((change, i) =>
         i === index ? { ...change, isSelected: !change.isSelected } : change
@@ -124,26 +99,50 @@ export default function DiaryEditDailyScreen({
       Alert.alert("알림", "수정할 내역을 선택해주세요.");
       return;
     }
+    const transactionIds = selectedChanges.map(
+      (change) => change.modified.transactionId
+    );
+  
+    const updatedTargetNames = selectedChanges.map(
+      (change) => change.modified.updatedTargetName ?? ""
+    );
+    console.log(transactionIds);
 
-    // TODO: API 호출하여 선택된 변경사항 저장
-    navigation.navigate("Daily", {
-      screen: "DailyDetail",
-      params: {
-        selectedDate,
-        transactions: selectedChanges.map((change) => ({
-          id: change.modified.transactionId.toString(),
-          transactionid: change.modified.transactionId.toString(),
-          date: change.modified.time,
-          time: change.modified.time,
-          amount: change.modified.amount,
-          category: change.modified.category,
-          targetname: change.modified.targetName,
-          remittance: change.modified.remittance,
-          accountNo: change.modified.transactionId.toString().split("-")[0],
-        })),
+    console.log("updatedTargetNames : " + updatedTargetNames);
+
+    updateMutation.mutate(
+      {
+        transactionId: transactionIds,
+        updatedTargetNames,
       },
-    });
+      {
+        onSuccess: () => {
+          Alert.alert("완료", "거래 내역이 성공적으로 수정되었습니다.");
+          navigation.replace("Daily", {
+            screen: "DailyDetail",
+            params: {
+              selectedDate,
+              transactions: selectedChanges.map((change) => ({
+                transactionId: change.modified.transactionId.toString(),
+                date: change.modified.time,
+                time: change.modified.time,
+                remittance: change.modified.remittance,
+                targetName: change.modified.targetname,
+                afterAmount: change.modified.afterAmount,
+                amount: change.modified.amount,
+                categoryName: change.modified.category_id?.toString() ?? "",
+                accountNo: change.modified.transactionId.toString().split("-")[0],
+              })),
+            },
+          });
+        },
+        onError: () => {
+          Alert.alert("오류", "거래 내역 수정에 실패했습니다.");
+        },
+      }
+    );
   };
+
 
   return (
     <View style={styles.container}>
@@ -197,7 +196,7 @@ export default function DiaryEditDailyScreen({
                         })}
                       </Text>
                       <Text style={styles.transactionName}>
-                        {change.original.targetName}
+                        {change.original.targetname}
                       </Text>
                       <Text
                         style={[
@@ -227,8 +226,8 @@ export default function DiaryEditDailyScreen({
                           minute: "2-digit",
                         })}
                       </Text>
-                      <Text style={styles.transactionName}>
-                        {change.modified.targetName}
+                      <Text style={[styles.transactionName, styles.editedTransactionName]}>
+                        {change.modified.targetname}
                       </Text>
                       <Text
                         style={[
@@ -373,6 +372,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
+  },
+  editedTransactionName:{
+    color: theme.colors.success,
   },
   transactionAmount: {
     fontSize: 16,

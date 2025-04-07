@@ -10,11 +10,10 @@ import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +25,7 @@ public class SeriesService {
 
     // 시리즈 생성
     @Transactional
-    public void createSeries(User user, @Valid SeriesCreateReq seriesCreateReq) {
+    public SeriesReadResponse createSeries(User user, @Valid SeriesCreateReq seriesCreateReq) {
 
         // series 생성
         Series series = Series.builder()
@@ -36,6 +35,9 @@ public class SeriesService {
 
         //series 저장
         seriesRepository.save(series);
+
+        return SeriesReadResponse.builder().seriesId(series.getId()).title(series.getTitle())
+            .build();
     }
 
     //시리즈 삭제

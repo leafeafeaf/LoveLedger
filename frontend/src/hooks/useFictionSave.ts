@@ -1,15 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
-
 import { axiosInstance } from "../api/axios";
 
 interface FictionSaveRequest {
   content: string;
-  imageurl: string;
-  startdate: string;
-  enddate: string;
+  imageUrl: string;
+  startDate: string;
+  endDate: string;
   title: string;
   seriesId: number;
-  themeId: number;
 }
 
 interface FictionSaveResponse {
@@ -30,26 +28,31 @@ export const useFictionSave = () => {
   return useMutation<FictionSaveResponse, FictionSaveError, FictionSaveRequest>({
     mutationFn: async ({
       content,
-      imageurl,
-      startdate,
-      enddate,
+      imageUrl,
+      startDate,
+      endDate,
       title,
-      seriesId,
-      themeId,
+      seriesId
     }) => {
-      const response = await axiosInstance.post<FictionSaveResponse>("/fiction", {
+      console.log("소설 저장 시작")
+
+      const response = await axiosInstance.post<FictionSaveResponse>("/fictions", {
         content,
-        imageurl,
-        startdate,
-        enddate,
+        imageUrl,
+        startDate,
+        endDate,
         title,
-        seriesId,
-        themeId,
+        seriesId
       });
+
+      console.log(response)
+
       return response.data;
     },
     onError: (error) => {
       // 에러 메시지에 따른 에러 코드 처리
+      console.error(error)
+
       if (error.message.includes("시작 날짜가 끝 날짜보다 이후일 수 없습니다")) {
         throw new Error("INVALID_DATE_RANGE");
       } else if (error.message.includes("테마가 존재하지 않습니다")) {

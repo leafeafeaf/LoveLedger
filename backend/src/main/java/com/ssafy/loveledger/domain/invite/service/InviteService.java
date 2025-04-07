@@ -1,12 +1,18 @@
 package com.ssafy.loveledger.domain.invite.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.domain.user.domain.repository.UserRepository;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,19 +49,26 @@ public class InviteService {
     public String generateInviteLink(Long userId) {
         // 사용자 정보 조회
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(userId)));
 
         // 사용자가 이미 커플 관계가 있는지 확인
         if (user.getCouple() != null) {
-            throw new IllegalStateException("이미 연결된 배우자가 있습니다");
+            throw new LoveLedgerException(ErrorCode.ALREADY_COUPLED, String.valueOf(userId));
         }
 
         // 기존에 발급된 초대장이 있다면 삭제
         String userInviteKey = INVITE_KEY_PREFIX + "user:" + userId;
         String existingInviteCode = redisTemplate.opsForValue().get(userInviteKey);
+
         if (existingInviteCode != null) {
-            redisTemplate.delete(INVITE_KEY_PREFIX + "code:" + existingInviteCode);
-            redisTemplate.delete(userInviteKey);
+            // 기존 초대 정보 가져오기
+            String existingInviteData = redisTemplate.opsForValue().get(INVITE_KEY_PREFIX + "code:" + existingInviteCode);
+            if (existingInviteData != null) {
+                throw new LoveLedgerException(ErrorCode.ACTIVE_INVITE_EXISTS);
+            } else {
+                // 초대 코드는 있지만 데이터가 없는 경우, 정리
+                redisTemplate.delete(userInviteKey);
+            }
         }
 
         // 고유한 초대 코드 생성 (사용자 ID와 현재 시간을 조합하여 해시)

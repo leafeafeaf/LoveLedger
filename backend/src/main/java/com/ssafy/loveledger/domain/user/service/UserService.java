@@ -12,6 +12,7 @@ import com.ssafy.loveledger.domain.user.presentation.dto.response.UserResponse;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE; // yyyy-MM-dd 형식
@@ -34,11 +36,43 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(userId)));
 
-        DetailUserResponse.CoupleInfo coupleInfo = getCoupleInfo(userId);
+        // 2. 커플 정보 조회
+        Optional<Couple> coupleOpt = coupleRepository.findByUserId(userId);
+        boolean isMarried = false;
+        String marryDate = null;
+        int marriageDuration = 0;
+        DetailUserResponse.CoupleInfo coupleInfo = DetailUserResponse.CoupleInfo.empty();
 
+        // 3. 커플 정보가 있는 경우 처리
+        if (coupleOpt.isPresent()) {
+            Couple couple = coupleOpt.get();
+            isMarried = couple.isMarried();
+
+            if (couple.getMarryDate() != null) {
+                marryDate = couple.getMarryDate().format(DATE_FORMATTER);
+                marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(), LocalDate.now());
+            }
+
+            // 4. 파트너 정보 조회
+            Long partnerId = userId.equals(couple.getHusbandId()) ? couple.getWifeId() : couple.getHusbandId();
+            User partner = userRepository.findById(partnerId)
+                .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(partnerId)));
+
+            // 5. 커플 정보 구성
+            coupleInfo = DetailUserResponse.CoupleInfo.builder()
+                .coupleId(couple.getId())
+                .darlingEmail(partner.getEmail())
+                .darlingName(partner.getName())
+                .darlingBirthDay(partner.getBirthDay() != null ? partner.getBirthDay().format(DATE_FORMATTER) : null)
+                .darlingPicture(partner.getPicture())
+                .build();
+        }
+
+        // 6. 사용자 생일 포맷팅
         String formattedBirthday = Optional.ofNullable(user.getBirthDay())
             .map(birthday -> birthday.format(DATE_FORMATTER))
             .orElse(null);
+
 
         // 7. DTO 생성 및 반환
         return DetailUserResponse.builder()
@@ -46,13 +80,11 @@ public class UserService {
             .name(user.getName())
             .birthDay(formattedBirthday)
             .gender(user.getGender())
-            .isMarried(coupleInfo.isMarried())
-            .marryDate(coupleInfo.getMarryDate())
-            .darling(coupleInfo.getDarling())
-            .darlingName(coupleInfo.getDarlingName())
-            .darlingBirthDay(coupleInfo.getDarlingBirthDay())
-            .marriageDuration(coupleInfo.getMarriageDuration())
+            .isMarried(isMarried)
+            .marryDate(marryDate)
+            .marriageDuration(marriageDuration)
             .picture(user.getPicture())
+            .coupleInfo(coupleInfo)
             .build();
     }
 
@@ -80,6 +112,9 @@ public class UserService {
             .picture(user.getPicture())
             .build();
 
+        log.info("UpdateUser : {}", updatedUser);
+
+
         userRepository.save(updatedUser);
     }
 
@@ -87,74 +122,32 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(userId)));
 
-        // 기존 정보를 유지하면서 빌더 패턴으로 업데이트
-        User.UserBuilder userBuilder = User.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .provider(user.getProvider())
-            .usercode(user.getUsercode())
-            .name(user.getName())
-            .gender(user.getGender())
-            .birthDay(user.getBirthDay())
-            .isMarried(user.getIsMarried())
-            .library(user.getLibrary())
-            .picture(user.getPicture())
-            .account(user.getAccount());
-
-        // 요청에 포함된 필드만 업데이트
+        // 요청에 존재하는 필드만 업데이트 (null이 아닌 경우)
         if (request.getName() != null) {
-            userBuilder.name(request.getName());
+            user.setName(request.getName());
         }
-
         if (request.getGender() != null) {
-            userBuilder.gender(request.getGender());
+            user.setGender(request.getGender());
         }
         if (request.getBirthDay() != null) {
-            userBuilder.birthDay(request.getBirthDay());  // 일관된 필드명 사용
+            user.setBirthDay(request.getBirthDay());
         }
         if (request.getIsMarried() != null) {
-            userBuilder.isMarried(request.getIsMarried());
+            user.setIsMarried(request.getIsMarried());
+        }
+        if (request.getPicture() != null) {
+            user.setPicture(request.getPicture());
         }
         // 업데이트된 사용자 저장
-        User savedUser = userRepository.save(userBuilder.build());
+        User savedUser = userRepository.save(user);
 
-        // 응답 DTO 변환
+        // 응답 DTO에 모든 필드를 포함시킴
         return UserResponse.builder()
             .name(savedUser.getName())
             .gender(savedUser.getGender())
-            .birthDay(savedUser.getBirthDay().format(DATE_FORMATTER))  // LocalDate를 문자열로 변환
+            .birthDay(savedUser.getBirthDay() != null ? savedUser.getBirthDay().format(DATE_FORMATTER) : null)
             .isMarried(savedUser.getIsMarried())
-            .build();
-    }
-
-    private DetailUserResponse.CoupleInfo getCoupleInfo(Long userId) {
-        Optional<Couple> coupleOpt = coupleRepository.findByUserId(userId);
-
-        if (coupleOpt.isEmpty()) {
-            return DetailUserResponse.CoupleInfo.empty();
-        }
-
-        Couple couple = coupleOpt.get();
-        String marryDate = null;
-        int marriageDuration = 0;
-
-        if (couple.getMarryDate() != null) {
-            marryDate = couple.getMarryDate().format(DATE_FORMATTER);
-            marriageDuration = (int) ChronoUnit.DAYS.between(couple.getMarryDate(), LocalDate.now());
-        }
-
-        Long partnerId = userId.equals(couple.getHusbandId()) ? couple.getWifeId() : couple.getHusbandId();
-
-        User partner = userRepository.findById(partnerId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.USER_NOT_FOUND, String.valueOf(partnerId)));
-
-        return DetailUserResponse.CoupleInfo.builder()
-            .isMarried(couple.isMarried())
-            .marryDate(marryDate)
-            .darling(partner.getEmail())
-            .darlingName(partner.getName())
-            .darlingBirthDay(partner.getBirthDay() != null ? partner.getBirthDay().format(DATE_FORMATTER) : null)
-            .marriageDuration(marriageDuration)
+            .picture(savedUser.getPicture())  // picture 필드 추가
             .build();
     }
 }

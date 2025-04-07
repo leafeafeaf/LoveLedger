@@ -148,6 +148,10 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
     { id: 4, label: "필기체", icon: "format-text" },
   ];
 
+  const formatDateToYYYYMMDD = (date: Date) => {
+    return date.toLocaleDateString("sv-SE"); // "YYYY-MM-DD" 형식 (스웨덴 표준)
+  };
+
   // 테마 옵션 렌더링
   const renderThemeOption = ({ item }: { item: ThemeItem }) => {
     const isSelected = selectedTheme?.id === item.id;
@@ -204,6 +208,7 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
       // 알림 처리
       return;
     }
+    console.log(selectedPeriod)
 
     navigation.navigate("SeriesSelection", {
       settings: {
@@ -231,15 +236,14 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   const handleSelectRange = (start: Date, end: Date) => {
     // Redux 상태 업데이트는 이미 DatePicker 컴포넌트 내부에서 처리됨
     // setShowDatePicker(false); // 모달 닫기 제거
+    const formattedStart = formatDateToYYYYMMDD(start);
+    const formattedEnd = formatDateToYYYYMMDD(end);
 
-    // 직접 설정 옵션 수동으로 선택 (useEffect에서 처리하지 않음)
-    if (!selectedPeriod || selectedPeriod.id !== CUSTOM_DATE_ID) {
-      setSelectedPeriod({
-        id: CUSTOM_DATE_ID,
-        label: "직접 설정",
-        icon: "calendar-week",
-      });
-    }
+    setSelectedPeriod({
+      id: CUSTOM_DATE_ID,
+      label: `${formattedStart} ~ ${formattedEnd}`, // ✅ 날짜 범위 직접 넣기!
+      icon: "calendar-week",
+    });
   };
 
   // 사용자가 기본 기간 옵션을 선택하면 DatePicker 상태 초기화
@@ -284,12 +288,19 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
             style={[
               styles.customDateContainer,
               selectedPeriod?.id === CUSTOM_DATE_ID &&
-                styles.selectedCustomDate,
+              styles.selectedCustomDate,
             ]}
             onPress={() => {
+              const formattedStart = startDate ? formatDateToYYYYMMDD(startDate) : "";
+              const formattedEnd = endDate ? formatDateToYYYYMMDD(endDate) : "";
+              const rangeLabel =
+                formattedStart && formattedEnd
+                  ? `${formattedStart} ~ ${formattedEnd}`
+                  : "날짜 미지정";
+
               setSelectedPeriod({
                 id: CUSTOM_DATE_ID,
-                label: "직접 설정",
+                label: rangeLabel,
                 icon: "calendar-week",
               });
               setSelectingEndDate(false);

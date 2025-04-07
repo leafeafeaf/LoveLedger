@@ -7,7 +7,7 @@ const baseURL =
 
 export const axiosInstance = axios.create({
   baseURL,
-  timeout: 5000,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json; charset=utf8",
   },

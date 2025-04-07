@@ -54,6 +54,31 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
 
+        // 소셜 네임은 항상 업데이트 (참조용)
+//        user.setName(customUserDetail.getName());
+
+        // 이름이 아직 설정되지 않은 경우에만 소셜 이름으로 설정
+        if (user.getName() == null || user.getName().isEmpty()) {
+            log.info("사용자 이름이 없어 소셜 이름으로 설정합니다: {}", customUserDetail.getName());
+            user.setName(customUserDetail.getName());
+        }else {
+            log.info("기존 사용자 이름을 유지합니다: {}", user.getName());
+        }
+
+
+        // 프로필 사진도 같은 원칙 적용 (선택적)
+        if (user.getPicture() == null && customUserDetail.getPicture() != null) {
+            user.setPicture(customUserDetail.getPicture());
+        }
+        // 저장 전후 로그
+        log.info("저장 전 사용자 정보: {}", user);
+
+        userRepository.save(user);
+        // 다시 불러와서 확인
+        User savedUser = userRepository.findById(userId).orElse(null);
+        log.info("저장 후 사용자 정보: {}", savedUser);
+
+
         try {
             MemberInfoResponse memberInfo = getOrRegisterMemberInfo(user);
             log.info("SSAFY API 사용자 정보: {}", memberInfo);
