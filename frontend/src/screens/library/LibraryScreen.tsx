@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+// screens/library/LibraryScreen.tsx
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,87 +8,105 @@ import {
   FlatList,
   ImageBackground,
   Image,
+  Dimensions,
+  SafeAreaView,
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../store";
-import { fetchDiaryListStart, fetchDiaryListSuccess, fetchDiaryListFailure } from "../../store/contentSlice";
-import { axiosInstance } from "../../api/axios";
-import { useDiaryList } from "../../hooks/useDiaryList";
-import { useFictionList } from "../../hooks/useFictionList";
-import { BookItem, BookItem as BookItemType } from "../../types";
+import { MainTabScreenProps, LibraryStackParamList, LibraryScreenProps, BookItem } from "../../types";
+import { BookItem as BookItemType } from "../../types";
+import { DiaryContent } from "../../store/contentSlice";
 import SearchBar from "../../components/library/SearchBar";
 import ViewToggle from "../../components/library/ViewToggle";
 import ContentToggle from "../../components/library/ContentToggle";
 import BookShelf from "../../components/library/BookShelf";
 import BookListItem from "../../components/library/BookListItem";
 import { theme } from "../../utils/theme";
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { fetchFictionListStart, fetchFictionListSuccess, fetchFictionListFailure, fetchDiaryListStart, fetchDiaryListSuccess, fetchDiaryListFailure } from "../../store/contentSlice";
+import { axiosInstance } from "../../api/axios";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useDiaryList } from '../../hooks/useDiaryList';
 
-type RootStackParamList = {
-  Library: undefined;
-  DiaryDetail: { id: string, date: string, mood: string };
-  StoryDetail: { id: string };
-  // 다른 화면들 추가...
+type Props = LibraryScreenProps<"LibraryMain">;
+
+const LibraryScreen: React.FC<Props> = ({ navigation }) => {
+  const [activeView, setActiveView] = useState<"album" | "list">("album");
+  const [activeContent, setActiveContent] = useState<"diaries" | "stories">(
+    "stories"
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const { width } = Dimensions.get("window");
+  const dispatch = useDispatch();
+  const { series, isLoading: isFictionLoading } = useSelector((state: RootState) => state.content.fictionList);
+  const { diaries, isLoading: isDiaryLoading } = useSelector((state: RootState) => state.content.diary);
+  const { data: diaryData, isLoading: isDiaryQueryLoading } = useDiaryList();
+
+  // API 데이터 가져오기
+  useEffect(() => {
+    const fetchFictionList = async () => {
+      try {
+        dispatch(fetchFictionListStart());
+        const response = await axiosInstance.get("/fictions", {
+          params: {
+            pageno: 1,
+            size: 50,
+            sort: "DESC"
+          }
+        });
+
+        console.log(response)
+        dispatch(fetchFictionListSuccess(response.data.data.content));
+      } catch (error) {
+        dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
+      }
+    };
+
+    const fetchDiaryList = async () => {
+      try {
+        dispatch(fetchDiaryListStart());
+        const response = await axiosInstance.get('/diary', {
+          params: {
+            page: 1,
+            size: 50,
+            sort: 'DESC'
+          }
+        });
+        dispatch(fetchDiaryListSuccess(response.data.data.content));
+      } catch (error) {
+        dispatch(fetchDiaryListFailure(error instanceof Error ? error.message : '일기 목록을 불러오는데 실패했습니다.'));
+      }
+    };
+
+    fetchFictionList();
+    fetchDiaryList();
+  }, [dispatch]);
+
+  // mood 값을 변환하는 함수
+const getMoodText = (mood: number | string): string => {
+  switch (mood) {
+    case 1:
+      return 'happy';
+    case 2:
+      return 'angry';
+    case 3:
+      return 'peaceful';
+    case 4:
+      return 'sad';
+    default:
+      return 'happy'; // 기본값 설정
+  }
 };
 
-type LibraryScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Library'>;
-
-interface LibraryScreenProps {
-  navigation: LibraryScreenNavigationProp;
-}
-
-const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
-  const [activeView, setActiveView] = useState<"album" | "list">("album");
-  const [activeContent, setActiveContent] = useState<"diaries" | "stories">("stories");
-  const [searchQuery, setSearchQuery] = useState("");
-  const dispatch = useDispatch();
-  const { diaries } = useSelector((state: RootState) => state.content.diary);
-  const { data: diaryData, refetch: refetchDiaryList, isLoading: isDiaryLoading } = useDiaryList();
-  const { data: fictionData, refetch: refetchFictionList, isLoading: isFictionLoading } = useFictionList({
-    pageno: 1,
-    size: 50,
-    sort: "DESC"
-  });
-
-  const moodMap: Record<number, 'happy' | 'angry' | 'peaceful' | 'sad'> = {
-    1: 'happy',
-    2: 'angry',
-    3: 'peaceful',
-    4: 'sad',
-  };
-
-  // 화면 진입 시마다 새로 fetch
-  useFocusEffect(
-    useCallback(() => {
-      const fetchDiaries = async () => {
-        try {
-          dispatch(fetchDiaryListStart());
-          const response = await axiosInstance.get('/diary', {
-            params: { page: 1, size: 50, sort: 'DESC' },
-          });
-          dispatch(fetchDiaryListSuccess(response.data.data.content));
-        } catch (err) {
-          dispatch(fetchDiaryListFailure(err instanceof Error ? err.message : '일기 목록을 불러오는데 실패했습니다.'));
-        }
-      };
-
-      fetchDiaries();
-      refetchFictionList();
-    }, [dispatch, refetchFictionList])
-  );
-
-  const series = fictionData?.series ?? [];
-
+  // Filter books by search query
   const filteredBooks: BookItem[] = activeContent === "diaries"
   ? diaries.map((diary) => ({
       id: String(diary.id),
       title: diary.title,
       date: diary.targetDate,
-      type: 'diary' as 'diary', // 'diary'로 명확하게 지정
-      mood: moodMap[diary.mood] || 'happy',
+      type: 'diary' as const,
+      mood: getMoodText(diary.mood),
       content: diary.content,
       createdAt: diary.createdAt,
       updatedAt: diary.updatedAt || undefined,
@@ -95,46 +114,115 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
       coverImage: '',
       seriesId: 0,
     }))
-  : series.flatMap((s) =>
-      s.fictions.map((fiction) => ({
-        id: String(fiction.fictionId),
-        title: fiction.title,
-        date: new Date(fiction.createdAt).toISOString().split('T')[0],
-        type: 'story' as 'story', // 'story'로 명확하게 지정
-        theme: s.seriesName,
-        coverImage: fiction.artUrl,
-        seriesId: s.seriesId,
-      }))
-    ).filter((item) => item.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  : (series ?? []).flatMap(series =>
+      series.fictions.map(fiction => {
+        const safeCreatedAt = fiction.createdAt ?? new Date().toISOString(); // null 처리
+        return {
+          id: String(fiction.fictionId ?? safeCreatedAt),
+          fictionId: fiction.fictionId,
+          title: fiction.title,
+          date: new Date(safeCreatedAt).toISOString().split('T')[0],
+          type: "story" as const,
+          theme: series.seriesname,
+          coverImage: fiction.arturl,
+          arturl: fiction.arturl,
+          createdAt: safeCreatedAt,
+          updatedAt: fiction.updatedAt,
+          seriesId: series.seriesid,
+        };
+      })
+    ).filter(item =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
+  // Group books by month (for diaries) or series (for stories)
   const groupedBooks = filteredBooks.reduce((acc, item) => {
-    const key = item.type === "diary"
-      ? `${new Date(item.date).getFullYear()}/${String(new Date(item.date).getMonth() + 1).padStart(2, "0")}`
-      : item.theme || "Default Series";
+    let key;
 
-    if (!acc[key]) acc[key] = [];
+    if (activeContent === "diaries") {
+      const date = new Date(item.date);
+      key = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
+    } else {
+      key = item.theme || "Default Series";
+    }
+
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+
     acc[key].push(item);
     return acc;
   }, {} as Record<string, BookItemType[]>);
 
-  const sortedGroupKeys = Object.keys(groupedBooks).sort((a, b) =>
-    activeContent === "diaries" ? b.localeCompare(a) : a.localeCompare(b)
-  );
+  // Sort groups by date (for diaries) or alphabetically (for stories)
+  const sortedGroupKeys = Object.keys(groupedBooks).sort((a, b) => {
+    if (activeContent === "diaries") {
+      return b.localeCompare(a); // 최신 날짜가 먼저 오도록 정렬
+    } else {
+      return a.localeCompare(b); // 알파벳 순으로 정렬
+    }
+  });
 
+  // Handle book selection
   const handleSelectBook = (book: BookItemType) => {
     if (book.type === "diary") {
+      // 일반적인 navigate 호출
       navigation.navigate("DiaryDetail", {
         id: book.id,
         date: book.date,
         mood: book.mood,
       });
     } else {
-      navigation.navigate("StoryDetail", { id: book.id });
+      // 일반적인 navigate 호출
+      navigation.navigate("StoryDetail", {
+        id: book.id,
+      });
     }
   };
 
+  // 헤더 렌더링
+  const renderHeader = () => (
+    <ImageBackground
+      source={require("../../../assets/images/common/wood.jpg")}
+      style={styles.header}
+    >
+      <StatusBar barStyle="light-content" />
+      <Text style={styles.headerTitle}>Library</Text>
+    </ImageBackground>
+  );
+
+  // 컨트롤 영역 렌더링
+  const renderControls = () => (
+    <View style={styles.controlsContainer}>
+      <View style={styles.searchContainer}>
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <ViewToggle activeView={activeView} onToggle={setActiveView} />
+      </View>
+
+      <ContentToggle
+        activeContent={activeContent}
+        onToggle={setActiveContent}
+      />
+    </View>
+  );
+
+  // 로딩 상태 렌더링
+  const renderLoading = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+    </View>
+  );
+
+  // 앨범 뷰 렌더링
   const renderAlbumView = () => (
-    <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       {sortedGroupKeys.map((key) => (
         <BookShelf
           key={key}
@@ -148,6 +236,7 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
     </ScrollView>
   );
 
+  // 리스트 뷰 렌더링
   const renderListView = () => (
     <FlatList
       style={[styles.content, styles.listContent]}
@@ -165,13 +254,7 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={require("../../../assets/images/common/wood.jpg")}
-        style={styles.header}
-      >
-        <StatusBar barStyle="light-content" />
-        <Text style={styles.headerTitle}>Library</Text>
-      </ImageBackground>
+      {renderHeader()}
 
       <ImageBackground
         source={require("../../../assets/images/library/library_bg.png")}
@@ -185,37 +268,68 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.controlsContainer}>
-          <View style={styles.searchContainer}>
-            <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-            <ViewToggle activeView={activeView} onToggle={setActiveView} />
-          </View>
-          <ContentToggle activeContent={activeContent} onToggle={setActiveContent} />
-        </View>
+        {renderControls()}
 
-        {(isDiaryLoading || isFictionLoading)
-          ? <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loadingContainer} />
-          : activeView === "album"
-            ? renderAlbumView()
-            : renderListView()}
+        {isFictionLoading || isDiaryQueryLoading ? renderLoading() : (
+          activeView === "album" ? renderAlbumView() : renderListView()
+        )}
       </ImageBackground>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { paddingTop: 72, paddingBottom: 16, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "white" },
-  bgContainer: { flex: 1, width: "100%" },
-  logoContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 16 },
-  logo: { width: 200, height: 200 },
-  controlsContainer: { paddingHorizontal: 16, marginBottom: 8 },
-  searchContainer: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  content: { flex: 1 },
-  contentContainer: { paddingBottom: 20 },
-  listContent: { backgroundColor: "#FFFBF2" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    paddingTop: 72,
+    paddingBottom: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "white",
+  },
+  bgContainer: {
+    flex: 1,
+    width: "100%",
+  },
+  logoContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  listContent: {
+    backgroundColor: "#FFFBF2", // 연한 베이지색
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default LibraryScreen;

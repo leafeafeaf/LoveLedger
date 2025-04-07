@@ -42,15 +42,12 @@ interface ContentState {
     error: string | null;
     lastSavedStory: Story | null;
   };
+
   fictionList: {
     series: {
       seriesid: number;
       seriesname: string;
-      fictions: {
-        title: string;
-        arturl: string;
-        createat: string;
-      }[];
+      fictions: BookItem[]; // BookItem[]로 변경
     }[];
     isLoading: boolean;
     error: string | null;
@@ -264,6 +261,7 @@ const contentSlice = createSlice({
         type: "story",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        arturl: undefined
       });
     },
     storySavingFailure: (state, action: PayloadAction<string>) => {
@@ -282,15 +280,34 @@ const contentSlice = createSlice({
         seriesid: number;
         seriesname: string;
         fictions: {
+          fictionId: number;
           title: string;
-          arturl: string;
-          createat: string;
+          artUrl: string;
+          createdAt: string;
         }[];
       }[];
     }>) => {
-      state.fictionList.series = action.payload.series;
-      state.fictionList.isLoading = false;
+      // fictions 배열을 BookItem[] 형식으로 변환하여 저장
+      state.fictionList.series = action.payload.series.map((series) => ({
+        seriesid: series.seriesid,
+        seriesname: series.seriesname,
+        // fictions 배열을 BookItem 형식으로 변환
+        fictions: series.fictions.map((fiction) => ({
+          id: String(fiction.fictionId),  // fictionId를 id로 사용
+          title: fiction.title,
+          date: new Date(fiction.createdAt).toISOString().split('T')[0],  // createdAt을 date로 처리
+          type: "story" as const,  // type을 "story"로 설정
+          theme: series.seriesname,  // seriesname을 theme으로 설정
+          coverImage: fiction.artUrl,  // artUrl을 coverImage로 설정
+          seriesId: series.seriesid,  // seriesId를 추가
+          fictionId: fiction.fictionId,  // fictionId를 추가
+          arturl: fiction.artUrl, // arturl을 추가
+        })),
+      }));
+
+      state.fictionList.isLoading = false;  // 로딩 완료 처리
     },
+    
     fetchFictionListFailure: (state, action: PayloadAction<string>) => {
       state.fictionList.isLoading = false;
       state.fictionList.error = action.payload;

@@ -39,7 +39,7 @@ const fetchFictionList = async (params?: FictionListParams): Promise<FictionList
     },
   });
 
-  console.log(response)
+  // console.log(response)
 
   return response.data.data;
 };

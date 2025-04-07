@@ -232,6 +232,8 @@ export type DatePickerProps = {
 
 // 도서 항목 타입
 export interface BookItem {
+  fictionId?: number; // 함수 아님!
+  arturl?: string;
   id: string;
   title: string;
   date: string;
