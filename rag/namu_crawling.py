@@ -1,19 +1,6 @@
-import warnings
-import shutil
-import subprocess
-import time
 import json
-import html
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.chrome.service import Service
-from bs4 import BeautifulSoup
-from selenium.webdriver.support.ui import WebDriverWait
+from bs4 import BeautifulSoup, NavigableString
 import requests
-import chromedriver_autoinstaller
-import re
-import os
 
 def request_page(url):
     headers = {
@@ -33,7 +20,7 @@ url = "https://namu.wiki/w/밈(인터넷%20용어)/대한민국"
 soup = request_page(url)
 divs = soup.find_all('div', class_='M8xPxt04')
 
-json_path= 'C:\\Users\\SSAFY\\Desktop\\loveledger\\LoveLedger\\rag\\mimmim_korea.json'
+json_path= 'C:\\Users\\SSAFY\Desktop\\loveledgerllm\\mimmim_korea.json'
 
 # # 1. 기존 데이터 불러오기 (없으면 빈 리스트)
 # if os.path.exists(json_path):
@@ -68,19 +55,32 @@ for j, div in enumerate(divs):
 
             # 출력
             for i, blockquote in enumerate(blockquotes):
-                block = blockquote.get_text(separator='\n', strip=True)  # 모든 텍스트
+                # block = blockquote.get_text(separator='\n', strip=True)  # 모든 텍스트
 
+                texts = []
+                for child in blockquote.descendants:
+                    if isinstance(child, NavigableString):
+                        clean_text = child.strip()
+                        if clean_text:
+                            texts.append(clean_text)
+
+                block = '\n'.join(texts)
                 if block:
                     contents.append(block)
 
             print(contents)
             print()
 
-            if len(contents)>len(text):
+            # print(f"contents : {contents[0]}")
+            # print(f"contents len : {len(contents[0])}")
+            # print(f"text : {text}")
+            # print(f"len(text) : {len(text)}")
+            if len(contents)>=2:
                 result = {
                     'script' : contents,
                     'links' : full_url
                 }
+                print(result)
                 all_results.append(result)
 
 with open(json_path,"w",encoding='utf-8') as f:
@@ -88,4 +88,3 @@ with open(json_path,"w",encoding='utf-8') as f:
                 
 print(f"데이터 저장 완료: {json_path}")
 
-    
