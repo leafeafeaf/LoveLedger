@@ -16,10 +16,11 @@
     "@react-navigation/stack": "^7.2.3",
     "@reduxjs/toolkit": "^2.6.1",
     "@supabase/supabase-js": "latest",
-    "@tanstack/react-query": "^5.71.1",
-    "@tanstack/react-query-devtools": "^5.71.1",
+    "@tanstack/react-query": "^5.71.10",
+    "@tanstack/react-query-devtools": "^5.71.10",
     "axios": "^1.8.4",
     "expo": "^52.0.39",
+    "expo-linking": "~7.0.5",
     "lucide-react-native": "latest",
     "react": "18.3.1",
     "react-native": "0.76.7",
@@ -31,8 +32,7 @@
     "react-native-toast-message": "^2.2.1",
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0",
-    "sonner-native": "latest",
-    "expo-linking": "~7.0.5"
+    "sonner-native": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

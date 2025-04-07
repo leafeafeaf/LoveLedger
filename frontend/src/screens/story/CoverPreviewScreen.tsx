@@ -23,6 +23,7 @@ import {
   storySavingFailure,
   clearStorySavingState,
 } from "../../store/contentSlice";
+import { useDatePicker } from "../../hooks/useDatePicker";
 
 const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
   navigation,
@@ -38,6 +39,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
   const coverImage = useSelector(
     (state: RootState) => state.content.storySaving.lastSavedStory?.coverImage
   );
+  const { resetAllDates } = useDatePicker();
 
   React.useEffect(() => {
     // 화면 진입 시 커버 생성
@@ -115,6 +117,9 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
             })
           );
           dispatch(clearCoverImage());
+          
+          // 날짜 초기화
+          resetAllDates();
 
           // ✅ 저장 성공 후 메인 화면 또는 퍼블리싱 화면으로 이동
           navigation.getParent()?.reset({

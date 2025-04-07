@@ -104,7 +104,13 @@ export default function DiaryEditDailyScreen({
     );
   
     const updatedTargetNames = selectedChanges.map(
-      (change) => change.modified.updatedTargetName ?? ""
+      (change) => {
+        if (change.modified.updatedTargetName === null || 
+            change.modified.updatedTargetName === change.original.targetname) {
+          return change.original.targetname;
+        }
+        return change.modified.updatedTargetName;
+      }
     );
     console.log(transactionIds);
 
@@ -118,23 +124,7 @@ export default function DiaryEditDailyScreen({
       {
         onSuccess: () => {
           Alert.alert("완료", "거래 내역이 성공적으로 수정되었습니다.");
-          navigation.replace("Daily", {
-            screen: "DailyDetail",
-            params: {
-              selectedDate,
-              transactions: selectedChanges.map((change) => ({
-                transactionId: change.modified.transactionId.toString(),
-                date: change.modified.time,
-                time: change.modified.time,
-                remittance: change.modified.remittance,
-                targetName: change.modified.targetname,
-                afterAmount: change.modified.afterAmount,
-                amount: change.modified.amount,
-                categoryName: change.modified.category_id?.toString() ?? "",
-                accountNo: change.modified.transactionId.toString().split("-")[0],
-              })),
-            },
-          });
+          navigation.goBack();
         },
         onError: () => {
           Alert.alert("오류", "거래 내역 수정에 실패했습니다.");

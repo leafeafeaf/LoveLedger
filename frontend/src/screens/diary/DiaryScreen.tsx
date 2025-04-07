@@ -20,10 +20,15 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DiaryStackParamList } from "../../types";
 import { useDiaryCreate } from "../../hooks/useDiaryCreate";
 
-type DiaryScreenProps = NativeStackScreenProps<
-  DiaryStackParamList,
-  "DiaryCreate"
->;
+type DiaryScreenProps = Omit<NativeStackScreenProps<DiaryStackParamList, "DiaryCreate">, 'route'> & {
+  route: {
+    params: DiaryCreateParams;
+  };
+};
+
+interface DiaryCreateParams {
+  date?: string;
+}
 
 // 감정 아이콘 타입 정의
 type MoodIconType =
@@ -43,7 +48,13 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("happy");
   const [expense, setExpense] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // route.params에서 날짜를 받아오고, 없으면 현재 날짜 사용
+    if (route.params?.date) {
+      return new Date(route.params.date);
+    }
+    return new Date();
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const { mutate: createDiary, isPending } = useDiaryCreate();

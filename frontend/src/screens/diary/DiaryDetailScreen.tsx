@@ -1,20 +1,67 @@
 // screens/diary/DiaryDetailScreen.tsx
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { LibraryStackParamList } from '../../types';
+import { LibraryStackParamList, RootStackParamList } from '../../types';
 import { useDiaryDetail } from '../../hooks/useDiaryDetail';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { theme } from '../../utils/theme';
 import Header from '../../components/common/Header';
+import MoodIcon from '../../components/common/MoodIcon';
+import { useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type DiaryDetailScreenProps = NativeStackScreenProps<LibraryStackParamList, 'DiaryDetail'>;
+type RootNavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<RootStackParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+type MoodType = 'happy' | 'angry' | 'peaceful' | 'sad';
 
 export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScreenProps) {
   const { id } = route.params;
   const { data, isLoading, error } = useDiaryDetail(id);
   const { isLoading: isReduxLoading } = useSelector((state: RootState) => state.content.diary);
+  const rootNavigation = useNavigation<RootNavigationProp>();
+
+  // mood 값을 MoodType으로 변환하는 함수
+  const getMoodText = (mood: number | string): MoodType => {
+    switch (mood) {
+      case 1:
+      case 'happy':
+        return 'happy';
+      case 2:
+      case 'angry':
+        return 'angry';
+      case 3:
+      case 'peaceful':
+        return 'peaceful';
+      case 4:
+      case 'sad':
+        return 'sad';
+      default:
+        return 'happy';
+    }
+  };
+
+  // 편집 화면으로 이동
+  const handleEdit = () => {
+    if (data) {
+      rootNavigation.navigate('Diary', {
+        screen: 'DiaryEdit',
+        params: {
+          id: id,
+          date: data.data.targetDate,
+          title: data.data.title,
+          content: data.data.content,
+          mood: getMoodText(data.data.mood),
+        },
+      });
+    }
+  };
 
   if (isLoading || isReduxLoading) {
     return (
@@ -38,16 +85,9 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
     );
   }
 
-  const handleEdit = () => {
-    navigation.navigate('DiaryEdit', {
-      id: data.data.id,
-      date: data.data.targetDate,
-      title: data.data.title,
-      content: data.data.content,
-      mood: data.data.mood,
-    });
-  };
+  const moodText = getMoodText(data.data.mood);
 
+  // 상세 보기 UI
   return (
     <View style={styles.container}>
       <Header 
@@ -62,7 +102,12 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
       />
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
-          <Text style={styles.title}>{data.data.title}</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{data.data.title}</Text>
+            <View style={styles.moodContainer}>
+              <MoodIcon mood={moodText} size={32} color={theme.colors.primary} />
+            </View>
+          </View>
           <Text style={styles.date}>{data.data.targetDate}</Text>
         </View>
         <View style={styles.section}>
@@ -105,11 +150,20 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    flex: 1,
+  },
+  moodContainer: {
+    marginLeft: theme.spacing.md,
   },
   date: {
     fontSize: 16,

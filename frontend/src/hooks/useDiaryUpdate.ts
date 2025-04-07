@@ -12,7 +12,7 @@ interface DiaryUpdatePayload {
   title: string;
   content: string;
   targetDate: string;
-  mood: string;
+  mood: number;
 }
 
 interface ApiError {
@@ -27,6 +27,26 @@ interface ValidationError {
   title?: string;
   content?: string;
 }
+
+// mood 값을 number로 변환하는 함수
+const getMoodNumber = (mood: number | string): number => {
+  switch (mood) {
+    case 1:
+    case 'happy':
+      return 1;
+    case 2:
+    case 'angry':
+      return 2;
+    case 3:
+    case 'peaceful':
+      return 3;
+    case 4:
+    case 'sad':
+      return 4;
+    default:
+      return 1;
+  }
+};
 
 export const useDiaryUpdate = (diaryId: string) => {
   const dispatch = useDispatch();
@@ -56,8 +76,14 @@ export const useDiaryUpdate = (diaryId: string) => {
       throw new Error(Object.values(validationErrors).join(', '));
     }
 
+    // mood 값을 number로 변환
+    const updatedPayload = {
+      ...payload,
+      mood: getMoodNumber(payload.mood)
+    };
+
     try {
-      const response = await axiosInstance.patch(`/diary/${diaryId}`, payload);
+      const response = await axiosInstance.patch(`/diary/${diaryId}`, updatedPayload);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
