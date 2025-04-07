@@ -33,7 +33,7 @@ public class GoalService {
             .startDate(goalCreateRequest.getStartDate())
             .goalDate(goalCreateRequest.getGoalDate())
             .title(goalCreateRequest.getTitle())
-            .contentURL(goalCreateRequest.getContentURL())
+            .contentURL(null)
             .build();
 
         //TODO : S3 연결 필요.
@@ -65,7 +65,7 @@ public class GoalService {
         goal.setStartDate(goalUpdateRequest.getStartDate());
         goal.setGoalDate(goalUpdateRequest.getGoalDate());
         goal.setTitle(goalUpdateRequest.getTitle());
-        goal.setContentURL(goalUpdateRequest.getContentURL());
+        goal.setContentURL(null);
 
         goalRepository.save(goal);
     }
@@ -84,7 +84,7 @@ public class GoalService {
             .startDate(goal.getStartDate())
             .goalDate(goal.getGoalDate())
             .title(goal.getTitle())
-            .contentURL(goal.getContentURL())
+            .contentURL(null)
             .build();
     }
 }
