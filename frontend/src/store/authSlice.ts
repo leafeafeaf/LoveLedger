@@ -35,7 +35,11 @@ const authSlice = createSlice({
     },
     loginSuccess: (
       state,
-      action: PayloadAction<{ token: string; userInfo: UserInfo }>
+      action: PayloadAction<{ 
+        token: string; 
+        userInfo: UserInfo;
+        isNewUser?: boolean;  // isNewUser 추가
+      }>
     ) => {
       state.isAuthenticated = true;
       state.userToken = action.payload.token;

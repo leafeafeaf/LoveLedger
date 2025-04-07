@@ -69,6 +69,7 @@ export const handleGoogleLogin = async (
         // URL 이벤트 리스너 추가
         const urlListener = Linking.addEventListener('url', ({ url }) => {
           // URL에서 토큰 추출 시도
+          console.log(url);
           if (url.includes('loveledger://')) {
             urlListener.remove(); // 리스너 제거
             clearLoginTimer(); // 타이머 제거
@@ -115,14 +116,24 @@ export const extractTokenAndCheckUser = async (
   url: string
 ): Promise<SocialLoginResponse | null> => {
   let token = null;
+  let isRegistered = false;
 
   // URL 해시에서 토큰 추출
-  if (url.includes("#access_token=")) {
-    token = url.split("#access_token=")[1].split("&")[0];
+  if (url.startsWith('loveledger://')) {
+    const tokenPart = url.split("#accessToken=")[1];
+
+    const params = tokenPart.split("&");
+    token = params[0];
+    isRegistered = (params[1]?.split("=")[1] === "true");
+    console.log("extractTokenAndCheckUser - Token : " + token);
+    console.log("extractTokenAndCheckUser - isRegistered : " + isRegistered);
   } else if (Platform.OS === "web" && window.location.hash) {
     const fragment = window.location.hash.substring(1);
     const params = new URLSearchParams(fragment);
-    token = params.get("access_token");
+    token = params.get("accessToken");
+    
+    // 디버깅을 위한 로그
+    console.log('Extracted token:', token);
 
     // URL에서 해시 제거 (히스토리 클리어)
     window.history.replaceState(
@@ -132,20 +143,18 @@ export const extractTokenAndCheckUser = async (
     );
   }
 
+  console.log("토큰 파싱 실행");
   if (!token) return null;
-
+  console.log("토큰 저장 실행");
   // 토큰 저장
   await AsyncStorage.setItem("token", token);
-
   // 타이머 제거
   clearLoginTimer();
 
   try {
     // 사용자 정보 확인 API 호출 (여기서는 실제 구현 대신 시뮬레이션)
     // 실제로는 백엔드에 사용자 정보를 요청해야 함
-
-    // 토큰이 "first-time"을 포함하면 신규 사용자로 가정 (테스트용)
-    const isNewUser = token.includes("first-time");
+    const isNewUser = (isRegistered === false);
 
     // 임시 사용자 정보
     const userInfo = {
@@ -160,7 +169,8 @@ export const extractTokenAndCheckUser = async (
       isNewUser,
       userInfo,
     };
-
+    console.log("googleAuth.ts");
+    console.log(token);
     return response;
   } catch (error) {
     console.error("사용자 정보 확인 중 오류:", error);
@@ -191,6 +201,7 @@ export const extractTokenFromHash = async () => {
 export const extractTokenFromUrl = async (url: string) => {
   try {
     // 토큰 및 사용자 정보 추출
+    console.log("토큰 추출 호출 : 모바일");
     const response = await extractTokenAndCheckUser(url);
     return response;
   } catch (error) {
