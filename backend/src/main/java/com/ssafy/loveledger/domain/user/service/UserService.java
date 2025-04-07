@@ -108,6 +108,7 @@ public class UserService {
             .gender(request.getGender())
             .birthDay(request.getBirthDay())
             .isMarried(request.getIsMarried())
+            .marryDate(request.getMarryDate())
             .userKey(user.getUserKey())
             .picture(user.getPicture())
             .build();
@@ -138,6 +139,10 @@ public class UserService {
         if (request.getPicture() != null) {
             user.setPicture(request.getPicture());
         }
+        if (request.getMarryDate() != null) {
+            user.setMarryDate(request.getMarryDate());
+        }
+
         // 업데이트된 사용자 저장
         User savedUser = userRepository.save(user);
 
@@ -148,6 +153,7 @@ public class UserService {
             .birthDay(savedUser.getBirthDay() != null ? savedUser.getBirthDay().format(DATE_FORMATTER) : null)
             .isMarried(savedUser.getIsMarried())
             .picture(savedUser.getPicture())  // picture 필드 추가
+            .marryDate(savedUser.getMarryDate())
             .build();
     }
 }
