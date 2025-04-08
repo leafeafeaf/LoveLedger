@@ -14,6 +14,7 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  Button,
   Linking
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -39,57 +40,32 @@ const TestQueryButton = () => {
     useTokenIntegration();
   const [queryResult, setQueryResult] = useState<string | null>(null);
 
-  // const handleQueryTest = async () => {
-  //   try {
-  //     // 테스트 사용자 ID
-  //     const userId = 1;
-  //     console.log(`[React Query 테스트] GET /test/token/${userId}`);
+  const handleQueryTest = async () => {
+    try {
+      const userId = 1;
+      const result = await fetchTokenWithQuery(userId);
+      setQueryResult(JSON.stringify(result.data, null, 2));
+    } catch (err: any) {
+      setQueryResult(`오류: ${err.message}`);
+    }
+  };
 
-  //     // React Query를 사용하여 토큰 요청
-  //     const result = await fetchTokenWithQuery(userId);
-
-  //     // 결과 로깅
-  //     console.log("[React Query 응답]", JSON.stringify(result.data, null, 2));
-
-  //     // 상태 업데이트
-  //     setQueryResult(JSON.stringify(result.data, null, 2));
-  //   } catch (err: any) {
-  //     console.error("[React Query 오류]", err);
-  //     setQueryResult(`오류: ${err.message}`);
-  //   }
-  // };
-
-  // const handleReduxTest = async () => {
-  //   try {
-  //     // 테스트 사용자 ID
-  //     const userId = 1;
-  //     console.log(`[Redux 테스트] GET /test/token/${userId}`);
-
-  //     // Redux를 사용하여 토큰 요청
-  //     await fetchTokenWithRedux(userId);
-
-  //     // 결과 로깅 (Redux 스토어 상태는 컴포넌트에 자동으로 반영됨)
-  //     console.log("[Redux 토큰 상태]", token);
-
-  //     // 상태 업데이트
-  //     setQueryResult(`Redux 토큰: ${token}`);
-  //   } catch (err: any) {
-  //     console.error("[Redux 테스트 오류]", err);
-  //     setQueryResult(`오류: ${err.message}`);
-  //   }
-  // };
+  const handleReduxTest = async () => {
+    try {
+      const userId = 1;
+      await fetchTokenWithRedux(userId);
+      setQueryResult(`Redux 토큰: ${token}`);
+    } catch (err: any) {
+      setQueryResult(`오류: ${err.message}`);
+    }
+  };
 
   return (
-    <View style={tokenTestStyles.container}>
-      {queryResult && (
-        <View style={tokenTestStyles.resultContainer}>
-          <Text style={tokenTestStyles.resultText} numberOfLines={4}>
-            {queryResult}
-          </Text>
-        </View>
-      )}
-
-      {error && <Text style={tokenTestStyles.errorText}>{error}</Text>}
+    <View>
+      <Button title="Query 테스트" onPress={handleQueryTest} />
+      <Button title="Redux 테스트" onPress={handleReduxTest} />
+      {queryResult && <Text>{queryResult}</Text>}
+      {error && <Text style={{ color: "red" }}>{error}</Text>}
     </View>
   );
 };
@@ -587,6 +563,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

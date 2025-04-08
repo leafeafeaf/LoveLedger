@@ -56,16 +56,7 @@ export const useCurrentInvite = () => {
 
       try {
         const response = await axiosInstance.get<CurrentInviteResponse>(
-          "/invite/current",
-          {
-            headers: {
-              Authorization: accessToken,
-              "Content-Type": "application/json; charset=utf8",
-            },
-            params: {
-              userId,
-            },
-          }
+          "/invite/current"
         );
 
         // 성공적으로 데이터를 가져왔다면 Redux 스토어에 저장
