@@ -1,10 +1,18 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CoupleInfo } from "../types";
 
 interface UserInfo {
   id: string;
   name: string;
   email: string;
+  gender?: boolean;
+  birthDay?: string;
+  isMarried?: boolean;
+  picture?: string | null;
+  coupleInfo?: CoupleInfo | null;
+  marryDate?: string | null;
+  marriageDuration?: number;
 }
 
 interface AuthState {
