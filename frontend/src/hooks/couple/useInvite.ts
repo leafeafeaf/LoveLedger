@@ -52,28 +52,18 @@ export const useStoredInviteLink = () => {
  */
 export const useGenerateInvite = () => {
   const dispatch = useAppDispatch();
-  const accessToken = useAppSelector((state) => state.auth.userToken);
 
   return useMutation({
     mutationFn: async () => {
-      if (!accessToken) {
-        throw new Error("인증 토큰이 없습니다.");
-      }
 
       dispatch(startGenerateInviteLink());
 
       try {
-        const response = await axiosInstance.get<InviteSuccessResponse>(
-          "/invite",
-          {
-            headers: {
-              Authorization: accessToken,
-            },
-          }
-        );
-
+        const response = await axiosInstance.get<InviteSuccessResponse>("/invite",);
         // Redux 스토어에 링크 정보 저장
+        console.log(response)
         dispatch(setInviteLink(response.data));
+
         return response.data;
       } catch (error: any) {
         // 서버 응답이 없는 경우
