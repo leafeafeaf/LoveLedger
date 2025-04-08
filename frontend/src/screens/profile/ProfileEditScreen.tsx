@@ -10,12 +10,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
-import { ProfileScreenProps } from "../../types";
+import { ProfileScreenProps, UserProfile } from "../../types";
+import { useUserDetail, useUpdateUserProfile } from "../../hooks/useUserApi";
+import * as ImagePicker from "expo-image-picker";
+import DatePicker from "../../components/common/DatePicker";
 
 type RootStackParamList = {
   ProfileEdit: {
@@ -34,8 +38,9 @@ type IconName = "arrow-left" | "close" | "account" | "camera";
 
 interface FormData {
   name: string;
-  age: string;
-  motto: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
   photo: string | null;
 }
 
@@ -49,55 +54,118 @@ const ProfileEditScreen: FC<ProfileScreenProps<"ProfileEdit">> = ({
   route,
 }) => {
   const { partner } = route.params || { partner: "partner1" };
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
-    age: "",
-    motto: "",
+    gender: true, // true는 남성
+    birthDay: "",
+    isMarried: false,
     photo: null,
   });
 
-  // Simulate fetching data
+  // API 호출 훅 사용
+  const { data: userDetail, isLoading: isLoadingUserDetail } = useUserDetail();
+  const { mutate: updateProfile, isPending: isUpdating } =
+    useUpdateUserProfile();
+
+  // 사용자 정보 로드
   useEffect(() => {
-    if (partner === "partner1") {
+    if (userDetail) {
       setFormData({
-        name: "철수",
-        age: "29",
-        motto: "매일 행복하게",
-        photo: null,
-      });
-    } else {
-      setFormData({
-        name: "영희",
-        age: "27",
-        motto: "우리의 여행 기록하기",
-        photo: null,
+        name: userDetail.name || "",
+        gender: userDetail.gender,
+        birthDay: userDetail.birthDay || "",
+        isMarried: userDetail.isMarried,
+        photo: null, // API에서 프로필 사진을 제공하지 않아 null로 설정
       });
     }
-  }, [partner]);
+  }, [userDetail]);
 
   const handleSave = () => {
-    // Validation
+    // 필드 검증
     if (!formData.name.trim()) {
       Alert.alert("알림", "이름을 입력해주세요.");
       return;
     }
 
-    // Would typically save to database here
+    if (!formData.birthDay) {
+      Alert.alert("알림", "생년월일을 입력해주세요.");
+      return;
+    }
 
-    // Show success message and navigate back
-    Alert.alert("완료", "프로필이 업데이트되었습니다.", [
-      { text: "확인", onPress: () => navigation.goBack() },
-    ]);
+    // API 요청 데이터 생성
+    const updateData = {
+      name: formData.name,
+      gender: formData.gender,
+      birthDay: formData.birthDay,
+      isMarried: formData.isMarried,
+    };
+
+    // 프로필 정보 업데이트 호출
+    updateProfile(updateData, {
+      onSuccess: (data) => {
+        if (data.success) {
+          Alert.alert("완료", "프로필이 업데이트되었습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+        } else {
+          Alert.alert("오류", "프로필 업데이트에 실패했습니다.");
+        }
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          "프로필 업데이트 중 오류가 발생했습니다.";
+        Alert.alert("오류", errorMessage);
+      },
+    });
   };
 
-  const handlePhotoSelect = () => {
-    // In a real implementation, this would use the image picker
-    const mockPhotoUrl = `https://api.a0.dev/assets/image?text=profile%20photo%20of%20${encodeURIComponent(
-      formData.name
-    )}%20portrait&seed=${Math.random()}`;
-    setFormData((prev) => ({ ...prev, photo: mockPhotoUrl }));
+  const handlePhotoSelect = async () => {
+    // 이미지 선택 권한 요청
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert(
+        "권한 필요",
+        "사진 선택을 위해 갤러리 접근 권한이 필요합니다."
+      );
+      return;
+    }
+
+    // 이미지 선택기 실행
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      // 선택한 이미지 URI 저장
+      setFormData((prev) => ({ ...prev, photo: result.assets[0].uri }));
+
+      // 여기서 이미지 업로드 API 호출을 추가할 수 있음
+      // 이미지 업로드는 현재 API에서 지원하지 않음
+    }
   };
+
+  const handleDateSelect = (date: Date) => {
+    // 날짜를 yyyy-MM-dd 형식으로 포맷하여 저장
+    const formattedDate = date.toISOString().split("T")[0];
+    setFormData((prev) => ({ ...prev, birthDay: formattedDate }));
+    setShowDatePicker(false);
+  };
+
+  if (isLoadingUserDetail) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>프로필 정보를 불러오는 중...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -175,30 +243,119 @@ const ProfileEditScreen: FC<ProfileScreenProps<"ProfileEdit">> = ({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>나이</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.age}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, age: text }))
+            <Text style={styles.inputLabel}>성별</Text>
+            <View style={styles.radioGroup}>
+              <Pressable
+                style={[
+                  styles.radioButton,
+                  formData.gender && styles.radioButtonSelected,
+                ]}
+                onPress={() =>
+                  setFormData((prev) => ({ ...prev, gender: true }))
+                }
+              >
+                <Text
+                  style={[
+                    styles.radioButtonText,
+                    formData.gender && styles.radioButtonTextSelected,
+                  ]}
+                >
+                  남성
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.radioButton,
+                  !formData.gender && styles.radioButtonSelected,
+                ]}
+                onPress={() =>
+                  setFormData((prev) => ({ ...prev, gender: false }))
+                }
+              >
+                <Text
+                  style={[
+                    styles.radioButtonText,
+                    !formData.gender && styles.radioButtonTextSelected,
+                  ]}
+                >
+                  여성
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>생년월일</Text>
+            <Pressable
+              style={styles.dateInput}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text
+                style={[
+                  styles.dateText,
+                  !formData.birthDay && styles.placeholderText,
+                ]}
+              >
+                {formData.birthDay || "생년월일을 선택하세요"}
+              </Text>
+              <MaterialCommunityIcons
+                name="calendar"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </Pressable>
+
+            {/* 커스텀 DatePicker 사용 */}
+            <DatePicker
+              visible={showDatePicker}
+              onClose={() => setShowDatePicker(false)}
+              onSelectDate={handleDateSelect}
+              selectedDate={
+                formData.birthDay ? new Date(formData.birthDay) : undefined
               }
-              placeholder="나이를 입력하세요"
-              placeholderTextColor={theme.colors.textLight}
-              keyboardType="number-pad"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>모토</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.motto}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, motto: text }))
-              }
-              placeholder="자신의 모토를 입력하세요"
-              placeholderTextColor={theme.colors.textLight}
-            />
+            <Text style={styles.inputLabel}>결혼 여부</Text>
+            <View style={styles.radioGroup}>
+              <Pressable
+                style={[
+                  styles.radioButton,
+                  formData.isMarried && styles.radioButtonSelected,
+                ]}
+                onPress={() =>
+                  setFormData((prev) => ({ ...prev, isMarried: true }))
+                }
+              >
+                <Text
+                  style={[
+                    styles.radioButtonText,
+                    formData.isMarried && styles.radioButtonTextSelected,
+                  ]}
+                >
+                  기혼
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.radioButton,
+                  !formData.isMarried && styles.radioButtonSelected,
+                ]}
+                onPress={() =>
+                  setFormData((prev) => ({ ...prev, isMarried: false }))
+                }
+              >
+                <Text
+                  style={[
+                    styles.radioButtonText,
+                    !formData.isMarried && styles.radioButtonTextSelected,
+                  ]}
+                >
+                  미혼
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -211,12 +368,21 @@ const ProfileEditScreen: FC<ProfileScreenProps<"ProfileEdit">> = ({
         <Pressable
           style={styles.cancelButton}
           onPress={() => navigation.goBack()}
+          disabled={isUpdating}
         >
           <Text style={styles.cancelButtonText}>취소</Text>
         </Pressable>
 
-        <Pressable style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>저장</Text>
+        <Pressable
+          style={[styles.saveButton, isUpdating && styles.disabledButton]}
+          onPress={handleSave}
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <ActivityIndicator size="small" color={theme.colors.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>저장</Text>
+          )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -227,6 +393,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    color: theme.colors.text,
+    fontSize: 16,
   },
   header: {
     flexDirection: "row",
@@ -309,6 +486,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
   },
+  radioGroup: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  radioButton: {
+    flex: 1,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.background,
+    alignItems: "center",
+    marginHorizontal: theme.spacing.xs,
+  },
+  radioButtonSelected: {
+    backgroundColor: theme.colors.primary,
+  },
+  radioButtonText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  radioButtonTextSelected: {
+    color: theme.colors.white,
+    fontWeight: "600",
+  },
+  dateInput: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+  },
+  dateText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  placeholderText: {
+    color: theme.colors.textLight,
+  },
   infoText: {
     padding: theme.spacing.md,
     fontSize: 14,
@@ -343,11 +558,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     marginLeft: theme.spacing.sm,
+    justifyContent: "center",
   },
   saveButtonText: {
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: theme.colors.disabled,
   },
 });
 

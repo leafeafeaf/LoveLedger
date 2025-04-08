@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,34 +7,23 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+<<<<<<< HEAD
 import { CommonActions, StackActions } from "@react-navigation/native";
+=======
+import { CommonActions, useFocusEffect } from "@react-navigation/native";
+>>>>>>> feature/frontend-profile
 import { useAppDispatch } from "../../hooks/reduxHooks";
 import { logout } from "../../store/authSlice";
-
-type ProfileStackParamList = {
-  ProfileMain: undefined;
-  ProfileEdit: { partner: string };
-  GoalList: undefined;
-  Settings: undefined;
-  Help: undefined;
-  LinkGeneration: undefined;
-  Login: undefined;
-  AccountVerification: undefined;
-};
-
-type NavigationParams = {
-  ProfileEdit: { partner: string };
-  ProfileMain: undefined;
-  GoalList: undefined;
-  Settings: undefined;
-  Help: undefined;
-  LinkGeneration: undefined;
-  Login: undefined;
-};
+import { ProfileStackParamList } from "../../types";
+import { useUserDetail, useUpdateUserProfile } from "../../hooks/useUserApi";
+import { useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ProfileMainScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -61,7 +50,6 @@ type IconName =
 interface Partner {
   name: string;
   age: number;
-  motto: string;
   photo: string | null;
 }
 
@@ -82,7 +70,7 @@ type MenuOption = {
   label: string;
   icon: IconName;
   screen: keyof ProfileStackParamList;
-  params?: ProfileStackParamList[keyof ProfileStackParamList];
+  params?: any;
 };
 
 interface ProfileMainScreenProps {
@@ -93,37 +81,176 @@ export default function ProfileMainScreen({
   navigation,
 }: ProfileMainScreenProps) {
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+  const { data: userDetail, isLoading, isError } = useUserDetail();
+  const { mutate: updateProfile, isPending: isUpdating } =
+    useUpdateUserProfile();
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isImageUpdating, setIsImageUpdating] = useState(false);
 
-  // This would typically come from a database or state management
-  const [profileData, setProfileData] = useState<ProfileData>({
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ["userDetail"] });
+      loadSavedCoverImage();
+    }, [queryClient])
+  );
+
+  // 저장된 커버 이미지 로드
+  const loadSavedCoverImage = async () => {
+    try {
+      const savedImage = await AsyncStorage.getItem("userCoverImage");
+      if (savedImage) {
+        setCoverImage(savedImage);
+      }
+    } catch (error) {
+      console.error("커버 이미지 로드 실패", error);
+    }
+  };
+
+  // 이미지 업로드 및 저장 함수
+  const handleImageUpload = async () => {
+    try {
+      // 이미지 권한 요청
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+        return;
+      }
+
+      // 이미지 선택기 실행
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        const selectedImageUri = result.assets[0].uri;
+
+        try {
+          setIsImageUpdating(true);
+
+          // 이미지 URI를 로컬에 저장
+          await AsyncStorage.setItem("userCoverImage", selectedImageUri);
+          setCoverImage(selectedImageUri);
+
+          // TODO: 필요한 경우 서버에 이미지 업로드 API 호출
+          // 현재 기능은 클라이언트 측에서만 이미지를 저장합니다
+
+          Alert.alert("성공", "배경 이미지가 성공적으로 변경되었습니다.");
+        } catch (error) {
+          console.error("이미지 저장 오류", error);
+          Alert.alert("오류", "이미지 저장 중 오류가 발생했습니다.");
+        } finally {
+          setIsImageUpdating(false);
+        }
+      }
+    } catch (error) {
+      console.error("이미지 선택 오류", error);
+      Alert.alert("오류", "이미지 선택 중 오류가 발생했습니다.");
+      setIsImageUpdating(false);
+    }
+  };
+
+  const calculateMeetDays = (marryDate: string | null): number => {
+    if (!marryDate) return 0;
+
+    const today = new Date();
+    const marriageDate = new Date(marryDate);
+    const diffTime = Math.abs(today.getTime() - marriageDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const calculateAge = (birthDay: string): number => {
+    const today = new Date();
+    const birthDate = new Date(birthDay);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
+
+  if (isLoading || isUpdating || isImageUpdating) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>
+          {isImageUpdating
+            ? "이미지 업데이트 중..."
+            : "프로필 정보를 불러오는 중..."}
+        </Text>
+      </View>
+    );
+  }
+
+  if (isError || !userDetail) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>
+          프로필 정보를 불러오는데 실패했습니다.
+        </Text>
+      </View>
+    );
+  }
+
+  const isSolo = !userDetail.coupleInfo?.coupleId;
+  const meetDays =
+    userDetail.marriageDuration || calculateMeetDays(userDetail.marryDate);
+  const partnerName =
+    userDetail.coupleInfo?.darlingName || userDetail.partnerName || "";
+  const partnerBirthDay = userDetail.coupleInfo?.darlingBirthDay || "";
+  const partnerAge =
+    userDetail.partnerAge ||
+    (partnerBirthDay ? calculateAge(partnerBirthDay) : 0);
+  const age = calculateAge(userDetail.birthDay);
+
+  const profileData: ProfileData = {
     couple: {
-      name: "철수 & 영희",
-      since: "2023년부터 함께",
-      meetDays: 365,
-      diariesCount: 15,
-      storiesCount: 8,
+      name: isSolo
+        ? `${userDetail.name}`
+        : `${userDetail.name} & ${partnerName}`,
+      since: isSolo
+        ? "아직 부부 연동이 필요합니다"
+        : `${userDetail.marryDate || ""}부터 함께`,
+      meetDays: meetDays,
+      diariesCount: userDetail.diariesCount || 0,
+      storiesCount: userDetail.storiesCount || 0,
     },
     partner1: {
-      name: "철수",
-      age: 29,
-      motto: "매일 행복하게",
-      photo: null,
+      name: userDetail.name,
+      age: age,
+      photo: userDetail.picture || userDetail.photo || null,
     },
     partner2: {
-      name: "영희",
-      age: 27,
-      motto: "우리의 여행 기록하기",
-      photo: null,
+      name: partnerName,
+      age: partnerAge,
+      photo: userDetail.coupleInfo ? null : userDetail.partnerPhoto || null,
     },
-  });
+  };
 
   const menuOptions: MenuOption[] = [
+    {
+      id: "linkSelection",
+      label: "부부 연동",
+      icon: "heart-multiple",
+      screen: "LinkSelection",
+    },
     {
       id: "accountRegister",
       label: "계좌 등록",
       icon: "account-edit",
       screen: "AccountVerification",
-      params: undefined,
     },
     {
       id: "goals",
@@ -131,25 +258,44 @@ export default function ProfileMainScreen({
       icon: "flag-checkered",
       screen: "GoalList",
     },
-    {
-      id: "settings",
-      label: "앱 설정",
-      icon: "cog",
-      screen: "Settings",
-    },
-    {
-      id: "help",
-      label: "도움말 및 지원",
-      icon: "help-circle",
-      screen: "Help",
-    },
   ];
 
   const handleMenuPress = (option: MenuOption) => {
-    if (option.screen === "ProfileEdit") {
-      navigation.navigate("ProfileEdit", option.params as { partner: string });
-    } else {
-      navigation.navigate(option.screen);
+    switch (option.screen) {
+      case "ProfileEdit":
+        navigation.navigate("ProfileEdit", { partner: "partner1" });
+        break;
+      case "GoalList":
+        navigation.navigate("GoalList");
+        break;
+      case "AccountVerification":
+        navigation.navigate("AccountVerification");
+        break;
+      case "LinkSelection":
+        navigation.navigate("LinkSelection");
+        break;
+      case "LinkGeneration":
+        navigation.navigate("LinkGeneration");
+        break;
+      case "LinkConfirm":
+        navigation.navigate("LinkConfirm", { linkCode: "" });
+        break;
+
+      case "ProfileMain":
+        navigation.navigate("ProfileMain");
+        break;
+      case "GoalDetail":
+        navigation.navigate("GoalDetail", {
+          goal: {
+            title: "",
+            goalAmount: 0,
+            currentAmount: 0,
+            startDate: "",
+            goalDate: "",
+            contentURL: "",
+          },
+        });
+        break;
     }
   };
 
@@ -173,14 +319,37 @@ export default function ProfileMainScreen({
       <ScrollView style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.coverImageContainer}>
-            <Image
-              source={{
-                uri: "https://api.a0.dev/assets/image?text=a%20loving%20couple%20silhouette%20against%20sunset%20background%20warm%20colors&aspect=16:9",
-              }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
-            <Pressable style={styles.editCoverButton}>
+            {isSolo ? (
+              coverImage ? (
+                <Image
+                  source={{ uri: coverImage }}
+                  style={styles.coverImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.emptyCoverImage}>
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={40}
+                    color={theme.colors.textLight}
+                  />
+                </View>
+              )
+            ) : (
+              <Image
+                source={{
+                  uri:
+                    coverImage ||
+                    "https://api.a0.dev/assets/image?text=a%20loving%20couple%20silhouette%20against%20sunset%20background%20warm%20colors&aspect=16:9",
+                }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            )}
+            <Pressable
+              style={styles.editCoverButton}
+              onPress={handleImageUpload}
+            >
               <MaterialCommunityIcons
                 name="image-edit"
                 size={20}
@@ -190,6 +359,18 @@ export default function ProfileMainScreen({
           </View>
 
           <Text style={styles.coupleName}>{profileData.couple.name}</Text>
+          {isSolo && (
+            <View style={styles.soloNoticeContainer}>
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={18}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.soloNotice}>
+                아직 부부 등록이 안된 사용자입니다
+              </Text>
+            </View>
+          )}
           <Text style={styles.sinceDate}>{profileData.couple.since}</Text>
 
           <View style={styles.statsContainer}>
@@ -277,114 +458,142 @@ export default function ProfileMainScreen({
               <Text style={styles.partnerAge}>
                 {profileData.partner1.age}세
               </Text>
-              <Text style={styles.partnerMotto}>
-                "{profileData.partner1.motto}"
-              </Text>
             </Pressable>
 
-            <Pressable
-              style={styles.partnerCard}
-              onPress={() =>
-                navigation.navigate({
-                  name: "ProfileEdit",
-                  params: { partner: "partner2" },
-                })
-              }
-            >
-              <View style={styles.partnerPhotoContainer}>
-                {profileData.partner2.photo ? (
-                  <Image
-                    source={{ uri: profileData.partner2.photo }}
-                    style={styles.partnerPhoto}
-                  />
-                ) : (
+            {isSolo ? (
+              <View style={styles.partnerCardWaiting}>
+                <View style={styles.partnerPhotoContainer}>
                   <View
                     style={[
                       styles.partnerPhotoPlaceholder,
-                      { backgroundColor: theme.colors.accent },
+                      { backgroundColor: theme.colors.border },
                     ]}
                   >
                     <MaterialCommunityIcons
-                      name="account"
+                      name="account-question"
                       size={40}
                       color={theme.colors.white}
                     />
                   </View>
-                )}
-                <View style={styles.partnerEditBadge}>
-                  <MaterialCommunityIcons
-                    name="pencil"
-                    size={12}
-                    color={theme.colors.white}
-                  />
                 </View>
+                <Text style={styles.partnerWaitingText}>
+                  부부 연동을 진행해주세요
+                </Text>
+                <Pressable
+                  style={styles.linkButton}
+                  onPress={() => handleMenuPress(menuOptions[0])}
+                >
+                  <Text style={styles.linkButtonText}>연동하기</Text>
+                </Pressable>
               </View>
-              <Text style={styles.partnerName}>
-                {profileData.partner2.name}
-              </Text>
-              <Text style={styles.partnerAge}>
-                {profileData.partner2.age}세
-              </Text>
-              <Text style={styles.partnerMotto}>
-                "{profileData.partner2.motto}"
-              </Text>
-            </Pressable>
+            ) : (
+              <Pressable
+                style={styles.partnerCard}
+                onPress={() =>
+                  navigation.navigate({
+                    name: "ProfileEdit",
+                    params: { partner: "partner2" },
+                  })
+                }
+              >
+                <View style={styles.partnerPhotoContainer}>
+                  {profileData.partner2.photo ? (
+                    <Image
+                      source={{ uri: profileData.partner2.photo }}
+                      style={styles.partnerPhoto}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.partnerPhotoPlaceholder,
+                        { backgroundColor: theme.colors.accent },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={40}
+                        color={theme.colors.white}
+                      />
+                    </View>
+                  )}
+                  <View style={styles.partnerEditBadge}>
+                    <MaterialCommunityIcons
+                      name="pencil"
+                      size={12}
+                      color={theme.colors.white}
+                    />
+                  </View>
+                </View>
+                <Text style={styles.partnerName}>
+                  {profileData.partner2.name}
+                </Text>
+                <Text style={styles.partnerAge}>
+                  {profileData.partner2.age}세
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>메뉴</Text>
 
-          <Pressable
-            style={[styles.menuItem, styles.highlightedMenuItem]}
-            onPress={() => navigation.navigate("LinkGeneration")}
-          >
-            <View
-              style={[
-                styles.menuIconContainer,
-                { backgroundColor: `${theme.colors.primary}30` },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="heart-multiple"
-                size={24}
-                color={theme.colors.primary}
-              />
-            </View>
-            <Text style={styles.menuItemText}>부부 연동</Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              color={theme.colors.textLight}
-            />
-          </Pressable>
-
-          {menuOptions.map((option) => (
+          {isSolo && (
             <Pressable
-              key={option.id}
-              style={styles.menuItem}
-              onPress={() => {
-                if (option.screen === "Settings" || option.screen === "Help") {
-                  Alert.alert("개발 중", "이 기능은 현재 개발 중입니다.");
-                } else {
-                  handleMenuPress(option);
-                }
-              }}
+              key="linkHighlight"
+              style={[styles.menuItem, styles.highlightedMenuItem]}
+              onPress={() => handleMenuPress(menuOptions[0])}
             >
-              <View style={styles.menuIconContainer}>
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: `${theme.colors.primary}30` },
+                ]}
+              >
                 <MaterialCommunityIcons
-                  name={option.icon}
+                  name="heart-multiple"
                   size={24}
                   color={theme.colors.primary}
                 />
               </View>
-              <Text style={styles.menuItemText}>{option.label}</Text>
+              <Text
+                style={[
+                  styles.menuItemText,
+                  { color: theme.colors.primary, fontWeight: "600" },
+                ]}
+              >
+                부부 연동
+              </Text>
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={24}
-                color={theme.colors.textLight}
+                color={theme.colors.primary}
               />
             </Pressable>
-          ))}
+          )}
+
+          {menuOptions
+            .filter((option) => !isSolo || option.id !== "linkSelection")
+            .map((option) => (
+              <Pressable
+                key={option.id}
+                style={styles.menuItem}
+                onPress={() => handleMenuPress(option)}
+              >
+                <View style={styles.menuIconContainer}>
+                  <MaterialCommunityIcons
+                    name={option.icon}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <Text style={styles.menuItemText}>{option.label}</Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textLight}
+                />
+              </Pressable>
+            ))}
 
           <Pressable
             style={styles.menuItem}
@@ -557,6 +766,21 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginTop: theme.spacing.md,
   },
+  soloNoticeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: `${theme.colors.primary}10`,
+    padding: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.xl,
+    marginTop: theme.spacing.sm,
+  },
+  soloNotice: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginLeft: theme.spacing.xs,
+    fontWeight: "500",
+  },
   sinceDate: {
     fontSize: 16,
     color: theme.colors.textLight,
@@ -611,6 +835,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...theme.shadows.small,
   },
+  partnerCardWaiting: {
+    width: "48%",
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    alignItems: "center",
+    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: `${theme.colors.primary}30`,
+    borderStyle: "dashed",
+  },
+  partnerWaitingText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: theme.colors.textLight,
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  linkButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  linkButtonText: {
+    color: theme.colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   partnerPhotoContainer: {
     position: "relative",
     marginBottom: theme.spacing.md,
@@ -646,13 +899,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textLight,
     marginTop: 2,
-  },
-  partnerMotto: {
-    fontSize: 12,
-    fontStyle: "italic",
-    color: theme.colors.textLight,
-    marginTop: theme.spacing.sm,
-    textAlign: "center",
   },
   menuSection: {
     backgroundColor: theme.colors.white,
@@ -705,5 +951,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textLight,
     marginTop: theme.spacing.xs,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.error,
+    textAlign: "center",
+  },
+  emptyCoverImage: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: theme.colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: 16,
+    color: theme.colors.text,
   },
 });

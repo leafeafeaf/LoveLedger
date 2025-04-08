@@ -17,16 +17,19 @@ import contentReducer from "./contentSlice";
 import datePickerReducer from "./datePickerSlice";
 import tokenReducer from "./tokenSlice";
 import accountReducer from "./accountSlice";
+import coupleReducer from "./coupleSlice";
+import goalReducer from "./goalSlice";
 
 // Redux Persist 설정
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["auth", "token"],
+  whitelist: ["auth", "token", "goal"],
 };
 
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
 const persistedTokenReducer = persistReducer(persistConfig, tokenReducer);
+const persistedGoalReducer = persistReducer(persistConfig, goalReducer);
 
 // 스토어 생성
 export const store = configureStore({
@@ -38,11 +41,13 @@ export const store = configureStore({
     datePicker: datePickerReducer,
     token: persistedTokenReducer,
     account: accountReducer,
+    couple: coupleReducer,
+    goal: persistedGoalReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }),
 });
