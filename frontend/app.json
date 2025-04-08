@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LoveLedger",
-    "slug": "love-ledger",
+    "slug": "loveledger",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -15,7 +15,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.loveleger.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.loveleger.app",
@@ -26,7 +30,7 @@
     "web": {},
     "extra": {
       "eas": {
-        "projectId": "eeff144f-4c12-4d0f-9963-9bee400844f4"
+        "projectId": "eef6cad5-56d1-4c93-96db-f0f8e5776106"
       }
     }
   }
