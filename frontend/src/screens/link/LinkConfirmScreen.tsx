@@ -115,7 +115,7 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
                 });
                 Alert.alert(
                   "오류",
-                  "부부 연동에 실패했습니다. 다시 시도해주세요."
+                  error.message
                 );
               },
             });

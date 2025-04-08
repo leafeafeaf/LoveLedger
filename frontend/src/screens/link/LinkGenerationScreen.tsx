@@ -83,11 +83,7 @@ export default function LinkGenerationScreen({
   useEffect(() => {
     if (error) {
       const errorData = error as InviteConflictResponse;
-      Alert.alert(
-        "오류가 발생했습니다",
-        errorData.message || "잠시 후 다시 시도해주세요.",
-        [{ text: "확인", onPress: () =>  console.log("서버 오류 발생") }]
-      );
+      console.log(errorData);
     } else if (data?.status === "400") {
       Alert.alert("이미 연인과 연결된 상태입니다", data.message, [
         { text: "확인", onPress: () => navigation.goBack() },

@@ -61,7 +61,7 @@ export const useGenerateInvite = () => {
       try {
         const response = await axiosInstance.get<InviteSuccessResponse>("/invite",);
         // Redux 스토어에 링크 정보 저장
-        console.log(response)
+        console.log(response.data)
         dispatch(setInviteLink(response.data));
 
         return response.data;
@@ -84,7 +84,8 @@ export const useGenerateInvite = () => {
             },
             timestamp: errorData.timestamp || new Date().toISOString(),
           } as InviteSuccessResponse;
-
+          
+          console.log(error)
           dispatch(setInviteLink(response));
           return response;
         }
