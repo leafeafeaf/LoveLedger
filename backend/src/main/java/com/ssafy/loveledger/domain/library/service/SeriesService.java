@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.library.service;
 
+import com.ssafy.loveledger.domain.library.domain.Library;
 import com.ssafy.loveledger.domain.library.domain.Series;
 import com.ssafy.loveledger.domain.library.domain.repository.LibraryRepository;
 import com.ssafy.loveledger.domain.library.domain.repository.SeriesRepository;
@@ -59,10 +60,10 @@ public class SeriesService {
     @Transactional
     public List<SeriesReadResponse> getSeriesNames(User user) {
 
-        libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
+        Library library = libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
             () -> new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS));
 
-        List<Series> seriesList = seriesRepository.findAll();
+        List<Series> seriesList = seriesRepository.findByLibrary(library);
 
         return seriesList.stream()
             .map(series -> SeriesReadResponse.builder()
