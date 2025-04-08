@@ -7,7 +7,11 @@ import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDeta
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.WeekStatisticsResponse;
 import com.ssafy.loveledger.domain.account.service.AccountService;
+import com.ssafy.loveledger.domain.couple.domain.Couple;
+import com.ssafy.loveledger.domain.couple.domain.repository.CoupleRepository;
 import com.ssafy.loveledger.domain.user.domain.User;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import com.ssafy.loveledger.global.util.UserUtil;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
     private final AccountService accountService;
+    private final CoupleRepository coupleRepository;
     private final UserUtil userUtil;
 
     @GetMapping("/history/sum/list")
@@ -46,6 +51,24 @@ public class AccountController {
         return monthStat;
     }
 
+    @GetMapping("/history/lover/sum/list")
+    public List<DailyStatisticsResponse> getDailyStatisticsByMonthAndLover(
+        @RequestParam Integer year,
+        @RequestParam Integer month,
+        @RequestParam(defaultValue = "1") Integer pageno,
+        @RequestParam(defaultValue = "31") Integer size,
+        @RequestParam(defaultValue = "asc") String sort
+    ) {
+        User user = userUtil.getCurrentUser();
+        Couple couple = coupleRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.COUPLE_NOT_FOUND));
+        User Lover =
+            couple.getUsers().get(0) == user ? couple.getUsers().get(1) : couple.getUsers().get(0);
+        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+            year, month, pageno, size, sort);
+        return monthStat;
+    }
+    
     // TODO : 1. 계좌 0 번 리턴
     @GetMapping("/saveus")
     public List<WeekStatisticsResponse> saveAccount() {
