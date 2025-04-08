@@ -10,21 +10,21 @@ interface Goal {
   contenturl: string;
 }
 
-interface MonthStat {
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
+interface MonthStatItem {
+  categoryName: string;
+  consumeSum: number;
+  earnSum: number;
+  percentage: number;
 }
 
 interface WeekStat {
-  weekNumber: number;
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
+  week: number;
+  totalEarnSum: number;
+  totalConsumeSum: number;
 }
 
 interface MonthlyStatResponse {
-  monthStat: MonthStat;
+  monthStat: MonthStatItem[];
   weekStat: WeekStat[];
 }
 
@@ -44,13 +44,15 @@ interface FinanceState {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
+  selectedYear: number;
+  selectedMonth: number;
   goalList: {
     goal: Goal | null;
     isLoading: boolean;
     error: string | null;
   };
   monthlyStat: {
-    monthStat: MonthStat;
+    monthStat: MonthStatItem[];
     weekStat: WeekStat[];
     isLoading: boolean;
     error: string | null;
@@ -80,17 +82,15 @@ const initialState: FinanceState = {
   transactions: [],
   isLoading: false,
   error: null,
+  selectedYear: new Date().getFullYear(),
+  selectedMonth: new Date().getMonth() + 1,
   goalList: {
     goal: null,
     isLoading: false,
     error: null,
   },
   monthlyStat: {
-    monthStat: {
-      totalIncome: 0,
-      totalExpense: 0,
-      balance: 0,
-    },
+    monthStat: [],
     weekStat: [],
     isLoading: false,
     error: null,
@@ -232,6 +232,12 @@ const financeSlice = createSlice({
       state.transactionDelete.isLoading = false;
       state.transactionDelete.error = action.payload;
     },
+    setSelectedYear: (state, action: PayloadAction<number>) => {
+      state.selectedYear = action.payload;
+    },
+    setSelectedMonth: (state, action: PayloadAction<number>) => {
+      state.selectedMonth = action.payload;
+    },
   }
 });
 
@@ -260,5 +266,7 @@ export const {
   deleteTransactionStart,
   deleteTransactionSuccess,
   deleteTransactionFailure,
+  setSelectedYear,
+  setSelectedMonth,
 } = financeSlice.actions;
 export default financeSlice.reducer;

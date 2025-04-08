@@ -4,6 +4,7 @@ import {
   AccountVerifyResponse,
   AccountVerifyConfirmRequest,
   AccountVerifyConfirmResponse,
+  Transaction,
 } from "../types";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -40,4 +41,25 @@ export const confirmAccountVerification = async (
     }
   );
   return response.data;
+};
+
+export const getMonthlyTransactions = async (
+  year: number,
+  month: number,
+  token: string
+): Promise<Transaction[]> => {
+  const response = await axios.get(
+    `${BASE_URL}/account/history/monthly`,
+    {
+      params: {
+        year,
+        month
+      },
+      headers: {
+        "Content-Type": "application/json; charset=utf8",
+        Authorization: token,
+      },
+    }
+  );
+  return response.data.data;
 };
