@@ -79,11 +79,6 @@ export const useGoogleLogin = () => {
 
         handleLoginSuccess({
           token,
-          userInfo: {
-            id: "",
-            name: "",
-            email: "",
-          },
           isNewUser: !isRegistered,
         });
       }
@@ -126,12 +121,6 @@ export const useGoogleLogin = () => {
       return () => {
         subscription.remove();
       };
-
-      handleInitialURL();
-
-      // 리스너 등록
-      const subscription = Linking.addEventListener("url", handleURLChange);
-      return () => subscription.remove();
     }
   }, []);
 

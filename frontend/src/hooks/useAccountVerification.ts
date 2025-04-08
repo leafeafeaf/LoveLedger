@@ -9,6 +9,7 @@ import {
   setLoading,
 } from "../store/accountSlice";
 import { useAppSelector } from "./reduxHooks";
+import { Alert } from "react-native"
 
 export const useAccountVerification = () => {
   const dispatch = useDispatch();
@@ -50,6 +51,7 @@ export const useAccountVerification = () => {
     onSuccess: (data) => {
       dispatch(setConfirmedAccount(data));
       dispatch(setLoading(false));
+      Alert.alert("성공", "계좌 등록에 성공하였습니다.");
     },
     onError: (error: any) => {
       dispatch(

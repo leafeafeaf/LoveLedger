@@ -12,11 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-<<<<<<< HEAD
-import { CommonActions, StackActions } from "@react-navigation/native";
-=======
 import { CommonActions, useFocusEffect } from "@react-navigation/native";
->>>>>>> feature/frontend-profile
 import { useAppDispatch } from "../../hooks/reduxHooks";
 import { logout } from "../../store/authSlice";
 import { ProfileStackParamList } from "../../types";

@@ -35,18 +35,6 @@ const datePickerSlice = createSlice({
   name: "datePicker",
   initialState,
   reducers: {
-<<<<<<< HEAD
-    setSelectedDate: (state, action: PayloadAction<string | null>) => {
-      state.selectedDate = action.payload;
-      state.isCustomDate = !!action.payload;
-    },
-    setStartDate: (state, action: PayloadAction<string | null>) => {
-      state.startDate = action.payload;
-      state.isCustomDate = !!action.payload;
-    },
-    setEndDate: (state, action: PayloadAction<string | null>) => {
-      state.endDate = action.payload;
-=======
     setSelectedDate: (state, action: PayloadAction<Date | null | string>) => {
       if (action.payload) {
         if (typeof action.payload === "string") {
@@ -87,17 +75,7 @@ const datePickerSlice = createSlice({
       } else {
         state.endDate = null;
       }
->>>>>>> feature/frontend-profile
       state.isCustomDate = !!action.payload;
-    },
-    setDateRange: (
-      state,
-      action: PayloadAction<{ startDate: string; endDate: string }>
-    ) => {
-      state.startDate = action.payload.startDate;
-      state.endDate = action.payload.endDate;
-      state.isRange = true;
-      state.isCustomDate = true;
     },
     setRangeMode: (state, action: PayloadAction<boolean>) => {
       state.isRange = action.payload;
@@ -108,8 +86,6 @@ const datePickerSlice = createSlice({
       state.selectedDate = null;
       state.isCustomDate = false;
     },
-<<<<<<< HEAD
-=======
     setDateRange: (
       state,
       action: PayloadAction<{
@@ -137,7 +113,6 @@ const datePickerSlice = createSlice({
       state.isRange = true;
       state.isCustomDate = true;
     },
->>>>>>> feature/frontend-profile
   },
 });
 

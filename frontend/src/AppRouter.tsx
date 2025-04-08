@@ -136,7 +136,6 @@ const AppRouter = () => {
           />
           <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
           <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
-          <Stack.Screen name="LinkError" component={LinkErrorScreen} />
         </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>

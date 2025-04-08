@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { theme } from "../../utils/theme";
 import { useAccountVerification } from "../../hooks/useAccountVerification";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { RootStackParamList } from "../../types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type AccountVerificationScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -23,6 +24,7 @@ interface AccountVerificationScreenProps {
   navigation: AccountVerificationScreenNavigationProp;
 }
 
+
 export default function AccountVerificationScreen({
   navigation,
 }: AccountVerificationScreenProps) {
@@ -31,9 +33,17 @@ export default function AccountVerificationScreen({
   const [step, setStep] = useState<"verify" | "confirm">("verify");
   const { verifyAccount, confirmAccount, isLoading, error, verifiedAccount } =
     useAccountVerification();
-  const token = useAppSelector((state) => state.token.accessToken);
+  
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
+    const token = await AsyncStorage.getItem("token")
+
+    if (!token) {
+      Alert.alert("로그인이 필요합니다.");
+      navigation.navigate("Auth", { screen: "Login" });
+      return;
+    }
+
     if (!accountNo) {
       Alert.alert("알림", "계좌번호를 입력해주세요.");
       return;
@@ -44,16 +54,12 @@ export default function AccountVerificationScreen({
       return;
     }
 
-    if (!token) {
-      Alert.alert("알림", "로그인이 필요합니다.");
-      navigation.navigate("Auth", { screen: "Login" });
-      return;
-    }
-
     verifyAccount({ accountNo, token });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    const token = await AsyncStorage.getItem("token")
+    
     if (!authCode) {
       Alert.alert("알림", "인증번호를 입력해주세요.");
       return;
@@ -65,12 +71,14 @@ export default function AccountVerificationScreen({
     }
 
     if (!token) {
-      Alert.alert("알림", "로그인이 필요합니다.");
+      Alert.alert("로그인이 필요합니다.");
       navigation.navigate("Auth", { screen: "Login" });
       return;
     }
 
     confirmAccount({ authCode, accountNo, token });
+    
+    navigation.goBack();
   };
 
   React.useEffect(() => {

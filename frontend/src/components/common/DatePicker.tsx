@@ -122,7 +122,7 @@ export default function DatePicker({
 
             // 날짜를 문자열로 변환하여 전달
             const dateString = startDateClone.toISOString().split("T")[0];
-            selectStartDate(dateString);
+            selectStartDate(startDateClone);
 
             setDisplayedMonth(new Date(startDate.getTime()));
           }
@@ -134,7 +134,7 @@ export default function DatePicker({
 
             // 날짜를 문자열로 변환하여 전달
             const dateString = endDateClone.toISOString().split("T")[0];
-            selectEndDate(dateString);
+            selectEndDate(endDateClone);
           }
         } else {
           // 단일 선택 모드일 때 초기값 설정
@@ -145,7 +145,7 @@ export default function DatePicker({
 
             // 날짜를 문자열로 변환하여 전달
             const dateString = selectedDateClone.toISOString().split("T")[0];
-            selectDate(dateString);
+            selectDate(selectedDateClone);
 
             setDisplayedMonth(new Date(selectedDate.getTime()));
           }
@@ -430,8 +430,8 @@ export default function DatePicker({
       const endDateClone = new Date(tempRangeEnd.getTime());
 
       // Redux 상태 업데이트 - 문자열 날짜 사용
-      selectStartDate(startDateClone.toISOString().split("T")[0]);
-      selectEndDate(endDateClone.toISOString().split("T")[0]);
+      selectStartDate(startDateClone);
+      selectEndDate(endDateClone);
 
       // 콜백 호출
       if (onSelectRange) {
@@ -440,7 +440,7 @@ export default function DatePicker({
     } else if (!isRange && tempSelectedDate) {
       // 단일 날짜 선택 확정
       const dateClone = new Date(tempSelectedDate.getTime());
-      selectDate(dateClone.toISOString().split("T")[0]);
+      selectDate(dateClone);
       onSelectDate(dateClone);
     }
 
