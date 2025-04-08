@@ -65,30 +65,38 @@ public class AccountService {
 
         if (user == null) {
             throw new LoveLedgerException(ErrorCode.FORBIDDEN_ACCESS);
+        } else if (user.getAccount() == null || user.getAccount().isEmpty()
+            || user.getAccount().get(0) == null) {
+            throw new LoveLedgerException(ErrorCode.ACCOUNT_NOT_FOUND);
         }
+
         updateListOfHistory(user);
 
-        Direction direction = sort.equalsIgnoreCase("ASC") ? Direction.ASC : Direction.DESC;
-        Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
+        try {
+            Direction direction = sort.equalsIgnoreCase("ASC") ? Direction.ASC : Direction.DESC;
+            Pageable pageable = PageRequest.of(pageno - 1, size, Sort.by(direction, "createdTime"));
 
-        Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(
-            user.getAccount().get(0), LocalDate.of(year, month, day), pageable);
+            Page<History> historyPage = historyRepository.findByAccountAndCreatedDate(
+                user.getAccount().get(0), LocalDate.of(year, month, day), pageable);
 
-        List<HistoryDetailResponse> response = historyPage.getContent().stream()
-            .map(history -> HistoryDetailResponse.builder()
-                .transactionId(history.getTransactionId())
-                .date(history.getCreatedDate())
-                .time(history.getCreatedTime())
-                .remittance(history.getTransactionType() < 3)
-                .targetName(history.getTransactionTarget())
-                .CategoryName(history.getCategory().getName())
-                .afterAmount(history.getAmountAfterTransaction())
-                .amount(history.getTransactionAmount())
-                .build()
-            )
-            .toList();
-
-        return new PageImpl<>(response, pageable, historyPage.getTotalElements());
+            List<HistoryDetailResponse> response = historyPage.getContent().stream()
+                .map(history -> HistoryDetailResponse.builder()
+                    .transactionId(history.getTransactionId())
+                    .date(history.getCreatedDate())
+                    .time(history.getCreatedTime())
+                    .remittance(history.getTransactionType() < 3)
+                    .targetName(history.getTransactionTarget())
+                    .CategoryName(history.getCategory().getName())
+                    .afterAmount(history.getAmountAfterTransaction())
+                    .amount(history.getTransactionAmount())
+                    .build()
+                )
+                .toList();
+            return new PageImpl<>(response, pageable, historyPage.getTotalElements());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Page.empty();
+        }
     }
 
     @Transactional//(readOnly = true)
