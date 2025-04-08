@@ -12,7 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ProfileStackParamList } from "../../types";
+import { ProfileStackParamList, RootStackParamList } from "../../types";
 import {
   useStoredInviteLink,
   useGenerateInvite,
@@ -22,7 +22,7 @@ import * as Clipboard from "expo-clipboard";
 import { InviteConflictResponse } from "../../types";
 
 type LinkGenerationScreenProps = NativeStackScreenProps<
-  ProfileStackParamList,
+  RootStackParamList,
   "LinkGeneration"
 >;
 

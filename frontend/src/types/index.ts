@@ -477,15 +477,10 @@ export interface AccountVerifyRequest {
 
 // 계좌 인증 응답 타입
 export interface AccountVerifyResponse {
-  status: string;
-  message: string;
-  data: {
-    REC: {
-      transactionUniqueNo: number;
-      accounNo: string;
-    };
-  };
+  status: number;
+  data: null;
   timestamp: string;
+  success: boolean;
 }
 
 // 계좌 인증 에러 타입
