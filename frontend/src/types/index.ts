@@ -52,9 +52,9 @@ export type RootStackParamList = {
   TransactionEdit: { transaction: Transaction };
   LinkGeneration: {};
   LinkConfirm: { linkCode: string };
-  LinkSuccess: {};
-  LinkError: {
-    errorType: "expired" | "invalid" | "already_linked" | "generic";
+  LinkSuccess: {
+    partnerName: string;
+    partnerEmail: string;
   };
   AccountVerification: undefined;
 };
@@ -64,8 +64,24 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   ProfileEdit: { partner: string };
   GoalList: undefined;
-  GoalDetail: { goal: Goal };
+  GoalDetail: {
+    goal: {
+      title: string;
+      goalAmount: number;
+      currentAmount: number;
+      startDate: string;
+      goalDate: string;
+      contentURL: string;
+    };
+  };
   AccountVerification: undefined;
+  LinkSelection: undefined;
+  LinkGeneration: undefined;
+  LinkConfirm: { linkCode: string };
+  LinkSuccess: {
+    partnerName: string;
+    partnerEmail: string;
+  };
 };
 
 // 스토리 스택 파라미터 타입
@@ -278,22 +294,23 @@ export type CategorySummary = {
 
 // 목표 관련 타입
 export type Goal = {
-  id: string;
+  id?: string;
   title: string;
-  description: string;
-  target: number;
-  current: number;
-  deadline: string;
-  icon: IconName;
+  goalAmount: number;
+  currentAmount: number;
+  startDate: string;
+  goalDate: string;
+  contentURL: string;
 };
 
 // 새 목표 입력 타입
 export interface NewGoal {
-  title: string;
-  description: string;
-  target: string;
-  deadline: string;
-  icon: string;
+  title?: string;
+  goalAmount?: number | string;
+  currentAmount?: number | string;
+  startDate?: string;
+  goalDate?: string;
+  contentURL?: string;
 }
 
 // 목표 거래 타입
@@ -493,20 +510,19 @@ export interface AccountVerifyConfirmResponse {
 export type thresholdAmount = number;
 
 export interface InviteResponse {
+  status: string;
+  message: string;
   data: {
     link: string;
   };
+  timestamp: string;
 }
 
 export interface InviteErrorResponse {
-  status: string;
+  status: number;
   message: string;
-  data?: {
-    existingLink?: string;
-    createdAt?: string;
-    expiresAt?: string;
-    action?: string;
-  };
+  data: null;
+  timestamp: string;
 }
 
 export interface CoupleJoinResponse {
@@ -536,20 +552,82 @@ export interface UpdateUserRequest {
   isMarried?: boolean;
 }
 
-export interface UserDetailResponse {
-  id: string;
+export interface UserProfile {
   name: string;
-  email: string;
   gender: boolean;
   birthDay: string;
   isMarried: boolean;
+  photo?: string;
+}
+
+export interface CoupleInfo {
+  coupleId: number;
+  darlingEmail: string;
+  darlingName: string;
+  darlingBirthDay: string;
+}
+
+export interface UserDetailResponse {
+  email: string;
+  name: string;
+  birthDay: string;
+  gender: boolean;
+  marriageDuration: number;
+  picture: string | null;
+  coupleInfo: CoupleInfo | null;
+  marryDate: string | null;
+  isMarried: boolean;
+  id?: string;
+  partnerName?: string;
+  diariesCount?: number;
+  storiesCount?: number;
+  photo?: string | null;
+  partnerAge?: number;
+  partnerPhoto?: string | null;
 }
 
 export interface InviteValidateResponse {
   status: string;
   message: string;
   data: {
-    isValid: boolean;
-    expiresAt?: string;
+    email: string;
+    name: string;
   };
+  timestamp: string;
+}
+
+export interface InviteValidateExpiredResponse {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+export interface InviteValidateAlreadyLinkedResponse {
+  status: number;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 초대 링크 응답 타입
+export interface InviteSuccessResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+  };
+  timestamp: string;
+}
+
+export interface InviteConflictResponse {
+  status: string;
+  message: string;
+  data: {
+    existingLink: string;
+    createdAt: string;
+    expiresAt: string;
+    action: string;
+  };
+  timestamp: string;
 }

@@ -30,6 +30,7 @@ import { SignUpRequest } from "../../types";
 import { useUpdateUserInfo } from "../../hooks/useUserApi";
 import { useTokenIntegration } from "../../hooks/useTokenIntegration";
 import { axiosInstance } from "../../api/axios";
+import { useNavigation } from "@react-navigation/native";
 
 // TestQueryButton 컴포넌트 (내부에 정의)
 const TestQueryButton = () => {
@@ -162,6 +163,7 @@ const KAKAO_ICON = require("../../../assets/images/login/kakao-talk.png");
 
 export default function LoginScreen() {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const { isLoading: authLoading, error } = useAppSelector(
     (state) => state.auth
   );
@@ -196,8 +198,11 @@ export default function LoginScreen() {
   useEffect(() => {
     if (isNewUser) {
       setShowSignUpModal(true);
+    } else if (!isNewUser && !isLoading) {
+      // 기존 사용자인 경우 메인 화면으로 이동
+      navigation.navigate("Main" as never);
     }
-  }, [isNewUser]);
+  }, [isNewUser, isLoading, navigation]);
 
   // 구글 로그인 타임아웃 표시
   const [showingTimeout, setShowingTimeout] = useState(false);
@@ -304,7 +309,7 @@ export default function LoginScreen() {
   };
 
   // 회원가입 추가 정보 제출
-  const handleSignUpSubmit = () => {
+  const handleSignUpSubmit = async () => {
     if (!signUpData.name || !signUpData.birthDay) {
       dispatch(loginFailure("모든 필수 항목을 입력해주세요."));
       return;
@@ -315,9 +320,15 @@ export default function LoginScreen() {
       return;
     }
 
-    // 회원가입 추가 정보 업데이트
-    updateUserInfoMutation.mutate(signUpData);
-    setShowSignUpModal(false);
+    try {
+      // 회원가입 추가 정보 업데이트
+      await updateUserInfoMutation.mutateAsync(signUpData);
+      setShowSignUpModal(false);
+      // 메인 화면으로 이동
+      navigation.navigate("Main" as never);
+    } catch (error) {
+      dispatch(loginFailure("회원 정보 업데이트에 실패했습니다."));
+    }
   };
 
   // 구글 로그인 버튼 렌더링 함수

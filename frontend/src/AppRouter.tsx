@@ -22,28 +22,27 @@ import TransactionEditScreen from "./screens/daily/DailyEditScreen";
 import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
-import LinkErrorScreen from "./screens/link/LinkErrorScreen";
 import DiaryDetailScreen from "./screens/diary/DiaryDetailScreen";
 import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
-import * as Linking from 'expo-linking';
+import * as Linking from "expo-linking";
 
-const prefix = Linking.createURL('/');
+const prefix = Linking.createURL("/");
 
 const linking = {
-  prefixes: [prefix, 'loveledger://'],
+  prefixes: [prefix, "loveledger://"],
   config: {
     screens: {
-      Auth: 'auth',
-      Main: 'main',
+      Auth: "auth",
+      Main: "main",
       LinkConfirm: {
-        path: 'link-confirm',
+        path: "link-confirm",
         parse: {
-          linkCode: (code: string) => code ?? '',
+          linkCode: (code: string) => code ?? "",
         },
       },
-      LinkSuccess: 'link-success',
-      LinkError: 'link-error',
+      LinkSuccess: "link-success",
+      LinkError: "link-error",
     },
   },
 };
@@ -125,20 +124,17 @@ const AppRouter = () => {
             />
 
             {/* Library 스택 */}
-            <Stack.Screen
-              name="Library"
-              component={LibraryNavigator}
-            />
+            <Stack.Screen name="Library" component={LibraryNavigator} />
 
             {/* Library 관련 상세 화면들 - 모달로 표시 */}
-            <Stack.Screen 
-              name="DiaryDetail" 
-              component={DiaryDetailScreen} 
+            <Stack.Screen
+              name="DiaryDetail"
+              component={DiaryDetailScreen}
               options={{ presentation: "modal" }}
             />
-            <Stack.Screen 
-              name="StoryDetail" 
-              component={StoryDetailScreen} 
+            <Stack.Screen
+              name="StoryDetail"
+              component={StoryDetailScreen}
               options={{ presentation: "modal" }}
             />
 
@@ -154,7 +150,6 @@ const AppRouter = () => {
               />
               <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
               <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
-              <Stack.Screen name="LinkError" component={LinkErrorScreen} />
             </Stack.Group>
           </>
         )}

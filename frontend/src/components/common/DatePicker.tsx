@@ -119,7 +119,11 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const startDateClone = new Date(startDate.getTime());
             setTempRangeStart(startDateClone);
-            selectStartDate(new Date(startDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = startDateClone.toISOString().split("T")[0];
+            selectStartDate(dateString);
+
             setDisplayedMonth(new Date(startDate.getTime()));
           }
 
@@ -127,7 +131,10 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const endDateClone = new Date(endDate.getTime());
             setTempRangeEnd(endDateClone);
-            selectEndDate(new Date(endDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = endDateClone.toISOString().split("T")[0];
+            selectEndDate(dateString);
           }
         } else {
           // 단일 선택 모드일 때 초기값 설정
@@ -135,7 +142,11 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const selectedDateClone = new Date(selectedDate.getTime());
             setTempSelectedDate(selectedDateClone);
-            selectDate(new Date(selectedDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = selectedDateClone.toISOString().split("T")[0];
+            selectDate(dateString);
+
             setDisplayedMonth(new Date(selectedDate.getTime()));
           }
         }
@@ -387,44 +398,59 @@ export default function DatePicker({
   // 날짜 선택 처리 함수
   const handleDateSelect = (date: Date) => {
     try {
+      // 날짜만 사용하기 위해 시간 정보 제거 (시간대 문제 방지)
+      const normalizedDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+
+      // 표준시간대 이슈를 해결하기 위해 날짜 부분만 추출하여 문자열로 변환
+      const dateString = normalizedDate.toISOString().split("T")[0];
+
       if (!isRange) {
         // 단일 날짜 선택
-        setTempSelectedDate(date);
-        // Redux 상태 업데이트 - 클론한 날짜 객체를 사용하여 참조가 변경되도록 함
-        selectDate(new Date(date.getTime()));
-        // onSelectDate(date); // 모달 닫기 제거
+        setTempSelectedDate(normalizedDate);
+        // Redux 상태 업데이트 - 문자열 날짜 사용
+        selectDate(dateString);
+
+        // 단일 날짜 선택 시 즉시 선택 완료 처리
+        if (onSelectDate) {
+          onSelectDate(normalizedDate);
+          onClose();
+        }
       } else {
         // 범위 선택 모드
         if (!tempRangeStart || (tempRangeStart && tempRangeEnd)) {
           // 시작일 설정
-          setTempRangeStart(date);
+          setTempRangeStart(normalizedDate);
           setTempRangeEnd(null);
-          // Redux 상태 업데이트 - 클론한 날짜 객체 사용
-          selectStartDate(new Date(date.getTime()));
+          // Redux 상태 업데이트 - 문자열 날짜 사용
+          selectStartDate(dateString);
           selectEndDate(null);
         } else {
           // 종료일 설정 (시작일보다 이전 날짜 선택 시 시작일과 종료일 교체)
-          if (date < tempRangeStart) {
+          if (normalizedDate < tempRangeStart) {
             setTempRangeEnd(tempRangeStart);
-            setTempRangeStart(date);
+            setTempRangeStart(normalizedDate);
 
-            // Redux 상태 업데이트
-            selectStartDate(new Date(date.getTime()));
-            selectEndDate(new Date(tempRangeStart.getTime()));
+            // Redux 상태 업데이트 - 문자열 날짜 사용
+            selectStartDate(dateString);
+            selectEndDate(tempRangeStart.toISOString().split("T")[0]);
 
-            // 콜백 호출 (모달 닫기 제거)
+            // 콜백 호출
             if (onSelectRange) {
-              onSelectRange(date, tempRangeStart);
+              onSelectRange(normalizedDate, tempRangeStart);
             }
           } else {
-            setTempRangeEnd(date);
+            setTempRangeEnd(normalizedDate);
 
-            // Redux 상태 업데이트
-            selectEndDate(new Date(date.getTime()));
+            // Redux 상태 업데이트 - 문자열 날짜 사용
+            selectEndDate(dateString);
 
-            // 콜백 호출 (모달 닫기 제거)
+            // 콜백 호출
             if (onSelectRange && tempRangeStart) {
-              onSelectRange(tempRangeStart, date);
+              onSelectRange(tempRangeStart, normalizedDate);
             }
           }
         }
@@ -437,13 +463,13 @@ export default function DatePicker({
   // 선택 적용 핸들러
   const handleApplySelection = () => {
     if (isRange && tempRangeStart && tempRangeEnd) {
-      // 범위 선택 확정 - 깊은 복사하여 참조 문제 방지
+      // 범위 선택 확정
       const startDateClone = new Date(tempRangeStart.getTime());
       const endDateClone = new Date(tempRangeEnd.getTime());
 
-      // Redux 상태 업데이트
-      selectStartDate(startDateClone);
-      selectEndDate(endDateClone);
+      // Redux 상태 업데이트 - 문자열 날짜 사용
+      selectStartDate(startDateClone.toISOString().split("T")[0]);
+      selectEndDate(endDateClone.toISOString().split("T")[0]);
 
       // 콜백 호출
       if (onSelectRange) {
@@ -452,7 +478,7 @@ export default function DatePicker({
     } else if (!isRange && tempSelectedDate) {
       // 단일 날짜 선택 확정
       const dateClone = new Date(tempSelectedDate.getTime());
-      selectDate(dateClone);
+      selectDate(dateClone.toISOString().split("T")[0]);
       onSelectDate(dateClone);
     }
 

@@ -2,7 +2,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { updateUserInfo, updateUserProfile, getUserDetail } from "../api/user";
 import { SignUpRequest, UpdateUserRequest, UserDetailResponse } from "../types";
 import { useAppDispatch } from "./reduxHooks";
-import { loginSuccess, loginFailure } from "../store/authSlice";
+import {
+  loginSuccess,
+  loginFailure,
+  updateUserInfo as updateUserInfoAction,
+} from "../store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
@@ -55,8 +59,6 @@ export const useUpdateUserProfile = () => {
     mutationFn: (userData: UpdateUserRequest) => updateUserProfile(userData),
     onSuccess: (data) => {
       if (data.success) {
-        // 성공 시 필요한 처리 (예: 토스트 메시지 표시)
-        console.log("유저 정보 수정 성공");
       } else {
         dispatch(loginFailure("유저 정보 수정 실패"));
       }
@@ -75,10 +77,31 @@ export const useUpdateUserProfile = () => {
  * @returns query 객체 (data, isLoading, isError 등)
  */
 export const useUserDetail = () => {
+  const dispatch = useAppDispatch();
+
   return useQuery({
     queryKey: ["userDetail"],
     queryFn: getUserDetail,
-    select: (response) => response.data as UserDetailResponse,
+    select: (response) => {
+      const userData = response.data as UserDetailResponse;
+
+      const userInfoToUpdate = {
+        email: userData.email,
+        name: userData.name,
+        birthDay: userData.birthDay,
+        gender: userData.gender,
+        isMarried: userData.isMarried,
+        picture: userData.picture,
+        coupleInfo: userData.coupleInfo,
+        marryDate: userData.marryDate,
+        marriageDuration: userData.marriageDuration,
+      };
+
+      // Redux 스토어에 유저 정보 업데이트
+      dispatch(updateUserInfoAction(userInfoToUpdate));
+
+      return userData;
+    },
     staleTime: 5 * 60 * 1000, // 5분 동안 캐시 유지
   });
 };
