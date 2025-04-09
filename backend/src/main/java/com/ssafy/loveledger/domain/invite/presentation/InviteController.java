@@ -1,5 +1,6 @@
 package com.ssafy.loveledger.domain.invite.presentation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.loveledger.domain.invite.presentation.dto.response.InviteLinkResponse;
@@ -9,8 +10,8 @@ import com.ssafy.loveledger.global.auth.dto.request.CustomOAuth2User;
 import com.ssafy.loveledger.global.common.ApiResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import net.minidev.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,26 @@ public class InviteController {
     private final InviteService inviteService;
     private final ObjectMapper objectMapper;
 
+    @GetMapping("/current")
+    public InviteLinkResponse getCurrentInviteLink(
+        @AuthenticationPrincipal CustomOAuth2User oAuth2User) throws JsonProcessingException {
+
+        // 현재 로그인한 사용자의 ID를 가져옵니다
+        Long userId = oAuth2User.getUserId();
+
+        // 현재 활성화된 초대 링크 조회
+        Map<String, Object> inviteInfo = inviteService.getCurrentInviteLink(userId);
+
+        // 응답 생성
+        return InviteLinkResponse.builder()
+            .link((String) inviteInfo.get("link"))
+            .inviteCode((String) inviteInfo.get("inviteCode"))
+            .createdAt((String) inviteInfo.get("createdAt"))
+            .expiresAt((String) inviteInfo.get("expiresAt"))
+            .remainingHours((Long) inviteInfo.get("remainingHours"))
+            .build();
+    }
+
     /**
      * 배우자 초대 링크를 생성합니다.
      *
@@ -34,20 +55,8 @@ public class InviteController {
      * @return 생성된 초대 링크
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<InviteLinkResponse>> generateInviteLink(
+    public InviteLinkResponse generateInviteLink(
         @AuthenticationPrincipal CustomOAuth2User oAuth2User) {
-
-        if (oAuth2User == null) {
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<InviteLinkResponse>builder()
-                    .status("401")
-                    .message("인증 정보가 올바르지 않습니다")
-                    .timestamp(LocalDateTime.now()
-                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                    .build()
-            );
-        }
-
         // 현재 로그인한 사용자의 ID를 가져옵니다
         Long userId = oAuth2User.getUserId();
 
@@ -59,15 +68,7 @@ public class InviteController {
             .link(inviteLink)
             .build();
 
-        return ResponseEntity.ok(
-            ApiResponse.<InviteLinkResponse>builder()
-                .status("200")
-                .message("정상적으로 반환하였습니다.")
-                .data(response)
-                .timestamp(LocalDateTime.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'T'")))
-                .build()
-        );
+        return response;
     }
     /**
      * 초대 링크의 유효성을 검증합니다.
