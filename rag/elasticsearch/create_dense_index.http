@@ -1,0 +1,23 @@
+PUT http://localhost:9200/loveledger_dense
+Content-Type: application/json
+
+{
+  "mappings": {
+    "properties": {
+      "Vector": {
+        "type": "dense_vector",
+        "dims": 768,
+        "index": true, 
+        "similarity": "l2_norm"
+      },
+      "text": {
+        "type": "text",
+        "index": false
+      },
+      "href": {
+        "type": "text",
+        "index": false
+      }
+    }
+  }
+}
