@@ -288,11 +288,12 @@ export type DashboardTransaction = {
 };
 
 // 카테고리 요약 타입
-export type CategorySummary = {
+export interface CategorySummary {
   name: string;
   amount: number;
   icon: IconName;
-};
+  percentage?: number;
+}
 
 // 목표 관련 타입
 export type Goal = {
