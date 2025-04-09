@@ -1,11 +1,14 @@
-import React, { useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
-import { fetchTransactionsStart, fetchTransactionsSuccess, fetchTransactionsFailure } from "../../store/financeSlice";
+import { fetchTransactionsStart, fetchTransactionsSuccess, fetchTransactionsFailure, setSelectedYear, setSelectedMonth } from "../../store/financeSlice";
 import { CategorySummary, IconName, Transaction } from "../../types";
-import { transactionHistoryData } from "../../../dummyData";
+import { useMonthlyStat } from "../../hooks/useMonthlyStat";
+import { useAccountDetail } from "../../hooks/useAccountDetail";
+import { useMonthlyTransactions } from "../../hooks/useMonthlyTransactions";
+import { PieChart, LineChart, BarChart } from "react-native-chart-kit";
 
 // 통화 포맷 함수
 const formatCurrency = (amount: number): string => {
@@ -20,87 +23,294 @@ const formatCurrency = (amount: number): string => {
 
 export default function DashboardScreen() {
   const dispatch = useAppDispatch();
-  const { transactions, isLoading } = useAppSelector(state => state.finance);
+  const { transactions, isLoading, monthlyStat, selectedYear, selectedMonth } = useAppSelector(state => state.finance);
   const { activeView } = useAppSelector(state => state.partner);
+  
+  // 연도 선택을 위한 배열 생성 (최근 5년)
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => currentYear - i);
+  }, []);
+
+  // 월 선택을 위한 배열 생성
+  const months = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => i + 1);
+  }, []);
+
+  // SelectBox 상태 관리
+  const [showYearPicker, setShowYearPicker] = React.useState(false);
+  const [showMonthPicker, setShowMonthPicker] = React.useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showWeeklyCharts, setShowWeeklyCharts] = useState(false);
+  const [pieChartView, setPieChartView] = useState<'income' | 'expense'>('income');
+
+  // 월별 통계 데이터 가져오기
+  const { data: monthlyStatData, isLoading: isMonthlyStatLoading } = useMonthlyStat(selectedYear, selectedMonth);
+
+  // 선택된 월의 거래 내역 가져오기
+  const { data: accountDetailData, isLoading: isAccountDetailLoading } = useAccountDetail({
+    year: selectedYear,
+    month: selectedMonth,
+    pageno: 1,
+    size: 100, // 한 달의 거래 내역을 충분히 가져오기 위한 크기
+    sort: 'DESC'
+  });
+
+  // 선택된 연도/월 변경 감지
+  useEffect(() => {
+    console.log('DashboardScreen - 선택된 연도/월 변경:', { selectedYear, selectedMonth });
+  }, [selectedYear, selectedMonth]);
 
   // 데이터 로드
   useEffect(() => {
     dispatch(fetchTransactionsStart());
     
-    // 더미 데이터에서 activeView에 따라 필터링
     try {
+      if (accountDetailData?.content) {
       let filteredTransactions;
       if (activeView === 'you') {
-        filteredTransactions = transactionHistoryData.data.history.filter(t => t.userId === 'user1');
+          filteredTransactions = accountDetailData.content.filter(t => t.accountNo === 'user1');
       } else if (activeView === 'partner') {
-        filteredTransactions = transactionHistoryData.data.history.filter(t => t.userId === 'user2');
+          filteredTransactions = accountDetailData.content.filter(t => t.accountNo === 'user2');
       } else {
-        filteredTransactions = transactionHistoryData.data.history;
+          filteredTransactions = accountDetailData.content;
+        }
+        
+        // Transaction 타입으로 변환
+        const convertedTransactions = filteredTransactions.map(t => ({
+          id: t.transactionId,
+          transactionid: t.transactionId,
+          amount: t.amount,
+          date: t.date,
+          time: t.time,
+          remittance: t.remittance,
+          targetname: t.targetName,
+          category: t.categoryName,
+          accountNo: t.accountNo
+        }));
+        
+        dispatch(fetchTransactionsSuccess(convertedTransactions));
       }
-      
-      dispatch(fetchTransactionsSuccess(filteredTransactions));
     } catch (error) {
       dispatch(fetchTransactionsFailure('데이터 로드 중 오류가 발생했습니다.'));
     }
-  }, [activeView, dispatch]);
+  }, [activeView, dispatch, accountDetailData]);
   
 
   // 데이터 계산을 memoize
   const summaryData = useMemo(() => {
-    // 총 지출 계산
-    const totalSpent = transactions.reduce(
+    // 1. 총 지출/수입 계산 (API 데이터 우선 사용)
+    const totalSpent = monthlyStat?.monthStat?.reduce(
+      (total, stat) => total + stat.consumeSum, 
+      0
+    ) || transactions.reduce(
       (total, transaction) => 
         transaction.remittance ? total + transaction.amount : total, 
       0
     );
 
-    // 총 수입 계산
-    const totalEarned = transactions.reduce(
+    const totalEarned = monthlyStat?.monthStat?.reduce(
+      (total, stat) => total + stat.earnSum, 
+      0
+    ) || transactions.reduce(
       (total, transaction) => 
         !transaction.remittance ? total + transaction.amount : total, 
       0
     );
 
-    // 카테고리별 지출 계산
-    const categoryMap = new Map<string, number>();
-    transactions.forEach(transaction => {
-      if (transaction.remittance && transaction.category) {
-        const currentAmount = categoryMap.get(transaction.category) || 0;
-        categoryMap.set(transaction.category, currentAmount + transaction.amount);
-      }
-    });
+    // 2. 일일 평균 계산 (해당 월의 실제 일수 사용)
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const monthlyAverage = totalEarned || totalSpent ? Math.round((totalEarned - totalSpent) / daysInMonth) : 0;
 
-    // 카테고리 정렬 및 상위 4개 추출
-    const categories: CategorySummary[] = Array.from(categoryMap)
-      .map(([name, amount]) => {
+    // 3. 카테고리별 지출 계산 (API 데이터 사용)
+    const categories: CategorySummary[] = monthlyStat?.monthStat?.map(stat => {
+      console.log('카테고리 데이터:', stat);
+
         // 카테고리에 따른 아이콘 지정
         let icon: IconName = "cash";
-        if (name === "식비") icon = "food";
-        else if (name === "카페") icon = "coffee";
-        else if (name === "마트/편의점") icon = "store";
-        else if (name === "문화/여가") icon = "ticket";
-        else if (name === "현금인출") icon = "bank";
+      if (stat.categoryName === "식비") icon = "food";
+      else if (stat.categoryName === "카페") icon = "coffee";
+      else if (stat.categoryName === "마트/편의점") icon = "store";
+      else if (stat.categoryName === "문화/여가") icon = "ticket";
+      else if (stat.categoryName === "현금인출") icon = "bank";
 
-        return { name, amount, icon };
-      })
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 4);
+      return { 
+        name: stat.categoryName, 
+        amount: stat.consumeSum || 0,  // 지출액 표시
+        percentage: stat.percentage || 0,
+        icon 
+      };
+    })?.sort((a, b) => b.amount - a.amount) || [];
 
-    // 최근 거래 추출
-    const recentTransactions = [...transactions]
-      .sort((a, b) => 
-        new Date(b.time || b.date).getTime() - new Date(a.time || a.date).getTime()
-      )
-      .slice(0, 5);
+    console.log('가공된 카테고리 데이터:', categories);
+
+    // 4. 주간 통계 데이터 처리
+    const weekStats = monthlyStat?.weekStat || Array.from({ length: 4 }, (_, index) => ({
+      week: index + 1,
+      totalConsumeSum: 0,
+      totalEarnSum: 0
+    }));
+
+    console.log('주간 통계 데이터:', weekStats);
+
+    // 5. 최근 거래 데이터 처리
+    // const currentMonthTransactions = transactions
+    //   .filter(transaction => {
+    //     const transactionDate = new Date(transaction.date);
+    //     return transactionDate.getMonth() + 1 === selectedMonth && 
+    //            transactionDate.getFullYear() === selectedYear;
+    //   })
+    //   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // console.log('최근 거래 데이터:', currentMonthTransactions);
+
+    // // 날짜별로 그룹화
+    // const groupedTransactions = currentMonthTransactions.reduce((acc, transaction) => {
+    //   const date = transaction.date;
+    //   if (!acc[date]) {
+    //     acc[date] = [];
+    //   }
+    //   acc[date].push(transaction);
+    //   return acc;
+    // }, {} as Record<string, Transaction[]>);
+    // console.log('날짜별 그룹화 데이터:', groupedTransactions);
+
+    // // 날짜별로 정렬된 배열로 변환
+    // const sortedDates = Object.keys(groupedTransactions).sort((a, b) => 
+    //   new Date(b).getTime() - new Date(a).getTime()
+    // );
+    // console.log('정렬된 날짜:', sortedDates);
 
     return {
       totalSpent,
       totalEarned,
-      monthlyAverage: Math.round(totalSpent / 30),
+      monthlyAverage,
       categories,
-      recentTransactions
+      weekStats,
+      groupedTransactions,
+      // sortedDates
     };
-  }, [transactions]);
+  }, [transactions, monthlyStat, selectedYear, selectedMonth]);
+
+  const { data: monthlyTransactions, isLoading: isMonthlyTransactionsLoading } = useMonthlyTransactions(
+    selectedYear,
+    selectedMonth
+  );
+
+  const groupedTransactions = useMemo(() => {
+    if (!monthlyTransactions) return [];
+    
+    const groups = monthlyTransactions.reduce((acc, transaction) => {
+      const date = new Date(transaction.date).toLocaleDateString();
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(transaction);
+      return acc;
+    }, {} as Record<string, typeof monthlyTransactions>);
+
+    return Object.entries(groups)
+      .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
+      .map(([date, transactions]) => ({
+        date,
+        transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }));
+  }, [monthlyTransactions]);
+
+  // 차트 데이터 준비
+  const chartData = useMemo(() => {
+    if (!summaryData.weekStats || summaryData.weekStats.length === 0) {
+      return {
+        pieData: [],
+        lineData: {
+          labels: [],
+          datasets: []
+        },
+        areaData: {
+          labels: [],
+          datasets: []
+        },
+        barData: {
+          labels: [],
+          datasets: []
+        }
+      };
+    }
+
+    // 1. 파이 차트 데이터 (수입과 지출 비율)
+    const totalEarn = summaryData.weekStats.reduce((sum, stat) => sum + stat.totalEarnSum, 0);
+    const totalConsume = summaryData.weekStats.reduce((sum, stat) => sum + stat.totalConsumeSum, 0);
+    
+    const pieData = [
+      {
+        name: "수입",
+        population: totalEarn,
+        color: theme.colors.success,
+        legendFontColor: theme.colors.text,
+        legendFontSize: 12
+      },
+      {
+        name: "지출",
+        population: totalConsume,
+        color: theme.colors.error,
+        legendFontColor: theme.colors.text,
+        legendFontSize: 12
+      }
+    ];
+
+    // 2. 라인 차트 데이터 (수입과 지출 추이)
+    const lineData = {
+      labels: summaryData.weekStats.map(stat => `${stat.week}주차`),
+      datasets: [
+        {
+          data: summaryData.weekStats.map(stat => stat.totalEarnSum / 10000), // 만원 단위로 변환
+          color: (opacity = 1) => theme.colors.success,
+          strokeWidth: 2
+        },
+        {
+          data: summaryData.weekStats.map(stat => stat.totalConsumeSum / 10000), // 만원 단위로 변환
+          color: (opacity = 1) => theme.colors.error,
+          strokeWidth: 2
+        }
+      ],
+      legend: ["수입", "지출"]
+    };
+
+    // 3. 스택 영역 차트 데이터 (수입 누적)
+    const areaData = {
+      labels: summaryData.weekStats.map(stat => `${stat.week}주차`),
+      datasets: [
+        {
+          data: summaryData.weekStats.map(stat => stat.totalEarnSum / 10000), // 만원 단위로 변환
+          color: (opacity = 1) => theme.colors.success,
+          strokeWidth: 2
+        }
+      ],
+      legend: ["수입"]
+    };
+
+    // 4. 바 차트 데이터 (주차별 수입과 지출)
+    const barData = {
+      labels: summaryData.weekStats.map(stat => `${stat.week}주차`),
+      datasets: [
+        {
+          data: summaryData.weekStats.map(stat => stat.totalEarnSum / 10000), // 만원 단위로 변환
+          color: (opacity = 1) => theme.colors.success,
+        },
+        {
+          data: summaryData.weekStats.map(stat => stat.totalConsumeSum / 10000), // 만원 단위로 변환
+          color: (opacity = 1) => theme.colors.error,
+        }
+      ],
+      legend: ["수입", "지출"]
+    };
+
+    return {
+      pieData,
+      lineData,
+      areaData,
+      barData
+    };
+  }, [summaryData.weekStats]);
 
   if (isLoading) {
     return (
@@ -113,26 +323,91 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* 연월 선택 영역 */}
+      <View style={styles.dateSelectorContainer}>
+        <View style={styles.dateSelectorWrapper}>
+          <Pressable 
+            style={styles.dateSelector} 
+            onPress={() => setShowYearPicker(!showYearPicker)}
+          >
+            <Text style={styles.dateSelectorText}>{selectedYear}년</Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={theme.colors.text} />
+          </Pressable>
+          <Pressable 
+            style={styles.dateSelector} 
+            onPress={() => setShowMonthPicker(!showMonthPicker)}
+          >
+            <Text style={styles.dateSelectorText}>{selectedMonth}월</Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={theme.colors.text} />
+          </Pressable>
+        </View>
+
+        {/* 연도 선택 모달 */}
+        {showYearPicker && (
+          <View style={styles.pickerContainer}>
+            {years.map((year) => (
+              <Pressable
+                key={year}
+                style={[
+                  styles.pickerItem,
+                  year === selectedYear && styles.pickerItemSelected
+                ]}
+                onPress={() => {
+                  dispatch(setSelectedYear(year));
+                  setShowYearPicker(false);
+                }}
+              >
+                <Text style={[
+                  styles.pickerItemText,
+                  year === selectedYear && styles.pickerItemTextSelected
+                ]}>
+                  {year}년
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* 월 선택 모달 */}
+        {showMonthPicker && (
+          <View style={styles.pickerContainer}>
+            {months.map((month) => (
+              <Pressable
+                key={month}
+                style={[
+                  styles.pickerItem,
+                  month === selectedMonth && styles.pickerItemSelected
+                ]}
+                onPress={() => {
+                  dispatch(setSelectedMonth(month));
+                  setShowMonthPicker(false);
+                }}
+              >
+                <Text style={[
+                  styles.pickerItemText,
+                  month === selectedMonth && styles.pickerItemTextSelected
+                ]}>
+                  {month}월
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       <View style={styles.overviewCard}>
         <Text style={styles.overviewTitle}>재정 요약</Text>
         <View style={styles.overviewRow}>
           <View style={styles.overviewColumn}>
             <Text style={styles.overviewLabel}>총 지출</Text>
-            <Text
-              style={[styles.amount, { color: theme.colors.error }]}
-            >
+            <Text style={[styles.amount, { color: theme.colors.error }]}>
               {formatCurrency(summaryData.totalSpent)}
             </Text>
           </View>
           <View style={styles.overviewDivider} />
           <View style={styles.overviewColumn}>
             <Text style={styles.overviewLabel}>총 수입</Text>
-            <Text
-              style={[
-                styles.amount,
-                { color: theme.colors.success },
-              ]}
-            >
+            <Text style={[styles.amount, { color: theme.colors.success }]}>
               {formatCurrency(summaryData.totalEarned)}
             </Text>
           </View>
@@ -142,9 +417,21 @@ export default function DashboardScreen() {
         </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>주요 카테고리</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>주요 카테고리 지출 내역</Text>
+        <Pressable 
+          style={styles.moreButton} 
+          onPress={() => setShowAllCategories(!showAllCategories)}
+        >
+          <MaterialCommunityIcons
+            name={showAllCategories ? "chevron-up" : "chevron-down"}
+            size={24}
+            color={theme.colors.primary}
+          />
+        </Pressable>
+      </View>
       <View style={styles.categoriesContainer}>
-        {summaryData.categories.map((category) => (
+        {(showAllCategories ? summaryData.categories : summaryData.categories.slice(0, 4)).map((category) => (
           <View key={category.name} style={styles.categoryCard}>
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
@@ -157,42 +444,320 @@ export default function DashboardScreen() {
             <Text style={styles.categoryAmount}>
               {formatCurrency(category.amount)}
             </Text>
+            <Text style={styles.categoryPercentage}>
+              {category.percentage}%
+            </Text>
           </View>
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>최근 거래</Text>
-      {summaryData.recentTransactions.map((transaction: Transaction) => (
-        <View
-          key={transaction.id}
-          style={styles.transactionCard}
-        >
-          <View style={styles.transactionInfo}>
-            <Text style={styles.transactionTitle}>
-              {transaction.targetname || "무제 거래"}
+      {/* 주간 통계 섹션 */}
+      <View style={styles.weeklyStatsContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>주간 통계</Text>
+          <Pressable 
+            style={styles.moreButton} 
+            onPress={() => setShowWeeklyCharts(!showWeeklyCharts)}
+          >
+            <MaterialCommunityIcons
+              name={showWeeklyCharts ? "chevron-up" : "chevron-down"}
+              size={24}
+              color={theme.colors.primary}
+            />
+          </Pressable>
+        </View>
+        
+        {!showWeeklyCharts ? (
+          <View style={styles.weeklyStatsContent}>
+            {summaryData.weekStats.map((weekStat) => (
+              <View key={weekStat.week} style={styles.weeklyStatItem}>
+                <Text style={styles.weekText}>{weekStat.week + 1}주차</Text>
+                <View style={styles.weeklyAmounts}>
+                  <Text style={[styles.amountText, styles.expenseText]}>
+                    {formatCurrency(weekStat.totalConsumeSum)}
+                  </Text>
+                  <Text style={[styles.amountText, styles.incomeText]}>
+                    {formatCurrency(weekStat.totalEarnSum)}
             </Text>
-            <View style={styles.transactionMeta}>
-              <Text style={styles.transactionCategory}>
-                {transaction.category || "기타"}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.chartsContainer}>
+            {/* 1. 파이 차트 - 수입과 지출 비율 */}
+            <View style={styles.chartRow}>
+              <View style={styles.pieChartContainer}>
+                <Text style={styles.chartTitle}>수입/지출 비율</Text>
+                <View style={styles.pieChartNavigation}>
+                  <Pressable 
+                    style={styles.pieChartNavButton} 
+                    onPress={() => setPieChartView('income')}
+                  >
+                    <MaterialCommunityIcons
+                      name="chevron-left"
+                      size={24}
+                      color={pieChartView === 'income' ? theme.colors.primary : theme.colors.textLight}
+                    />
+                    <Text style={[
+                      styles.pieChartNavText,
+                      pieChartView === 'income' && styles.pieChartNavTextActive
+                    ]}>수입</Text>
+                  </Pressable>
+                  <Pressable 
+                    style={styles.pieChartNavButton} 
+                    onPress={() => setPieChartView('expense')}
+                  >
+                    <Text style={[
+                      styles.pieChartNavText,
+                      pieChartView === 'expense' && styles.pieChartNavTextActive
+                    ]}>지출</Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={24}
+                      color={pieChartView === 'expense' ? theme.colors.primary : theme.colors.textLight}
+                    />
+                  </Pressable>
+                </View>
+                <View style={styles.pieChartsContainer}>
+                  {pieChartView === 'income' ? (
+                    <View style={styles.pieChartWrapper}>
+                      <Text style={styles.pieChartSubtitle}>수입</Text>
+                      {chartData.pieData.length > 0 ? (
+                        summaryData.weekStats.some(stat => stat.totalEarnSum > 0) ? (
+                          <PieChart
+                            data={summaryData.weekStats.map((stat, index) => ({
+                              name: `${stat.week + 1}주차`,
+                              population: stat.totalEarnSum,
+                              color: `hsl(${120 + index * 30}, 70%, 50%)`,
+                              legendFontColor: theme.colors.text,
+                              legendFontSize: 8
+                            }))}
+                            width={Dimensions.get("window").width - theme.spacing.md * 2}
+                            height={160}
+                            chartConfig={{
+                              backgroundColor: theme.colors.white,
+                              backgroundGradientFrom: theme.colors.white,
+                              backgroundGradientTo: theme.colors.white,
+                              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                            }}
+                            accessor="population"
+                            backgroundColor="transparent"
+                            paddingLeft="0"
+                            absolute
+                            hasLegend={true}
+                            center={[0, 0]}
+                            avoidFalseZero={true}
+                          />
+                        ) : (
+                          <View style={styles.noDataContainer}>
+                            <Text style={styles.noDataText}>수입 없음</Text>
+                          </View>
+                        )
+                      ) : (
+                        <View style={styles.noDataContainer}>
+                          <Text style={styles.noDataText}>데이터가 없습니다</Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.pieChartWrapper}>
+                      <Text style={styles.pieChartSubtitle}>지출</Text>
+                      {chartData.pieData.length > 0 ? (
+                        summaryData.weekStats.some(stat => stat.totalConsumeSum > 0) ? (
+                          <PieChart
+                            data={summaryData.weekStats.map((stat, index) => ({
+                              name: `${stat.week + 1}주차`,
+                              population: stat.totalConsumeSum,
+                              color: `hsl(${0 + index * 30}, 70%, 50%)`,
+                              legendFontColor: theme.colors.text,
+                              legendFontSize: 8
+                            }))}
+                            width={Dimensions.get("window").width - theme.spacing.md * 2}
+                            height={160}
+                            chartConfig={{
+                              backgroundColor: theme.colors.white,
+                              backgroundGradientFrom: theme.colors.white,
+                              backgroundGradientTo: theme.colors.white,
+                              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                            }}
+                            accessor="population"
+                            backgroundColor="transparent"
+                            paddingLeft="0"
+                            absolute
+                            hasLegend={true}
+                            center={[0, 0]}
+                            avoidFalseZero={true}
+                          />
+                        ) : (
+                          <View style={styles.noDataContainer}>
+                            <Text style={styles.noDataText}>지출 없음</Text>
+                          </View>
+                        )
+                      ) : (
+                        <View style={styles.noDataContainer}>
+                          <Text style={styles.noDataText}>데이터가 없습니다</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* 2. 라인 차트 - 수입과 지출 추이 */}
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>수입과 지출 추이</Text>
+              {chartData.lineData.labels.length > 0 ? (
+                <LineChart
+                  data={chartData.lineData}
+                  width={Dimensions.get("window").width - theme.spacing.md * 2}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: theme.colors.white,
+                    backgroundGradientFrom: theme.colors.white,
+                    backgroundGradientTo: theme.colors.white,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: "6",
+                      strokeWidth: "2",
+                      stroke: theme.colors.primary
+                    }
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16
+                  }}
+                  yAxisLabel=""
+                  yAxisSuffix="만원"
+                  yAxisInterval={1}
+                  segments={5}
+                />
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Text style={styles.noDataText}>데이터가 없습니다</Text>
+                </View>
+              )}
+            </View>
+
+            {/* 3. 스택 영역 차트 - 수입 누적 */}
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>수입 누적</Text>
+              {chartData.areaData.labels.length > 0 ? (
+                <LineChart
+                  data={chartData.areaData}
+                  width={Dimensions.get("window").width - theme.spacing.md * 2}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: theme.colors.white,
+                    backgroundGradientFrom: theme.colors.white,
+                    backgroundGradientTo: theme.colors.white,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: "6",
+                      strokeWidth: "2",
+                      stroke: theme.colors.primary
+                    }
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16
+                  }}
+                  yAxisLabel=""
+                  yAxisSuffix="만원"
+                  yAxisInterval={1}
+                  segments={5}
+                  withVerticalLabels={true}
+                  withHorizontalLabels={true}
+                  withInnerLines={true}
+                  withDots={true}
+                />
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Text style={styles.noDataText}>데이터가 없습니다</Text>
+                </View>
+              )}
+            </View>
+
+            {/* 4. 바 차트 - 주차별 수입과 지출 */}
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>주차별 수입과 지출</Text>
+              {chartData.barData.labels.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <BarChart
+                    data={chartData.barData}
+                    width={Math.max(Dimensions.get("window").width - theme.spacing.md * 2, chartData.barData.labels.length * 100)}
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: theme.colors.white,
+                      backgroundGradientFrom: theme.colors.white,
+                      backgroundGradientTo: theme.colors.white,
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      style: {
+                        borderRadius: 16
+                      },
+                      barPercentage: 0.5,
+                    }}
+                    style={{
+                      marginVertical: 8,
+                      borderRadius: 16
+                    }}
+                    yAxisLabel=""
+                    yAxisSuffix="만원"
+                    yAxisInterval={1}
+                    segments={5}
+                    showValuesOnTopOfBars={true}
+                    fromZero={true}
+                    withInnerLines={true}
+                    withVerticalLabels={true}
+                    withHorizontalLabels={true}
+                  />
+                </ScrollView>
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Text style={styles.noDataText}>데이터가 없습니다</Text>
+                </View>
+              )}
+            </View>
+
+            {/* 흑자/적자 표시 */}
+            <View style={styles.profitLossContainer}>
+              {summaryData.weekStats.map((weekStat, index) => {
+                const profit = weekStat.totalEarnSum - weekStat.totalConsumeSum;
+                const isProfit = profit >= 0;
+                
+                return (
+                  <View key={index} style={styles.profitLossItem}>
+                    <Text style={styles.weekLabel}>{weekStat.week + 1}주차</Text>
+                    <View style={[styles.profitLossIndicator, isProfit ? styles.profitIndicator : styles.lossIndicator]}>
+                      <Text style={styles.profitLossText}>
+                        {isProfit ? "흑자" : "적자"}
               </Text>
-              <Text style={styles.transactionDate}>
-                {new Date(transaction.date).toLocaleDateString("ko-KR")}
+                      <Text style={styles.profitLossAmount}>
+                        {formatCurrency(Math.abs(profit))}
               </Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           </View>
-          <Text
-            style={[
-              styles.transactionAmount,
-              transaction.remittance
-                ? styles.expenseAmount
-                : styles.incomeAmount,
-            ]}
-          >
-            {transaction.remittance ? "- " : "+ "}
-            {formatCurrency(transaction.amount)}
-          </Text>
+        )}
         </View>
-      ))}
     </ScrollView>
   );
 }
@@ -260,16 +825,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.md,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    margin: theme.spacing.md,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     color: theme.colors.text,
-    margin: theme.spacing.md,
+  },
+  moreButton: {
+    padding: theme.spacing.sm,
   },
   categoriesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    // padding: theme.spacing.md,
     marginLeft: theme.spacing.md,
     marginRight: theme.spacing.md,
     marginBottom: theme.spacing.md,
@@ -303,55 +875,214 @@ const styles = StyleSheet.create({
   categoryAmount: {
     fontSize: 14,
     fontWeight: "500",
-    color: theme.colors.textLight,
+    color: theme.colors.error,
     marginTop: theme.spacing.xs,
   },
-  transactionCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: theme.colors.white,
-    // margin: theme.spacing.sm,
-    marginLeft: theme.spacing.md,
-    marginRight: theme.spacing.md,
+  categoryPercentage: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginTop: 4,
+  },
+  dateSelectorContainer: {
+    marginTop: 76,
+    marginHorizontal: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    padding: theme.spacing.md,
+    position: 'relative',
+  },
+  dateSelectorWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+  },
+  dateSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.md,
     ...theme.shadows.small,
   },
-  transactionInfo: {
-    flex: 1,
+  dateSelectorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginRight: theme.spacing.xs,
   },
-  transactionTitle: {
+  pickerContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    marginTop: theme.spacing.xs,
+    ...theme.shadows.medium,
+    zIndex: 1000,
+    maxHeight: 200,
+  },
+  pickerItem: {
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  pickerItemSelected: {
+    backgroundColor: theme.colors.primary + '20',
+  },
+  pickerItemText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  pickerItemTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  weeklyStatsContainer: {
+    margin: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  weeklyStatsContent: {
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    ...theme.shadows.medium,
+  },
+  weeklyStatItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  weekText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
   },
-  transactionMeta: {
+  weeklyAmounts: {
     flexDirection: "row",
-    marginTop: 4,
+    gap: theme.spacing.sm,
   },
-  transactionCategory: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    backgroundColor: theme.colors.secondary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 8,
+  amountText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
-  transactionDate: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  expenseAmount: {
+  expenseText: {
     color: theme.colors.error,
   },
-  incomeAmount: {
+  incomeText: {
     color: theme.colors.success,
+  },
+  chartsContainer: {
+    gap: theme.spacing.md,
+  },
+  chartRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+  },
+  chartCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    ...theme.shadows.medium,
+  },
+  pieChartContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    ...theme.shadows.medium,
+    width: '100%',
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  noDataContainer: {
+    height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+  },
+  profitLossContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    ...theme.shadows.medium,
+  },
+  profitLossItem: {
+    alignItems: 'center',
+  },
+  weekLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  profitLossIndicator: {
+    padding: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  profitIndicator: {
+    backgroundColor: theme.colors.success + '20',
+  },
+  lossIndicator: {
+    backgroundColor: theme.colors.error + '20',
+  },
+  profitLossText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  profitLossAmount: {
+    fontSize: 10,
+    color: theme.colors.textLight,
+  },
+  pieChartsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.sm,
+  },
+  pieChartWrapper: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  pieChartSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  pieChartNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  pieChartNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.sm,
+  },
+  pieChartNavText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: theme.colors.textLight,
+    marginHorizontal: theme.spacing.xs,
+  },
+  pieChartNavTextActive: {
+    color: theme.colors.primary,
+    fontWeight: "700",
   },
 });

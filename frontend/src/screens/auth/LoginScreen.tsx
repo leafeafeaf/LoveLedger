@@ -1,160 +1,594 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   Pressable,
-  Animated,
   KeyboardAvoidingView,
   Platform,
+  Switch,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Modal,
+  Button,
+  Linking
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../../hooks/reduxHooks";
-import { loginStart, loginSuccess, loginFailure } from "../../store/authSlice";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  clearError,
+} from "../../store/authSlice";
 import { theme } from "../../utils/theme";
+import { useGoogleLogin } from "../../hooks/useGoogleAuthApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SignUpRequest } from "../../types";
+import { useUpdateUserInfo } from "../../hooks/useUserApi";
+import { useTokenIntegration } from "../../hooks/useTokenIntegration";
+import { axiosInstance } from "../../api/axios";
+import { StackActions, useNavigation } from "@react-navigation/native";
+
+
+// 소셜 로그인 이미지 임포트
+const GOOGLE_ICON = require("../../../assets/images/login/google.png");
+const NAVER_ICON = require("../../../assets/images/login/naver.png");
+const KAKAO_ICON = require("../../../assets/images/login/kakao-talk.png");
 
 export default function LoginScreen() {
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector(state => state.auth);
-  
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
-  const formAnimation = new Animated.Value(0);
+  const navigation = useNavigation();
 
-  const toggleMode = () => {
-    Animated.spring(formAnimation, {
-      toValue: isRegistering ? 0 : 1,
-      useNativeDriver: true,
-    }).start();
-    setIsRegistering(!isRegistering);
+//////////TODO 삭제
+  // TestQueryButton 컴포넌트 (내부에 정의)
+const TestQueryButton = () => {
+  const { fetchTokenWithQuery, fetchTokenWithRedux, token, isLoading, error } =
+    useTokenIntegration();
+  const [queryResult, setQueryResult] = useState<string | null>(null);
+
+  const handleQueryTest = async () => {
+    try {
+      const userId = 1;
+      const result = await fetchTokenWithQuery(userId);
+      setQueryResult(JSON.stringify(result.data, null, 2));
+      
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
+
+    } catch (err: any) {
+      setQueryResult(`오류: ${err.message}`);
+    }
   };
 
-  // 로그인/회원가입 처리
-  const handleSubmit = () => {
-    // TODO: Implement actual auth
-    if (!email || !password) {
-      return;
+  const handleReduxTest = async () => {
+    try {
+      const userId = 1;
+      await fetchTokenWithRedux(userId);
+      setQueryResult(`Redux 토큰: ${token}`);
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
+    } catch (err: any) {
+      setQueryResult(`오류: ${err.message}`);
     }
-
-    dispatch(loginStart());
-
-    // 여기서는 실제 로그인 API 호출 대신 성공 시뮬레이션
-    setTimeout(() => {
-      // 실제 앱에서는 API 호출 결과에 따라 분기
-      dispatch(loginSuccess({
-        token: 'dummy-token-123',
-        userInfo: {
-          id: '1',
-          name: '사용자',
-          email
-        }
-      }));
-      
-      // 실패 시에는:
-      dispatch(loginFailure('아이디 또는 비밀번호가 올바르지 않습니다.'));
-    }, 1000);
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      {/* 헤더 부분 */}
-      <View style={styles.header}>
-        <MaterialCommunityIcons
-          name="heart-multiple"
-          size={60}
-          color={theme.colors.primary}
-        />
-        <Text style={styles.title}>Love Ledger</Text>
-        <Text style={styles.subtitle}>
-          {isRegistering ? "Create your love story" : "Welcome back"}
-        </Text>
-      </View>
+    <View>
+      <Button title="Query 테스트" onPress={handleQueryTest} />
+      <Button title="Redux 테스트" onPress={handleReduxTest} />
+      {queryResult && <Text>{queryResult}</Text>}
+      {error && <Text style={{ color: "red" }}>{error}</Text>}
+    </View>
+  );
+};
 
-      {/* 폼 부분 */}
-      <Animated.View
-        style={[
-          styles.form,
-          {
-            transform: [
-              {
-                translateY: formAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -20],
-                }),
-              },
-            ],
-          },
-        ]}
+// 테스트 버튼 스타일
+const tokenTestStyles = StyleSheet.create({
+  container: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: 10,
+    gap: 10,
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    minWidth: 150,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  resultContainer: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 5,
+    width: "100%",
+  },
+  resultText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 12,
+    marginTop: 5,
+  },
+});
+///////////여기까지
+  const { isLoading: authLoading, error } = useAppSelector(
+    (state) => state.auth
+  );
+  const {
+    googleLogin,
+    isLoading: googleLoading,
+    error: googleError,
+    isNewUser,
+    loginAttemptTimestamp,
+  } = useGoogleLogin();
+  const updateUserInfoMutation = useUpdateUserInfo();
+
+  const isLoading = authLoading || googleLoading;
+
+  // 회원가입 추가 정보 상태
+  const [signUpData, setSignUpData] = useState<SignUpRequest>({
+    name: "",
+    gender: true,
+    birthDay: "",
+    isMarried: false,
+  });
+
+  // 회원가입 모달 표시 상태
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+
+  // 컴포넌트 마운트 시 에러 초기화
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // 신규 사용자 여부에 따라 회원가입 모달 표시
+  useEffect(() => {
+    const check = async () => {
+      console.log("isNewUser가 수정되었어요")
+
+      if (isNewUser === null) return; // 값 결정 안 됐으면 아무 것도 안 함
+
+      const token = await AsyncStorage.getItem("token");
+      console.log("Token 확인:", token);
+      console.log("isNewUser 확인:", isNewUser);
+
+      if (isNewUser === null) return;
+
+      if (isNewUser === true) {
+        console.log("모달 열기")
+        setShowSignUpModal(true);
+      }else if (isNewUser === false) {
+        console.log("메인으로 이동")
+        navigation.dispatch(
+          StackActions.replace("Main")
+        );
+      }
+    };
+
+    check();
+  }, [isNewUser]);
+
+  // 구글 로그인 타임아웃 표시
+  const [showingTimeout, setShowingTimeout] = useState(false);
+
+  useEffect(() => {
+    // 구글 에러가 발생하면 메인 에러 상태로 설정
+    if (googleError && !error) {
+      dispatch(loginFailure(googleError));
+    }
+
+    // 타임아웃 관련 UI 처리
+    if (googleError && googleError.includes("시간이 초과") && !showingTimeout) {
+      setShowingTimeout(true);
+      // 잠시 후 타임아웃 메시지 숨기기
+      const timeoutId = setTimeout(() => {
+        setShowingTimeout(false);
+        dispatch(clearError());
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [googleError, dispatch, error, showingTimeout]);
+
+  // 소셜 로그인 처리 함수
+  const handleSocialLogin = (provider: "google" | "naver" | "kakao") => {
+    if (provider === "google") {
+      googleLogin();
+    } else {
+      dispatch(loginStart());
+      console.log(`${provider} 로그인 시도`);
+
+      // 임의로 네이버 로그인은 신규 사용자로 처리 (테스트용)
+      const isFirstTime = provider === "naver";
+
+      // 실제 소셜 로그인 구현 대신 성공 시뮬레이션
+      setTimeout(async () => {
+        // 토큰 생성 (first-time을 포함해 신규 사용자 표시 << 이걸 왜할까)
+        const token = isFirstTime
+          ? `dummy-token-${provider}-first-time-123`
+          : `dummy-token-${provider}-123`;
+
+        // 로컬 스토리지에 토큰 저장
+        await AsyncStorage.setItem("token", token);
+
+        // 상태 업데이트
+        dispatch(
+          loginSuccess({
+            token,
+          })
+        );
+
+        // 신규 사용자인 경우 모달 표시
+        if (isFirstTime) {
+          setShowSignUpModal(true);
+        }
+      }, 1000);
+    }
+  };
+
+  // 생일 입력 포맷팅 함수
+  const formatBirthDay = (text: string) => {
+    // 숫자만 추출
+    const numbers = text.replace(/\D/g, "");
+
+    // 8자리 이상이면 8자리만 사용
+    if (numbers.length > 8) {
+      const formatted = numbers.slice(0, 8);
+      return `${formatted.slice(0, 4)}-${formatted.slice(
+        4,
+        6
+      )}-${formatted.slice(6, 8)}`;
+    }
+
+    // 8자리 미만이면 원본 반환
+    if (numbers.length < 8) {
+      return numbers;
+    }
+
+    // 8자리인 경우 포맷팅
+    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(
+      6,
+      8
+    )}`;
+  };
+
+  // 생일 입력 검증 함수
+  const validateBirthDay = (text: string) => {
+    if (text.length !== 10) return false; // YYYY-MM-DD 형식이어야 함
+
+    const [year, month, day] = text.split("-").map(Number);
+
+    // 유효한 날짜인지 검증
+    const date = new Date(year, month - 1, day);
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
+  };
+
+  // 회원가입 추가 정보 제출
+  const handleSignUpSubmit = async () => {
+    if (!signUpData.name || !signUpData.birthDay) {
+      dispatch(loginFailure("모든 필수 항목을 입력해주세요."));
+      return;
+    }
+
+    if (!validateBirthDay(signUpData.birthDay)) {
+      dispatch(loginFailure("올바른 생일 형식을 입력해주세요."));
+      return;
+    }
+
+    try {
+      // 회원가입 추가 정보 업데이트
+      await updateUserInfoMutation.mutateAsync(signUpData);
+      setShowSignUpModal(false);
+      // 메인 화면으로 이동
+      console.log("모달 완료 후 메인 이동")
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
+    } catch (error) {
+      dispatch(loginFailure("회원 정보 업데이트에 실패했습니다."));
+    }
+  };
+
+  // 구글 로그인 버튼 렌더링 함수
+  const renderGoogleButton = () => {
+    return (
+      <Pressable
+        style={styles.socialButton}
+        onPress={() => handleSocialLogin("google")}
+        disabled={false} // 항상 활성화 상태로 유지 (이전 요청은 자동으로 취소됨)
       >
-        {isRegistering && (
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            placeholderTextColor={theme.colors.textLight}
+        {googleLoading && loginAttemptTimestamp ? (
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        ) : (
+          <Image
+            source={GOOGLE_ICON}
+            style={styles.socialIcon}
+            resizeMode="contain"
           />
         )}
+      </Pressable>
+    );
+  };
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor={theme.colors.textLight}
-          autoCapitalize="none"
-        />
+  // 회원가입 모달 렌더링
+  const renderSignUpModal = () => {
+    return (
+      <Modal
+        visible={showSignUpModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSignUpModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>추가 정보 입력</Text>
+                  <Text style={styles.modalSubtitle}>
+                    소셜 로그인 첫 사용자를 위한 추가 정보를 입력해주세요.
+                  </Text>
+                </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholderTextColor={theme.colors.textLight}
-        />
+                <ScrollView keyboardShouldPersistTaps="handled">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="이름 (4자 이내로 작성해주세요)"
+                    value={signUpData.name}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, name: text })
+                    }
+                    placeholderTextColor={theme.colors.textLight}
+                  />
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+                  <View style={styles.switchContainer}>
+                    <View style={styles.switchLabelContainer}>
+                      <Text
+                        style={[
+                          styles.switchLabel,
+                          signUpData.gender && styles.switchLabelActive,
+                        ]}
+                      >
+                        {signUpData.gender ? "남성" : "여성"}
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={[
+                        styles.toggleButton,
+                        signUpData.gender && styles.toggleButtonActive,
+                      ]}
+                      onPress={() =>
+                        setSignUpData({
+                          ...signUpData,
+                          gender: !signUpData.gender,
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.toggleCircle,
+                          signUpData.gender && styles.toggleCircleActive,
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={
+                            signUpData.gender ? "gender-male" : "gender-female"
+                          }
+                          size={16}
+                          color={
+                            signUpData.gender
+                              ? theme.colors.primary
+                              : theme.colors.textLight
+                          }
+                        />
+                      </View>
+                    </Pressable>
+                  </View>
 
-        <Pressable 
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={isLoading}
+                  <TextInput
+                    style={[
+                      styles.input,
+                      signUpData.birthDay &&
+                      !validateBirthDay(signUpData.birthDay) &&
+                      styles.inputError,
+                    ]}
+                    placeholder="생일 (YYYYMMDD 형식으로 입력해주세요)"
+                    value={signUpData.birthDay}
+                    onChangeText={(text) => {
+                      const formatted = formatBirthDay(text);
+                      setSignUpData({ ...signUpData, birthDay: formatted });
+                    }}
+                    placeholderTextColor={theme.colors.textLight}
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                  {signUpData.birthDay &&
+                    !validateBirthDay(signUpData.birthDay) && (
+                      <Text style={styles.errorText}>
+                        올바른 생일을 입력해주세요 (YYYYMMDD 형식으로
+                        입력해주세요)
+                      </Text>
+                    )}
+
+                  <View style={styles.switchContainer}>
+                    <View style={styles.switchLabelContainer}>
+                      <Text
+                        style={[
+                          styles.switchLabel,
+                          signUpData.isMarried && styles.switchLabelActive,
+                        ]}
+                      >
+                        {signUpData.isMarried ? "기혼" : "미혼"}
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={[
+                        styles.toggleButton,
+                        signUpData.isMarried && styles.toggleButtonActive,
+                      ]}
+                      onPress={() =>
+                        setSignUpData({
+                          ...signUpData,
+                          isMarried: !signUpData.isMarried,
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.toggleCircle,
+                          signUpData.isMarried && styles.toggleCircleActive,
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={signUpData.isMarried ? "ring" : "account-heart"}
+                          size={16}
+                          color={
+                            signUpData.isMarried
+                              ? theme.colors.primary
+                              : theme.colors.textLight
+                          }
+                        />
+                      </View>
+                    </Pressable>
+                  </View>
+
+                  {error && <Text style={styles.errorText}>{error}</Text>}
+
+                  <Pressable
+                    style={[styles.button, isLoading && styles.buttonDisabled]}
+                    onPress={handleSignUpSubmit}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Text style={styles.buttonText}>처리 중...</Text>
+                    ) : (
+                      <Text style={styles.buttonText}>완료</Text>
+                    )}
+                  </Pressable>
+                </ScrollView>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 20}
+      >
+        {/* 회원가입 추가 정보 모달 */}
+
+        {renderSignUpModal()}
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="never"
+          bounces={true}
         >
-          {isLoading ? (
-            <Text style={styles.buttonText}>로딩 중...</Text>
-          ) : (
-            <Text style={styles.buttonText}>
-              {isRegistering ? "Sign Up" : "Login"}
+          {/* 헤더 부분 */}
+          <View style={styles.header}>
+            <MaterialCommunityIcons
+              name="heart-multiple"
+              size={60}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.title}>Love Ledger</Text>
+            <Text style={styles.subtitle}>
+              간편하게 로그인하고 이야기를 시작하세요
             </Text>
-          )}
-        </Pressable>
+          </View>
 
-        <Pressable style={styles.toggleButton} onPress={toggleMode}>
-          <Text style={styles.toggleText}>
-            {isRegistering
-              ? "Already have an account? Login"
-              : "New to Love Ledger? Sign Up"}
-          </Text>
-        </Pressable>
-      </Animated.View>
-    </KeyboardAvoidingView>
+          {/* 소셜 로그인 섹션 */}
+          <View style={styles.socialLoginContainer}>
+            {error && <Text style={styles.errorText}>{error}</Text>}
+
+            <Text style={styles.socialLoginText}>소셜 계정으로 로그인</Text>
+
+            <View style={styles.socialButtonsContainer}>
+              {/* 구글 로그인 버튼 */}
+              {renderGoogleButton()}
+
+              <Pressable
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin("naver")}
+                disabled={isLoading}
+              >
+                <Image
+                  source={NAVER_ICON}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin("kakao")}
+                disabled={isLoading}
+              >
+                <Image
+                  source={KAKAO_ICON}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </View>
+
+            <Text style={styles.helpText}>
+              로그인하면 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
+            </Text>
+
+            {TestQueryButton()}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    padding: theme.spacing.xl,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: theme.spacing.lg,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    marginTop: theme.spacing.xl * 2,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.xl * 2,
   },
   title: {
     fontSize: 32,
@@ -166,17 +600,116 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textLight,
     marginTop: theme.spacing.sm,
+    textAlign: "center",
   },
-  form: {
+  socialLoginContainer: {
+    alignItems: "center",
     marginTop: theme.spacing.xl,
   },
+  socialLoginText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 14,
+    marginBottom: theme.spacing.lg,
+    textAlign: "center",
+  },
+  socialButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: theme.spacing.md,
+  },
+  socialButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: theme.spacing.md,
+    ...theme.shadows.small,
+    overflow: "hidden", // 로딩 애니메이션을 버튼 안에 가두기 위함
+  },
+  socialIcon: {
+    width: 30,
+    height: 30,
+  },
+  helpText: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginTop: theme.spacing.xl,
+    textAlign: "center",
+  },
+
+  // 테스트 버튼 스타일
+  testButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
+  },
+  testButton: {
+    backgroundColor: theme.colors.secondary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    ...theme.shadows.small,
+  },
+  testButtonText: {
+    color: "black",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+
+  // 모달 스타일
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: "90%",
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    ...theme.shadows.medium,
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: theme.spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    textAlign: "center",
+  },
+
+  // 입력 폼 스타일
   input: {
     backgroundColor: theme.colors.white,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.md,
     fontSize: 16,
+    height: 50,
     ...theme.shadows.small,
+  },
+  inputError: {
+    borderColor: theme.colors.error,
+    borderWidth: 1,
   },
   button: {
     backgroundColor: theme.colors.primary,
@@ -191,22 +724,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  toggleButton: {
-    marginTop: theme.spacing.xl,
-    alignItems: "center",
-  },
-  toggleText: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 14,
-    marginBottom: theme.spacing.sm,
-    textAlign: 'center'
-  },
   buttonDisabled: {
     backgroundColor: theme.colors.disabled,
-  }
+  },
+
+  // 스위치 스타일
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    height: 50,
+    ...theme.shadows.small,
+  },
+  switchLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  switchLabel: {
+    fontSize: 16,
+    color: theme.colors.textLight,
+    fontWeight: "500",
+  },
+  switchLabelActive: {
+    color: theme.colors.primary,
+  },
+  toggleButton: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.textLight,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  toggleCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.white,
+    transform: [{ translateX: 0 }],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleCircleActive: {
+    transform: [{ translateX: 22 }],
+  },
 });

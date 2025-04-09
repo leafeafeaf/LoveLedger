@@ -17,7 +17,7 @@ public class Series {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String SeriesTitle;
+    private String title;
 
     @ManyToOne
     @JoinColumn(name = "collection_id")

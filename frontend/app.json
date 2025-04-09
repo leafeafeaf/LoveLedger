@@ -5,13 +5,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "scheme": "loveledger",
+    "deepLinking": true,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.loveleger.app"
     },
     "android": {
       "package": "com.loveleger.app",
@@ -19,6 +22,11 @@
         "backgroundColor": "#ffffff"
       }
     },
-    "web": {}
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "eeff144f-4c12-4d0f-9963-9bee400844f4"
+      }
+    }
   }
 }

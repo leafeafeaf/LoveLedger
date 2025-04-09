@@ -4,13 +4,17 @@
     "strict": true,
     "baseUrl": ".",
     "jsx": "react-native",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@screens/*": ["src/screens/*"],
       "@utils/*": ["src/utils/*"],
       "@types/*": ["src/types/*"],
-      "@navigation/*": ["src/navigation/*"]
+      "@navigation/*": ["src/navigation/*"],
+      "@hooks/*": ["src/hooks/*"]
     }
   }
 }

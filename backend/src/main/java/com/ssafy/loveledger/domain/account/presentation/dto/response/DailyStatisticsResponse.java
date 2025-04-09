@@ -14,6 +14,6 @@ import lombok.NoArgsConstructor;
 public class DailyStatisticsResponse {
 
     private LocalDate targetDate;
-    private Long totalConsumeSum;
     private Long totalEarnSum;
+    private Long totalConsumeSum;
 }

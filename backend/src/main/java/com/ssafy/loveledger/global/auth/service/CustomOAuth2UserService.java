@@ -57,18 +57,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             //TODO 금융 API user key
 
             User savedUser = userRepository.save(user);
-            log.info("############  userId = {}", savedUser.getId());
-
             // 해당 사용자의 라이브러리 생성
             Library library = Library.builder()
                 .user(savedUser) // 사용자 ID 설정
                 .build();
 
             Library savedLibary = libraryRepository.save(library);
+            // 회원가입이 완료되지 않은 상태 (추가 정보 입력 필요)
+            boolean isRegistered = isUserRegistrationComplete(savedUser);
 
             UserDto userDto = UserDto.builder().username(username)
+                .username(username)
+                .picture(picture)
                 .name(oauth2Response.getName())
                 .userId(savedUser.getId())
+                .isRegistered(isRegistered)
                 .libraryId(savedLibary.getId())
                 .build();
 
@@ -78,8 +81,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             User existingUser = existData.get();
 
             existingUser.setEmail(oauth2Response.getEmail());
-            existingUser.setName(oauth2Response.getName());
-            existingUser.setPicture(oauth2Response.getPicture());
+            // 이름은 사용자가 처음 가입할 때만 설정하고, 이후에는 유지
+            // (사용자가 직접 변경한 이름이 있다면 그대로 보존)
+            if (existingUser.getName() == null || existingUser.getName().isEmpty()) {
+                existingUser.setName(oauth2Response.getName());
+            }
+
+            if (existingUser.getPicture() == null || existingUser.getPicture().isEmpty()) {
+                existingUser.setPicture(oauth2Response.getPicture());
+            }
             userRepository.save(existingUser);
 
             // 기존 사용자의 라이브러리 조회
@@ -87,14 +97,35 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .orElseThrow(
                     () -> new RuntimeException("사용자에 연결된 라이브러리가 없습니다: " + existingUser.getId()));
 
+            // 여기서 회원가입 완료 여부 확인 추가
+            boolean isRegistered = isUserRegistrationComplete(existingUser);
+            log.info("기존 사용자 회원가입 상태: {}, userId: {}", isRegistered, existingUser.getId());
+
+
             UserDto userDto = UserDto.builder().name(existingUser.getName())
                 .userId(existingUser.getId())
                 .username(username)
                 .picture(picture)
                 .libraryId(userLibrary.getId())
+                .isRegistered(isRegistered)
                 .build();
 
             return new CustomOAuth2User(userDto);
         }
+    }
+
+    /**
+     * 사용자의 회원가입 완료 여부를 확인하는 메서드
+     * 필수 정보가 모두 입력되었는지 확인합니다.
+     *
+     * @param user 확인할 사용자 객체
+     * @return 회원가입 완료 여부
+     */
+    private boolean isUserRegistrationComplete(User user) {
+        // 필수 정보가 모두 입력되었는지 확인
+        return user.getName() != null
+            && user.getBirthDay() != null
+            && user.getGender() != null
+            && user.getIsMarried() != null;
     }
 }

@@ -2,21 +2,22 @@ package com.ssafy.loveledger.domain.user.presentation;
 
 import com.ssafy.loveledger.global.auth.util.JWTUtil;
 import com.ssafy.loveledger.global.common.ApiResponse;
-import com.ssafy.loveledger.global.exception.ErrorCode;
-import com.ssafy.loveledger.global.exception.LoveLedgerException;
-import io.jsonwebtoken.ExpiredJwtException;
+import com.ssafy.loveledger.global.response.exception.ErrorCode;
+import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class ReissueController {
@@ -24,11 +25,11 @@ public class ReissueController {
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate;
 
-    private static final String REFRESH_TOKEN_KEY_PREFIX = "refreshToken:";
+    private static final String REFRESH_TOKEN_KEY_PREFIX = "token";
 
 
     @PostMapping("/reissue")
-    public ResponseEntity<ApiResponse> reissue(HttpServletRequest request, HttpServletResponse response) {
+    public ApiResponse<?> reissue(HttpServletRequest request, HttpServletResponse response) {
 
         String refreshToken = extractRefreshToken(request);
 
@@ -44,20 +45,15 @@ public class ReissueController {
         String newAccess = jwtUtil.createJwt(userId, libraryId, "access", username, 1_800_000L);
         String newRefresh = jwtUtil.createJwt(userId, libraryId, "refresh", username, 86_400_000L);
 
+        //
+        log.info("userId = {}", userId);
         // 새 refresh token Redis에 저장
         redisTemplate.opsForValue().set(REFRESH_TOKEN_KEY_PREFIX + userId, newRefresh);
 
         response.setHeader("access", newAccess);
         response.addCookie(createCookie("refresh", newRefresh));
 
-        ApiResponse apiResponse = ApiResponse.builder()
-            .status("200")
-            .message("토큰 재발급 성공")
-            .data(null)
-            .timestamp(ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT))
-            .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return null;
     }
 
     private Cookie createCookie(String key, String value) {
@@ -68,6 +64,7 @@ public class ReissueController {
         cookie.setHttpOnly(true);
         return cookie;
     }
+
     private String extractRefreshToken(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
 
@@ -83,6 +80,7 @@ public class ReissueController {
 
         throw new LoveLedgerException(ErrorCode.INVALID_INPUT_VALUE, "refresh token null");
     }
+
     private void validateRefreshToken(String refreshToken) {
         Long userId = jwtUtil.getUserId(refreshToken);
 

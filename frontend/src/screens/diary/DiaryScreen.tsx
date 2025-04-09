@@ -9,22 +9,31 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Dimensions,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DiaryStackParamList } from "../../types";
+import { useDiaryCreate } from "../../hooks/useDiaryCreate";
 
-type DiaryScreenProps = NativeStackScreenProps<
-  DiaryStackParamList,
-  "DiaryCreate"
->;
+type DiaryScreenProps = Omit<NativeStackScreenProps<DiaryStackParamList, "DiaryCreate">, 'route'> & {
+  route: {
+    params: DiaryCreateParams;
+  };
+};
+
+interface DiaryCreateParams {
+  date?: string;
+}
 
 // 감정 아이콘 타입 정의
 type MoodIconType =
   | "emoticon-happy"
-  | "emoticon-excited"
+  | "emoticon-angry"
   | "emoticon-cool"
   | "emoticon-sad";
 
@@ -39,19 +48,58 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState("happy");
   const [expense, setExpense] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // route.params에서 날짜를 받아오고, 없으면 현재 날짜 사용
+    if (route.params?.date) {
+      return new Date(route.params.date);
+    }
+    return new Date();
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const { mutate: createDiary, isPending } = useDiaryCreate();
+
   const moods: Mood[] = [
-    { id: "happy", icon: "emoticon-happy", label: "Happy" },
-    { id: "excited", icon: "emoticon-excited", label: "Excited" },
-    { id: "peaceful", icon: "emoticon-cool", label: "Peaceful" },
-    { id: "sad", icon: "emoticon-sad", label: "Sad" },
+    { id: "1", icon: "emoticon-happy", label: "행복" },
+    { id: "2", icon: "emoticon-angry", label: "화남" },
+    { id: "3", icon: "emoticon-cool", label: "평온" },
+    { id: "4", icon: "emoticon-sad", label: "슬픔" },
   ];
 
+  const formatDateToYYYYMMDD = (date: Date) => {
+    return date.toLocaleDateString("sv-SE"); // "YYYY-MM-DD" 형식 (스웨덴 표준)
+  };
+
   const handleSave = () => {
-    // TODO: Implement save functionality
-    navigation.goBack();
+    if (!title.trim()) {
+      Alert.alert("알림", "제목을 입력해주세요.");
+      return;
+    }
+
+    if (!content.trim()) {
+      Alert.alert("알림", "내용을 입력해주세요.");
+      return;
+    }
+
+    createDiary(
+      {
+        title: title.trim(),
+        content: content.trim(),
+        targetDate: formatDateToYYYYMMDD(selectedDate),
+        mood: selectedMood,
+      },
+      {
+        onSuccess: (response) => {
+          navigation.replace("DiaryEditDaily", {
+            diaryId: response.data.id,
+            selectedDate: formatDateToYYYYMMDD(selectedDate),
+          });
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      }
+    );
   };
 
   return (
@@ -59,7 +107,11 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <Header title="일기" showBack={true} onBack={() => navigation.goBack()} />
+      <Header
+        title="일기 작성"
+        showBack={true}
+        onBack={() => navigation.goBack()}
+      />
       <DatePicker
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
@@ -67,41 +119,54 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
         selectedDate={selectedDate}
       />
       <ScrollView style={styles.content}>
-        <Pressable
-          style={styles.dateSelector}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <MaterialCommunityIcons
-            name="calendar"
-            size={20}
-            color={theme.colors.primary}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>날짜 선택</Text>
+          <TouchableOpacity
+            style={styles.dateSelector}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <View style={styles.dateContent}>
+              <MaterialCommunityIcons
+                name="calendar"
+                size={24}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.dateText}>
+                {selectedDate.toLocaleDateString("ko-KR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  weekday: "long",
+                })}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>제목</Text>
+          <TextInput
+            placeholder="오늘의 일기의 제목을 입력하세요..."
+            value={title}
+            onChangeText={setTitle}
+            placeholderTextColor={theme.colors.textLight}
+            style={[
+              styles.titleInput,
+              { fontWeight: title ? "600" : "normal" },
+            ]}
           />
-          <Text style={styles.dateText}>
-            {selectedDate.toLocaleDateString("ko-KR", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              weekday: "long",
-            })}
-          </Text>
-          <MaterialCommunityIcons
-            name="chevron-down"
-            size={20}
-            color={theme.colors.primary}
-          />
-        </Pressable>
-        <TextInput
-          style={styles.titleInput}
-          placeholder="Title your memory..."
-          value={title}
-          onChangeText={setTitle}
-          placeholderTextColor={theme.colors.textLight}
-        />
-        <View style={styles.moodSelector}>
-          <Text style={styles.sectionTitle}>How are you feeling?</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>오늘의 기분</Text>
           <View style={styles.moodOptions}>
             {moods.map((mood) => (
-              <Pressable
+              <TouchableOpacity
                 key={mood.id}
                 style={[
                   styles.moodOption,
@@ -111,7 +176,7 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
               >
                 <MaterialCommunityIcons
                   name={mood.icon}
-                  size={24}
+                  size={32}
                   color={
                     selectedMood === mood.id
                       ? theme.colors.white
@@ -126,31 +191,24 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
                 >
                   {mood.label}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
-        <View style={styles.expenseInput}>
-          <Text style={styles.sectionTitle}>Add Expense</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>일기 내용</Text>
           <TextInput
-            style={styles.amountInput}
-            placeholder="$ Amount"
-            value={expense}
-            onChangeText={setExpense}
-            keyboardType="numeric"
+            style={styles.contentInput}
+            placeholder="오늘의 이야기를 적어보세요..."
+            value={content}
+            onChangeText={setContent}
+            multiline
+            textAlignVertical="top"
             placeholderTextColor={theme.colors.textLight}
           />
         </View>
-        <TextInput
-          style={styles.contentInput}
-          placeholder="Write your story..."
-          value={content}
-          onChangeText={setContent}
-          multiline
-          textAlignVertical="top"
-          placeholderTextColor={theme.colors.textLight}
-        />
       </ScrollView>
+
       <View style={styles.footer}>
         <Pressable style={styles.saveButton} onPress={handleSave}>
           <MaterialCommunityIcons
@@ -166,29 +224,95 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: theme.spacing.md,
+  },
   dateSelector: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    ...theme.shadows.small,
+  },
+  dateContent: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.small,
+    justifyContent: "space-between",
   },
   dateText: {
     flex: 1,
     fontSize: 16,
     color: theme.colors.text,
-    marginLeft: theme.spacing.md,
+    marginHorizontal: theme.spacing.md,
+    textAlign: "center",
   },
-  container: {
+  titleInput: {
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: 16,
+    color: theme.colors.text,
+    ...theme.shadows.small,
+  },
+  moodOptions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  moodOption: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    minWidth: Dimensions.get("window").width * 0.4,
+    alignItems: "center",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.white,
+    ...theme.shadows.small,
+  },
+  selectedMoodOption: {
+    backgroundColor: theme.colors.primary,
+  },
+  moodLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+  },
+  selectedMoodLabel: {
+    color: theme.colors.white,
+  },
+  amountInput: {
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: 16,
+    ...theme.shadows.small,
+  },
+  contentInput: {
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: 16,
+    minHeight: 200,
+    ...theme.shadows.small,
   },
   footer: {
     padding: theme.spacing.md,
     backgroundColor: theme.colors.white,
-    ...theme.shadows.medium,
+    ...theme.shadows.small,
   },
   saveButton: {
     flexDirection: "row",
@@ -203,64 +327,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing.md,
-  },
-  titleInput: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-  },
-  moodSelector: {
-    marginBottom: theme.spacing.xl,
-  },
-  moodOptions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  moodOption: {
-    alignItems: "center",
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
-    ...theme.shadows.small,
-  },
-  selectedMoodOption: {
-    backgroundColor: theme.colors.primary,
-  },
-  moodLabel: {
-    fontSize: 12,
-    color: theme.colors.text,
-    marginTop: theme.spacing.xs,
-  },
-  selectedMoodLabel: {
-    color: theme.colors.white,
-  },
-  expenseInput: {
-    marginBottom: theme.spacing.xl,
-  },
-  amountInput: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    fontSize: 16,
-    ...theme.shadows.small,
-  },
-  contentInput: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    fontSize: 16,
-    minHeight: 200,
-    ...theme.shadows.small,
   },
 });

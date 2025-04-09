@@ -3,6 +3,7 @@ package com.ssafy.loveledger.domain.library.presentation;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryCreateResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.library.service.DiaryService;
@@ -10,7 +11,6 @@ import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.util.UserUtil;
 import jakarta.validation.Valid;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,11 +34,12 @@ public class DiaryController {
     private final UserUtil userUtil;
 
     @PostMapping
-    public void createDiary(@RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
+    public DiaryCreateResponse createDiary(
+        @RequestBody @Valid DiaryCreateRequest diaryCreateRequest) {
         User user = userUtil.getCurrentUser();
         log.info("user {} creates diary", user.getId());
 
-        diaryService.createDiary(user, diaryCreateRequest);
+        return diaryService.createDiary(user, diaryCreateRequest);
     }
 
     @GetMapping
@@ -83,15 +84,14 @@ public class DiaryController {
     }
 
     @PostMapping("/{diaryId}/history")
-    public CompletableFuture<Map<String, Object>> getEditHistoryList(
+    public Map<String, Object> getEditHistoryList(
         @PathVariable long diaryId) {
         User user = userUtil.getCurrentUser();
 
         log.info("user {} starts edit history with diary {}", user.getId(), diaryId);
 
         return diaryService.getEditHistoryList(user, diaryId)
-            .thenApply(historyList ->
-                historyList);
+            .join();
     }
 
     @PatchMapping("/history")

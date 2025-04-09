@@ -1,188 +1,239 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ActivityIndicator,
-  TextInput,
-  Share,
   Alert,
+  ActivityIndicator,
+  Share,
+  ScrollView,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { theme } from "../../utils/theme";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { ProfileStackParamList, RootStackParamList } from "../../types";
+import {
+  useStoredInviteLink,
+  useGenerateInvite,
+} from "../../hooks/couple/useInvite";
+import { useCurrentInvite } from "../../hooks/couple/useCurrentInvite";
+import * as Clipboard from "expo-clipboard";
+import { InviteConflictResponse } from "../../types";
 
-type RootStackParamList = {
-  Main: undefined;
-  LinkGeneration: undefined;
-};
-
-type LinkGenerationScreenNavigationProp = NativeStackNavigationProp<
+type LinkGenerationScreenProps = NativeStackScreenProps<
   RootStackParamList,
   "LinkGeneration"
 >;
 
-interface LinkGenerationScreenProps {
-  navigation: LinkGenerationScreenNavigationProp;
+// 확장된 링크 데이터 인터페이스
+interface InviteLinkData {
+  link: string;
+  inviteCode?: string;
+  createdAt?: string;
+  expiresAt?: string;
+  remainingHours?: number;
+}
+
+// 응답 데이터 통합 인터페이스
+interface CombinedLinkResponse {
+  status: string;
+  message: string;
+  data: InviteLinkData;
+  timestamp?: string;
+  success: boolean;
 }
 
 export default function LinkGenerationScreen({
   navigation,
 }: LinkGenerationScreenProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState("");
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
-  const handleGenerateLink = () => {
-    setIsGenerating(true);
+  const {
+    data: currentLinkApiData,
+    isLoading: isCurrentLinkLoading,
+    error: currentLinkError,
+    refetch: refetchCurrentInvite
+  } = useCurrentInvite();
 
-    // Simulate API call to generate invite link
-    setTimeout(() => {
-      const uniqueCode = Math.random()
-        .toString(36)
-        .substring(2, 10)
-        .toUpperCase();
-      const link = `https://loveledger.app/invite/${uniqueCode}`;
-      setGeneratedLink(link);
-      setIsGenerating(false);
-    }, 1500);
-  };
+  const generateInviteMutation = useGenerateInvite();
 
-  const handleShareLink = async () => {
+  // API 응답 데이터와 로컬 저장 데이터 통합
+  const data: CombinedLinkResponse | null = currentLinkApiData?.success
+    ? {
+      status: String(currentLinkApiData.status),
+      message: "초대 링크가 조회되었습니다.",
+      data: {
+        link: currentLinkApiData.data?.link,
+        inviteCode: currentLinkApiData.data?.inviteCode,
+        createdAt: currentLinkApiData.data?.createdAt,
+        expiresAt: currentLinkApiData.data?.expiresAt,
+        remainingHours: currentLinkApiData.data?.remainingHours,
+      },
+      timestamp: currentLinkApiData.timestamp,
+      success: true
+    }
+    : null;
+
+  const isLoading = isCurrentLinkLoading;
+  const error = currentLinkError;
+
+  const inviteCode = data?.data?.inviteCode;
+  const isValidInvite = data?.success && !!inviteCode;
+
+  useEffect(() => {
+    if (error) {
+      console.log(error);
+    } else if (data?.status === "400") {
+      Alert.alert("이미 연인과 연결된 상태입니다", data.message, [
+        { text: "확인", onPress: () => navigation.goBack() },
+      ]);
+    }
+  }, [error, data, navigation]);
+
+  const handleCopyCode = async () => {
+    if (!data?.data?.inviteCode) return;
+
     try {
-      await Share.share({
-        message: `러브레저에서 부부 연동 초대장이 도착했어요! 아래 링크를 통해 연동해주세요:\n${generatedLink}`,
-      });
-    } catch (error) {
-      Alert.alert("Error", "공유 중 오류가 발생했습니다.");
+      setIsCopying(true);
+      await Clipboard.setStringAsync(data.data.inviteCode);
+      Alert.alert("코드 복사 완료", "초대 코드가 클립보드에 복사되었습니다.");
+    } catch (err) {
+      Alert.alert("오류", "코드 복사에 실패했습니다.");
+    } finally {
+      setIsCopying(false);
     }
   };
 
-  const handleCopyLink = () => {
-    // In a real app, you'd use Clipboard.setString(generatedLink)
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+  const handleShareCode = async () => {
+    if (!data?.data?.inviteCode) return;
+
+    try {
+      await Share.share({
+        message: `Love Ledger 초대 코드: ${data.data.inviteCode}`,
+        title: "Love Ledger 초대",
+      });
+    } catch (err) {
+      Alert.alert("오류", "코드 공유에 실패했습니다.");
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    try {
+      await generateInviteMutation.mutateAsync();
+      await refetchCurrentInvite();
+    } catch (err: any) {
+      Alert.alert("오류", err.message || "링크 생성에 실패했습니다.");
+    }
   };
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
-        <Pressable
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={28}
-            color={theme.colors.text}
-          />
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color={theme.colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>부부 연동</Text>
+        <Text style={styles.headerTitle}>초대 링크 생성</Text>
         <View style={{ width: 28 }} />
       </View>
-
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons
-            name="heart-multiple"
-            size={60}
-            color={theme.colors.primary}
-          />
-        </View>
-
-        <Text style={styles.title}>부부 연동하기</Text>
-        <Text style={styles.description}>
-          부부 연동을 통해 배우자와 함께 재정을 관리하고 추억을 공유하세요. 아래
-          버튼을 눌러 초대 링크를 생성한 후, 배우자에게 공유해 주세요.
-        </Text>
-
-        {!generatedLink ? (
-          <Pressable
-            style={styles.generateButton}
-            onPress={handleGenerateLink}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <ActivityIndicator color={theme.colors.white} />
-            ) : (
-              <>
-                <MaterialCommunityIcons
-                  name="link-variant"
-                  size={24}
-                  color={theme.colors.white}
-                />
-                <Text style={styles.generateButtonText}>초대 링크 생성</Text>
-              </>
-            )}
-          </Pressable>
-        ) : (
-          <View style={styles.linkContainer}>
-            <View style={styles.linkBox}>
-              <Text style={styles.linkText} numberOfLines={1}>
-                {generatedLink}
-              </Text>
-            </View>
-
-            <View style={styles.actionButtons}>
-              <Pressable style={styles.actionButton} onPress={handleCopyLink}>
-                <MaterialCommunityIcons
-                  name={copySuccess ? "check" : "content-copy"}
-                  size={20}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.actionButtonText}>
-                  {copySuccess ? "복사됨" : "복사"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.actionButton, styles.shareButton]}
-                onPress={handleShareLink}
-              >
-                <MaterialCommunityIcons
-                  name="share-variant"
-                  size={20}
-                  color={theme.colors.white}
-                />
-                <Text style={styles.shareButtonText}>공유</Text>
-              </Pressable>
-            </View>
+  
+      {/* 본문 */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {isLoading || generateInviteMutation.isPending ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>초대 링크를 생성하고 있습니다...</Text>
           </View>
+        ) : error || !isValidInvite ? (
+          <View style={styles.noLinkContainer}>
+            <Text style={styles.noLinkText}>아직 생성된 초대 코드가 없습니다.</Text>
+            <Text style={styles.noLinkSubtext}>
+              아래 버튼을 눌러 초대 코드를 생성해보세요.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* ✅ 초대 코드가 있는 경우 */}
+            <View style={styles.linkCard}>
+              <Text style={styles.linkTitle}>초대 코드</Text>
+              <View style={styles.linkContainer}>
+                <Text style={styles.linkText}>{inviteCode}</Text>
+                <Pressable onPress={handleCopyCode}>
+                  <MaterialCommunityIcons name="content-copy" size={24} color={theme.colors.primary} />
+                </Pressable>
+              </View>
+  
+              {data?.data.createdAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>생성 일시:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(data.data.createdAt).toLocaleString("ko-KR")}
+                  </Text>
+                </View>
+              )}
+  
+              {data?.data.expiresAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>만료 일시:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(data.data.expiresAt).toLocaleString("ko-KR")}
+                  </Text>
+                </View>
+              )}
+  
+              {typeof data?.data.remainingHours === "number" && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>남은 시간:</Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      data.data.remainingHours < 12 && styles.warningText,
+                    ]}
+                  >
+                    {data.data.remainingHours}시간
+                  </Text>
+                </View>
+              )}
+  
+              <Pressable style={styles.shareButton} onPress={handleShareCode}>
+                <MaterialCommunityIcons name="share-variant" size={24} color={theme.colors.white} />
+                <Text style={styles.shareButtonText}>코드 공유하기</Text>
+              </Pressable>
+            </View>
+  
+            {/* 안내 영역 */}
+            <View style={styles.infoSection}>
+              <Text style={styles.infoSectionTitle}>초대 코드 사용 안내</Text>
+              {data?.message === "이미 활성화된 초대 링크가 있습니다." ? (
+                <>
+                  <Text style={styles.infoText}>• 이미 생성된 초대 코드가 있습니다.</Text>
+                  <Text style={styles.infoText}>• 관리자에게 문의하여 기존 코드 정보를 확인하세요.</Text>
+                  <Text style={styles.infoText}>• 기존 코드가 만료되면 새로운 코드를 생성할 수 있습니다.</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.infoText}>• 생성된 코드는 7일간 유효합니다.</Text>
+                  <Text style={styles.infoText}>• 코드는 한 번만 사용할 수 있습니다.</Text>
+                  <Text style={styles.infoText}>• 만료되면 새로 생성해주세요.</Text>
+                </>
+              )}
+            </View>
+          </>
         )}
-      </View>
-
-      <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>안내사항</Text>
-        <View style={styles.infoItem}>
-          <MaterialCommunityIcons
-            name="information"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.infoText}>
-            생성된 링크는 24시간 동안만 유효합니다.
+  
+        {/* 링크 생성 버튼은 항상 표시 */}
+        <Pressable
+          style={styles.generateButton}
+          onPress={handleGenerateLink}
+          disabled={generateInviteMutation.isPending}
+        >
+          <MaterialCommunityIcons name="link-plus" size={24} color={theme.colors.white} />
+          <Text style={styles.generateButtonText}>
+            {data?.data?.inviteCode ? "새 초대 코드 생성하기" : "초대 코드 생성하기"}
           </Text>
-        </View>
-        <View style={styles.infoItem}>
-          <MaterialCommunityIcons
-            name="information"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.infoText}>한번에 하나의 연동만 가능합니다.</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <MaterialCommunityIcons
-            name="information"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.infoText}>
-            연동 후에는 상대방의 동의 없이 해제할 수 없습니다.
-          </Text>
-        </View>
-      </View>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -202,7 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     ...theme.shadows.small,
   },
-  headerButton: {
+  backButton: {
     padding: theme.spacing.sm,
   },
   headerTitle: {
@@ -211,118 +262,173 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   content: {
-    padding: theme.spacing.xl,
-    alignItems: "center",
+    flex: 1,
   },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: `${theme.colors.primary}20`,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: theme.spacing.xl,
+  contentContainer: {
+    padding: theme.spacing.md,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
+  linkCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    ...theme.shadows.small,
+  },
+  linkTitle: {
+    fontSize: 18,
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "center",
   },
-  description: {
+  linkContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  linkText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.text,
+  },
+  copyButton: {
+    padding: theme.spacing.sm,
+  },
+  shareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  shareButtonText: {
+    color: theme.colors.white,
     fontSize: 16,
-    color: theme.colors.textLight,
-    textAlign: "center",
-    marginBottom: theme.spacing.xl,
-    lineHeight: 24,
+    fontWeight: "600",
+    marginLeft: theme.spacing.sm,
   },
   generateButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.small,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   generateButtonText: {
     color: theme.colors.white,
-    fontWeight: "700",
-    fontSize: 18,
-    marginLeft: theme.spacing.md,
-  },
-  linkContainer: {
-    width: "100%",
-  },
-  linkBox: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    marginBottom: theme.spacing.md,
-  },
-  linkText: {
     fontSize: 16,
-    color: theme.colors.primary,
-    textAlign: "center",
+    fontWeight: "600",
+    marginLeft: theme.spacing.sm,
   },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: theme.spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
+  noLinkContainer: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.white,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    ...theme.shadows.small,
+    padding: theme.spacing.lg,
   },
-  actionButtonText: {
-    color: theme.colors.primary,
+  noLinkText: {
+    fontSize: 16,
     fontWeight: "600",
-    marginLeft: theme.spacing.sm,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+    textAlign: "center",
   },
-  shareButton: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  shareButtonText: {
-    color: theme.colors.white,
-    fontWeight: "600",
-    marginLeft: theme.spacing.sm,
+  noLinkSubtext: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    textAlign: "center",
   },
   infoSection: {
-    padding: theme.spacing.xl,
-    backgroundColor: theme.colors.white,
-    marginTop: "auto",
-    borderTopLeftRadius: theme.borderRadius.lg,
-    borderTopRightRadius: theme.borderRadius.lg,
-    ...theme.shadows.medium,
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
-  infoTitle: {
+  infoSectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: theme.spacing.md,
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
     marginBottom: theme.spacing.md,
   },
   infoText: {
     fontSize: 14,
+    color: theme.colors.textLight,
+    marginBottom: theme.spacing.xs,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.error,
+    marginTop: theme.spacing.lg,
+    textAlign: "center",
+  },
+  errorMessage: {
+    fontSize: 16,
     color: theme.colors.text,
-    marginLeft: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    textAlign: "center",
+  },
+  errorAction: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    marginTop: theme.spacing.sm,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+  },
+  retryButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  disabledButton: {
+    backgroundColor: theme.colors.border,
+  },
+  loadingContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.xl * 2,
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.xs,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    marginTop: theme.spacing.xs,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginRight: theme.spacing.sm,
+    width: 80,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  warningText: {
+    color: theme.colors.error,
+    fontWeight: "600",
   },
 });

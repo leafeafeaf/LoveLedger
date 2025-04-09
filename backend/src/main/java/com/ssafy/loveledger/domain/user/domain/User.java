@@ -44,7 +44,9 @@ public class User {
     private String usercode;
     private String name;
     private String picture;
-
+//    private String password;
+//    private Boolean isRegistered;
+    private LocalDate marryDate;
     private Boolean isMarried;
 
     @Column(unique = true)

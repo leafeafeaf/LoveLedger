@@ -11,4 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InviteLinkResponse {
     private String link;
+    private String inviteCode;
+    private String createdAt;
+    private String expiresAt;
+    private Long remainingHours;
 }

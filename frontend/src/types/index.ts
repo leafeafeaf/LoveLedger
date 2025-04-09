@@ -13,15 +13,29 @@ export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 // 메인 탭 네비게이션 타입
 export type MainTabParamList = {
-  Dashboard: undefined;
-  Main: undefined;
-  Library: undefined;
+  Dashboard: {};
+  Main: {};
+  Library: {};
 };
 
 // 인증 스택 네비게이션 타입
 export type AuthStackParamList = {
   Splash: undefined;
   Login: undefined;
+};
+
+// Library 스택 파라미터 타입
+export type LibraryStackParamList = {
+  LibraryMain: undefined;
+  DiaryDetail: { id: string; date: string; mood?: string };
+  StoryDetail: { id: string };
+  DiaryEdit: {
+    id: string;
+    date: string;
+    title: string;
+    content: string;
+    mood?: string;
+  };
 };
 
 // 루트 스택 파라미터 타입
@@ -32,13 +46,17 @@ export type RootStackParamList = {
   Diary: NavigatorScreenParams<DiaryStackParamList>;
   Daily: NavigatorScreenParams<DailyStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
+  Library: NavigatorScreenParams<LibraryStackParamList>;
+  DiaryDetail: { id: string; date: string; mood?: string };
+  StoryDetail: { id: string };
   TransactionEdit: { transaction: Transaction };
-  LinkGeneration: undefined;
+  LinkGeneration: {};
   LinkConfirm: { linkCode: string };
-  LinkSuccess: undefined;
-  LinkError: {
-    errorType: "expired" | "invalid" | "already_linked" | "generic";
+  LinkSuccess: {
+    partnerName: string;
+    partnerEmail: string;
   };
+  AccountVerification: undefined;
 };
 
 // 프로필 스택 파라미터 타입
@@ -46,7 +64,24 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   ProfileEdit: { partner: string };
   GoalList: undefined;
-  GoalDetail: { goal: Goal };
+  GoalDetail: {
+    goal: {
+      title: string;
+      goalAmount: number;
+      currentAmount: number;
+      startDate: string;
+      goalDate: string;
+      contentURL: string;
+    };
+  };
+  AccountVerification: undefined;
+  LinkSelection: undefined;
+  LinkGeneration: undefined;
+  LinkConfirm: { linkCode: string };
+  LinkSuccess: {
+    partnerName: string;
+    partnerEmail: string;
+  };
 };
 
 // 스토리 스택 파라미터 타입
@@ -54,6 +89,7 @@ export type StoryStackParamList = {
   StorySettings: {
     themeStyle?: string;
     toneStyle?: string;
+    selectedDate?: string;
   };
   SeriesSelection: {
     settings: StorySettings;
@@ -62,6 +98,11 @@ export type StoryStackParamList = {
     settings: StorySettings;
     series: Series | NewSeries;
   };
+  StoryPreview: {
+    settings: StorySettings;
+    series: Series | NewSeries;
+    story: Story;
+  };
   CoverSelection: {
     settings: StorySettings;
     series: Series | NewSeries;
@@ -69,14 +110,13 @@ export type StoryStackParamList = {
   };
   CoverPreview: {
     settings: StorySettings;
-    series: SeriesData;
+    series: Series | NewSeries;
     story: Story;
-    coverImage: string;
     coverStyle: string;
   };
   StoryList: undefined;
   StoryDetail: { id: string };
-  StorySave: {
+  Publishing: {
     settings: StorySettings;
     series: SeriesData;
     story: Story;
@@ -92,8 +132,12 @@ export type DiaryStackParamList = {
     id: string;
     date: string;
     title: string;
-    content: string;
+    content?: string;
     mood?: string;
+  };
+  DiaryEditDaily: {
+    diaryId: string;
+    selectedDate: string;
   };
 };
 
@@ -101,7 +145,7 @@ export type DiaryStackParamList = {
 export type DailyStackParamList = {
   DailyDetail: {
     selectedDate: string;
-    transactions: Transaction[];
+    transactions: TransactionDetail[];
   };
 };
 
@@ -154,9 +198,16 @@ export type DailyScreenProps<T extends keyof DailyStackParamList> =
     NativeStackScreenProps<RootStackParamList>
   >;
 
+// Library 스크린 Props도 추가
+export type LibraryScreenProps<T extends keyof LibraryStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<LibraryStackParamList, T>,
+    NativeStackScreenProps<RootStackParamList>
+  >;
+
 // 트랜잭션 스크린 Props
 export type TransactionStackScreenProps<
-  T extends keyof TransactionStackParamList
+  T extends keyof TransactionStackParamList,
 > = CompositeScreenProps<
   NativeStackScreenProps<TransactionStackParamList, T>,
   NativeStackScreenProps<RootStackParamList>
@@ -197,28 +248,34 @@ export type DatePickerProps = {
 // --- 데이터 모델 타입 정의 ---
 
 // 도서 항목 타입
-export type BookItem = {
+export interface BookItem {
+  fictionId?: number; // 함수 아님!
+  arturl?: string;
   id: string;
   title: string;
   date: string;
-  type: "diary" | "story" | "goal";
-  mood?: "happy" | "excited" | "peaceful" | string;
+  type: "diary" | "story";
+  mood?: string;
   theme?: string;
-};
+  coverImage?: string;
+  seriesId?: number;
+  content?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 // 거래 관련 타입
-export type Transaction = {
+export interface Transaction {
   id: string;
-  transactionid?: string;
+  transactionid: string;
   amount: number;
   date: string;
-  time?: string;
-  notes?: string;
+  time: string;
   remittance: boolean;
-  targetname?: string;
-  category?: string;
-  userId?: string;
-};
+  targetname: string;
+  category: string;
+  accountNo: string;
+}
 
 // 대시보드 거래 요약 타입
 export type DashboardTransaction = {
@@ -231,31 +288,33 @@ export type DashboardTransaction = {
 };
 
 // 카테고리 요약 타입
-export type CategorySummary = {
+export interface CategorySummary {
   name: string;
   amount: number;
   icon: IconName;
-};
+  percentage?: number;
+}
 
 // 목표 관련 타입
 export type Goal = {
-  id: string;
+  id?: string;
   title: string;
-  description: string;
-  target: number;
-  current: number;
-  deadline: string;
-  icon: IconName;
+  goalAmount: number;
+  currentAmount: number;
+  startDate: string;
+  goalDate: string;
+  contentURL: string;
 };
 
 // 새 목표 입력 타입
-export type NewGoal = {
-  title: string;
-  description: string;
-  target: string;
-  deadline: string;
-  icon: IconName;
-};
+export interface NewGoal {
+  title?: string;
+  goalAmount?: number | string;
+  currentAmount?: number | string;
+  startDate?: string;
+  goalDate?: string;
+  contentURL?: string;
+}
 
 // 목표 거래 타입
 export type GoalTransaction = {
@@ -267,7 +326,7 @@ export type GoalTransaction = {
 
 // 시리즈 타입
 export type Series = {
-  id: number;
+  seriesid: number;
   title: string;
   episodes: number;
   lastUpdated: string;
@@ -284,6 +343,7 @@ export type SeriesData = {
 // 새 시리즈 타입
 export type NewSeries = {
   name: string;
+  seriesid : number;
 };
 
 // 스토리 타입
@@ -291,6 +351,7 @@ export type Story = {
   id?: string;
   title: string;
   content: string;
+  coverImage?: string;
 };
 
 // 스토리 설정 타입
@@ -370,3 +431,222 @@ export type Theme = {
     };
   };
 };
+
+// 회원가입 요청 타입
+export type SignUpRequest = {
+  name: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
+};
+
+export interface DailySum {
+  targetDate: string;
+  totalConsumeSum: number;
+  totalEarnSum: number;
+}
+
+export interface TransactionDetail {
+  transactionId: string;
+  date: string;
+  time: string;
+  remittance: boolean;
+  targetName: string;
+  afterAmount: number;
+  amount: number;
+  categoryName: string;
+  accountNo: string;
+}
+
+export interface PageInfo {
+  size: number;
+  number: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface AccountDetailResponse {
+  content: TransactionDetail[];
+  page: PageInfo;
+}
+
+// 계좌 인증 요청 타입
+export interface AccountVerifyRequest {
+  accountNo: string;
+}
+
+// 계좌 인증 응답 타입
+export interface AccountVerifyResponse {
+  status: number;
+  data: null;
+  timestamp: string;
+  success: boolean;
+}
+
+// 계좌 인증 에러 타입
+export interface AccountVerifyError {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 계좌 인증 확인 요청 타입
+export interface AccountVerifyConfirmRequest {
+  authCode: string;
+  accountNo: string;
+}
+
+// 계좌 인증 확인 응답 타입
+export interface AccountVerifyConfirmResponse {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 임계 금액 타입
+export type thresholdAmount = number;
+
+export interface InviteResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+  };
+  timestamp: string;
+}
+
+export interface InviteErrorResponse {
+  status: number;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+export interface CoupleJoinResponse {
+  status: number;
+  message: string;
+}
+
+export interface CoupleJoinErrorResponse {
+  status: number;
+  message: string;
+  code?: string;
+  data?: {
+    registeredAt?: string;
+  };
+}
+
+export interface CoupleUnlinkResponse {
+  status: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  gender?: boolean;
+  birthDay?: string;
+  isMarried?: boolean;
+}
+
+export interface UserProfile {
+  name: string;
+  gender: boolean;
+  birthDay: string;
+  isMarried: boolean;
+  photo?: string;
+}
+
+export interface CoupleInfo {
+  coupleId: number;
+  darlingEmail: string;
+  darlingName: string;
+  darlingBirthDay: string;
+  darlingPicture: string;
+}
+
+export interface UserDetailResponse {
+  email: string;
+  name: string;
+  birthDay: string;
+  gender: boolean;
+  marriageDuration: number;
+  picture: string | null;
+  coupleInfo: CoupleInfo | null;
+  marryDate: string | null;
+  isMarried: boolean;
+  id?: string;
+  partnerName?: string;
+  diariesCount?: number;
+  storiesCount?: number;
+  photo?: string | null;
+  partnerAge?: number;
+  partnerPhoto?: string | null;
+}
+
+export interface InviteValidateResponse {
+  status: string;
+  message: string;
+  data: {
+    email: string;
+    name: string;
+  };
+  timestamp: string;
+}
+
+export interface InviteValidateExpiredResponse {
+  status: string;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+export interface InviteValidateAlreadyLinkedResponse {
+  status: number;
+  message: string;
+  data: null;
+  timestamp: string;
+}
+
+// 초대 링크 응답 타입
+export interface InviteSuccessResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+  };
+  timestamp: string;
+}
+
+export interface InviteConflictResponse {
+  status: string;
+  message: string;
+  data: {
+    existingLink: string;
+    createdAt: string;
+    expiresAt: string;
+    action: string;
+  };
+  timestamp: string;
+}
+export interface TransactionHistory {
+  transactionId: string;
+  time: string;
+  remittance: boolean;
+  targetname: string;
+  category_id: number | null;
+  afterAmount: number;
+  amount: number;
+  memo: string;
+  transactionTypeName: string;
+  summary: string;
+  updatedTargetName: string | null;
+}
+
+export interface TransactionChange {
+  original: TransactionHistory;
+  modified: TransactionHistory;
+  isSelected: boolean;
+}

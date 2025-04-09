@@ -1,9 +1,6 @@
 package com.ssafy.loveledger.domain.goal.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -35,6 +32,6 @@ public class Goal {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Lob
     private String contentURL;
 }

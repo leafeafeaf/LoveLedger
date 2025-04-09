@@ -1,0 +1,136 @@
+pipeline {
+    agent any
+
+    environment {
+        GRADLE_USER_HOME      = "/home/ubuntu/jenkins/.gradle"
+        REMOTE_DIR            = "/home/ubuntu/app"
+        DOCKER_IMAGE          = "loveledger-backend"
+        CONTAINER_NAME_BLUE   = "loveledger-backend-blue"
+        CONTAINER_NAME_GREEN  = "loveledger-backend-green"
+    }
+
+    stages {
+
+        stage('Secrets Setup') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'env-file-main', variable: 'EnvFile')
+                ]) {
+                    sh '''
+                        cp "$EnvFile" .env
+                        chmod 644 .env
+                    '''
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                sh '''
+                    cd ./backend
+                    chmod +x ./gradlew
+                    ./gradlew clean build -x test --no-daemon
+                '''
+            }
+        }
+
+        stage('Upload file to EC2') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')
+                ]) {
+                    sh '''
+                        scp -i "$SSH_KEY" -o StrictHostKeyChecking=no -r ./backend .env switch_nginx_port.sh $REMOTE_HOST:$REMOTE_DIR/
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy Docker Container') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'master-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    string(credentialsId: 'main-ec2-host', variable: 'REMOTE_HOST')
+                ]) {
+                    script {
+                        def deployScript = '''
+                            set -e
+                            cd app
+
+                            PORT_FILE="/tmp/current_port"
+
+                            # 현재 포트 확인
+                            if [ -f "$PORT_FILE" ]; then
+                                CURRENT_PORT=$(cat "$PORT_FILE")
+                            else
+                                CURRENT_PORT=8002
+                            fi
+
+                            # 새 포트 및 컨테이너 결정
+                            if [ "$CURRENT_PORT" -eq 8001 ]; then
+                                NEW_PORT=8002
+                                OLD_CONTAINER="loveledger-backend-blue"
+                                NEW_CONTAINER="loveledger-backend-green"
+                            else
+                                NEW_PORT=8001
+                                OLD_CONTAINER="loveledger-backend-green"
+                                NEW_CONTAINER="loveledger-backend-blue"
+                            fi
+
+                            echo "1. Building new container: $NEW_CONTAINER on port $NEW_PORT"
+                            docker build -t loveledger-backend -f backend/Dockerfile .
+
+                            docker run -d --name $NEW_CONTAINER \\
+                                --env-file .env \\
+                                --network mynetwork \\
+                                -p $NEW_PORT:8080 \\
+                                loveledger-backend
+
+                            echo "2. Waiting for app to be healthy..."
+                            STATUS="false"
+
+                            sleep 12
+
+                            for i in {1..10}; do
+                                STATUS=$( (curl -s localhost:$NEW_PORT/actuator/health | grep -q 'status.*UP') && echo "true" || echo "false" )
+                                echo $STATUS
+                                echo $NEW_PORT
+
+                                if [ "$STATUS" = "true" ] ; then
+                                    echo "App is healthy!"
+                                    break
+                                fi
+                               
+                                echo "Still waiting..."
+                                sleep 2
+                            done
+
+                            if [ "$STATUS" = "true" ]; then
+                                echo "Health check passed"
+                            else
+                                echo "App failed health check. Aborting!"
+                                docker logs $NEW_CONTAINER
+                                docker stop $NEW_CONTAINER
+                                docker rm $NEW_CONTAINER
+                                exit 1
+                            fi
+
+                            echo "3. Switching NGINX to port $NEW_PORT"
+                            chmod +x switch_nginx_port.sh
+                            ./switch_nginx_port.sh
+
+                            echo "4. Removing old container: $OLD_CONTAINER"
+                            docker stop $OLD_CONTAINER || true
+                            docker rm $OLD_CONTAINER || true
+                        '''
+
+                        sh """
+                            ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $REMOTE_HOST '${deployScript}'
+                        """
+                    }
+                }
+            }
+        }
+    }
+}

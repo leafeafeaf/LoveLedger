@@ -8,6 +8,7 @@ import com.ssafy.loveledger.domain.library.domain.repository.DiaryRepository;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryCreateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.DiaryUpdateRequest;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.diary.UpdateHistoryRequest;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryCreateResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadAllResponse;
 import com.ssafy.loveledger.domain.library.presentation.dto.response.diary.DiaryReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
@@ -40,17 +41,21 @@ public class DiaryService {
     private final GeminiUtil geminiUtil;
 
     @Transactional
-    public void createDiary(User user, @Valid DiaryCreateRequest diaryCreateRequest) {
+    public DiaryCreateResponse createDiary(User user,
+        @Valid DiaryCreateRequest diaryCreateRequest) {
         //Diary 생성
         Diary diary = Diary.builder()
             .library(user.getLibrary())
             .targetDate(diaryCreateRequest.getTargetDate())
             .title(diaryCreateRequest.getTitle())
             .content(diaryCreateRequest.getContent())
+            .mood(diaryCreateRequest.getMood())
             .build();
 
         //일기 저장
         diaryRepository.save(diary);
+
+        return DiaryCreateResponse.builder().id(diary.getId()).build();
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +89,7 @@ public class DiaryService {
             .targetDate(diary.getTargetDate())
             .createdAt(diary.getCreatedAt())
             .updatedAt(diary.getUpdatedAt())
+            .mood(diary.getMood())
             .build();
     }
 
@@ -102,6 +108,15 @@ public class DiaryService {
         //수정
         diary.setTitle(diaryUpdateRequest.getTitle());
         diary.setContent(diaryUpdateRequest.getContent());
+
+        if (diaryUpdateRequest.getMood() != null) {
+            Integer mood = diaryUpdateRequest.getMood();
+            if (mood < 1 || mood > 4) {
+                diary.setMood(1); // 유효 범위 벗어나면 기본값으로
+            } else {
+                diary.setMood(mood);
+            }
+        }
 
         diaryRepository.save(diary);
     }

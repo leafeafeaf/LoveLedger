@@ -6,12 +6,19 @@ import {
   Pressable,
   FlatList,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import { Series, StorySettings, NewSeries } from "../../types";
 import { StoryScreenProps } from "../../types";
 import Header from "../../components/common/Header";
+import { useSeriesCreate } from "../../hooks/useSeriesCreate";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchFictionListStart, fetchFictionListSuccess, fetchFictionListFailure } from "../../store/contentSlice";
+import { axiosInstance } from "../../api/axios";
+import { useSeriesList } from "../../hooks/useSeriesList";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SeriesSelectionScreen({
   navigation,
@@ -23,44 +30,67 @@ export default function SeriesSelectionScreen({
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [newSeriesName, setNewSeriesName] = useState("");
   const [selectedSeries, setSelectedSeries] = useState<number | null>(null);
+  
+  const { mutate: createSeries, isPending } = useSeriesCreate();
+  const { data: series = [], isLoading: isSeriesLoading } = useSeriesList();
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
-  const mockSeries: Series[] = [
-    {
-      id: 1,
-      title: "Our Love Journey",
-      episodes: 3,
-      lastUpdated: "2024-03-10",
-    },
-    {
-      id: 2,
-      title: "Weekend Adventures",
-      episodes: 5,
-      lastUpdated: "2024-03-05",
-    },
-    {
-      id: 3,
-      title: "Romantic Escapes",
-      episodes: 2,
-      lastUpdated: "2024-02-28",
-    },
-  ];
+  
+  const handleNext = () => {
+    if (mode === "new") {
+      if (!newSeriesName.trim()) {
+        Alert.alert("알림", "시리즈 이름을 입력해주세요.");
+        return;
+      } 
+      createSeries(newSeriesName, {
+        onSuccess: async (response) => {
+          console.log(response);
 
-  const renderSeriesItem = ({ item }: { item: Series }) => (
+          await queryClient.invalidateQueries({ queryKey: ["series"] });
+          console.log(settings)
+          
+          navigation.navigate("StoryGeneration", {
+            settings,
+            series: { name: newSeriesName, seriesid : response.data.seriesId},
+          });
+        },
+        onError: (error) => {
+          Alert.alert("오류", error.message);
+        },
+      });
+    } else {
+      const selectedSeriesData = series.find((s) => s.seriesId === selectedSeries);
+      if (selectedSeriesData) {
+        console.log(settings)
+        console.log("셀렉트 데이터를 좀 보자 : ")
+        console.log(selectedSeriesData)
+
+        navigation.navigate("StoryGeneration", {
+          settings,
+          series: { 
+            name: selectedSeriesData.title,
+            seriesid: selectedSeriesData.seriesId },
+        });
+      }
+    }
+  };
+
+  const renderSeriesItem = ({ item }: { item: { seriesId: number; title: string } }) => (
     <Pressable
       style={[
         styles.seriesCard,
-        selectedSeries === item.id && styles.selectedSeriesCard,
+        selectedSeries === item.seriesId && styles.selectedSeriesCard,
       ]}
-      onPress={() => setSelectedSeries(item.id)}
+      onPress={() => {
+        console.log(`선택: ${item.title} (ID: ${item.seriesId})`);
+        setSelectedSeries(item.seriesId)
+      }}
     >
       <View style={styles.seriesHeader}>
         <Text style={styles.seriesTitle}>{item.title}</Text>
-        <View style={styles.episodesBadge}>
-          <Text style={styles.episodesText}>{item.episodes} episodes</Text>
-        </View>
       </View>
-      <Text style={styles.seriesDate}>Last updated: {item.lastUpdated}</Text>
-      {selectedSeries === item.id && (
+      {selectedSeries === item.seriesId && (
         <View style={styles.checkmark}>
           <MaterialCommunityIcons
             name="check-circle"
@@ -71,25 +101,6 @@ export default function SeriesSelectionScreen({
       )}
     </Pressable>
   );
-
-  const handleNext = () => {
-    let seriesData;
-    if (mode === "new") {
-      seriesData = { name: newSeriesName || "Our Love Story" };
-    } else {
-      const series = mockSeries.find((s) => s.id === selectedSeries);
-      if (series) {
-        seriesData = { name: series.title };
-      } else {
-        seriesData = { name: mockSeries[0].title };
-      }
-    }
-
-    navigation.navigate("StoryGeneration", {
-      settings,
-      series: seriesData,
-    });
-  };
 
   return (
     <View style={styles.container}>
@@ -114,7 +125,7 @@ export default function SeriesSelectionScreen({
               mode === "new" && styles.activeModeButtonText,
             ]}
           >
-            Create new series
+            새로운 이야기 시작하기
           </Text>
         </Pressable>
 
@@ -138,35 +149,42 @@ export default function SeriesSelectionScreen({
               mode === "existing" && styles.activeModeButtonText,
             ]}
           >
-            Add to existing series
+            기존 이야기에 이어쓰기
           </Text>
         </Pressable>
       </View>
       <View style={styles.content}>
         {mode === "new" ? (
           <View style={styles.newSeriesContainer}>
-            <Text style={styles.sectionTitle}>Create a New Series</Text>
+            <Text style={styles.sectionTitle}>새로운 이야기의 시작</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter series name"
+              placeholder="이야기의 제목을 입력해주세요"
               value={newSeriesName}
               onChangeText={setNewSeriesName}
               placeholderTextColor={theme.colors.textLight}
             />
             <Text style={styles.description}>
-              Create a new series to organize your stories. You can add more
-              episodes to this series later.
+              당신만의 특별한 이야기를 시작해보세요. 나중에 더 많은 에피소드를
+              추가할 수 있어요.
             </Text>
           </View>
         ) : (
           <View style={styles.existingSeriesContainer}>
-            <Text style={styles.sectionTitle}>Select an Existing Series</Text>
-            <FlatList
-              data={mockSeries}
-              renderItem={renderSeriesItem}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.seriesList}
-            />
+            <Text style={styles.sectionTitle}>이어갈 이야기 선택하기</Text>
+            {isSeriesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={styles.loadingText}>시리즈 목록을 불러오는 중...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={series}
+                renderItem={renderSeriesItem}
+                keyExtractor={(item) => item.seriesId.toString()}
+                contentContainerStyle={styles.seriesList}
+              />
+            )}
           </View>
         )}
       </View>
@@ -174,17 +192,22 @@ export default function SeriesSelectionScreen({
         <Pressable
           style={[
             styles.nextButton,
-            mode === "existing" && !selectedSeries && styles.disabledButton,
+            (mode === "existing" && !selectedSeries) && styles.disabledButton,
+            isPending && styles.disabledButton,
           ]}
           onPress={handleNext}
-          disabled={mode === "existing" && !selectedSeries}
+          disabled={(mode === "existing" && !selectedSeries) || isPending}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color={theme.colors.white}
-          />
+          <Text style={styles.nextButtonText}>
+            {isPending ? "생성 중..." : "Next"}
+          </Text>
+          {!isPending && (
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={20}
+              color={theme.colors.white}
+            />
+          )}
         </Pressable>
       </View>
     </View>
@@ -317,5 +340,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
   },
 });
