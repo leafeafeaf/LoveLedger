@@ -65,6 +65,26 @@ export const useGoogleLogin = () => {
     );
   };
 
+  // URL 처리 함수
+  const handleUrl = async (url: string) => {
+    if (url.includes("loveledger://oauth2/google")) {
+      const tokenMatch = url.match(/accessToken=([^&]+)/);
+      const isRegisteredMatch = url.match(/isRegistered=([^&]+)/);
+
+      if (tokenMatch) {
+        const token = decodeURIComponent(tokenMatch[1]);
+        const isRegistered = isRegisteredMatch
+          ? isRegisteredMatch[1] === "true"
+          : false;
+
+        handleLoginSuccess({
+          token,
+          isNewUser: !isRegistered,
+        });
+      }
+    }
+  };
+
   // 웹 환경에서 리디렉션 후 해시에서 토큰 추출
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -127,7 +147,6 @@ export const useGoogleLogin = () => {
             );
             setIsLoading(false);
           }
-          // 성공 처리는 useEffect의 토큰 추출 부분에서 처리됨
         },
         () => {
           // 타임아웃 처리

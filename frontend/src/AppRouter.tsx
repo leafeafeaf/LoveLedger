@@ -22,28 +22,27 @@ import TransactionEditScreen from "./screens/daily/DailyEditScreen";
 import LinkGenerationScreen from "./screens/link/LinkGenerationScreen";
 import LinkConfirmScreen from "./screens/link/LinkConfirmScreen";
 import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
-import LinkErrorScreen from "./screens/link/LinkErrorScreen";
 import DiaryDetailScreen from "./screens/diary/DiaryDetailScreen";
 import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
-import * as Linking from 'expo-linking';
+import * as Linking from "expo-linking";
 
-const prefix = Linking.createURL('/');
+const prefix = Linking.createURL("/");
 
 const linking = {
-  prefixes: [prefix, 'loveledger://'],
+  prefixes: [prefix, "loveledger://"],
   config: {
     screens: {
-      Auth: 'auth',
-      Main: 'main',
+      Auth: "auth",
+      Main: "main",
       LinkConfirm: {
-        path: 'link-confirm',
+        path: "link-confirm",
         parse: {
-          linkCode: (code: string) => code ?? '',
+          linkCode: (code: string) => code ?? "",
         },
       },
-      LinkSuccessScreen: 'link-success',
-      LinkErrorScreen: 'link-error',
+      LinkSuccess: "link-success",
+      LinkError: "link-error",
     },
   },
 };

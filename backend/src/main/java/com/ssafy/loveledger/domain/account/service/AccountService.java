@@ -84,7 +84,7 @@ public class AccountService {
                     .transactionId(history.getTransactionId())
                     .date(history.getCreatedDate())
                     .time(history.getCreatedTime())
-                    .remittance(history.getTransactionType() % 2 == 1)
+                    .remittance(history.getTransactionType() < 3)
                     .targetName(history.getTransactionTarget())
                     .CategoryName(history.getCategory().getName())
                     .afterAmount(history.getAmountAfterTransaction())

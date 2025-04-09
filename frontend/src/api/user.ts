@@ -27,7 +27,7 @@ export const updateUserProfile = async (userData: UpdateUserRequest) => {
  */
 export const getUserDetail = async () => {
   const { data } = await axiosInstance.get("/user");
-
+  console.log(data)
   return data;
 };
 

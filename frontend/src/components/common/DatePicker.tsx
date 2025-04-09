@@ -119,7 +119,11 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const startDateClone = new Date(startDate.getTime());
             setTempRangeStart(startDateClone);
-            selectStartDate(new Date(startDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = startDateClone.toISOString().split("T")[0];
+            selectStartDate(startDateClone);
+
             setDisplayedMonth(new Date(startDate.getTime()));
           }
 
@@ -127,7 +131,10 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const endDateClone = new Date(endDate.getTime());
             setTempRangeEnd(endDateClone);
-            selectEndDate(new Date(endDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = endDateClone.toISOString().split("T")[0];
+            selectEndDate(endDateClone);
           }
         } else {
           // 단일 선택 모드일 때 초기값 설정
@@ -135,7 +142,11 @@ export default function DatePicker({
             // 깊은 복사로 새 객체 생성
             const selectedDateClone = new Date(selectedDate.getTime());
             setTempSelectedDate(selectedDateClone);
-            selectDate(new Date(selectedDate.getTime())); // 각 호출마다 새 객체 생성
+
+            // 날짜를 문자열로 변환하여 전달
+            const dateString = selectedDateClone.toISOString().split("T")[0];
+            selectDate(selectedDateClone);
+
             setDisplayedMonth(new Date(selectedDate.getTime()));
           }
         }
@@ -414,11 +425,11 @@ export default function DatePicker({
   // 선택 적용 핸들러
   const handleApplySelection = () => {
     if (isRange && tempRangeStart && tempRangeEnd) {
-      // 범위 선택 확정 - 깊은 복사하여 참조 문제 방지
+      // 범위 선택 확정
       const startDateClone = new Date(tempRangeStart.getTime());
       const endDateClone = new Date(tempRangeEnd.getTime());
 
-      // Redux 상태 업데이트
+      // Redux 상태 업데이트 - 문자열 날짜 사용
       selectStartDate(startDateClone);
       selectEndDate(endDateClone);
 

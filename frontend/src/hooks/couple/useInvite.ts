@@ -2,11 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "../reduxHooks";
 import { axiosInstance } from "../../api/axios";
 import { InviteSuccessResponse } from "../../types";
-import {
-  setInviteLink,
-  startGenerateInviteLink,
-  generateInviteLinkFailure,
-} from "../../store/coupleSlice";
 
 /**
  * 저장된 초대 링크 정보를 Redux 스토어에서 가져오는 훅
@@ -47,29 +42,23 @@ export const useStoredInviteLink = () => {
 
 /**
  * 초대 링크를 생성하는 훅
- *
  * @returns 초대 링크 생성 뮤테이션 객체
  */
 export const useGenerateInvite = () => {
-  const dispatch = useAppDispatch();
 
   return useMutation({
     mutationFn: async () => {
 
-      dispatch(startGenerateInviteLink());
-
       try {
         const response = await axiosInstance.get<InviteSuccessResponse>("/invite",);
         // Redux 스토어에 링크 정보 저장
-        console.log(response)
-        dispatch(setInviteLink(response.data));
-
+        console.log(response.data)
         return response.data;
       } catch (error: any) {
+        console.log(error)
         // 서버 응답이 없는 경우
         if (!error.response) {
           const errorMessage = "서버에 연결할 수 없습니다.";
-          dispatch(generateInviteLinkFailure(errorMessage));
           throw new Error(errorMessage);
         }
 
@@ -84,8 +73,8 @@ export const useGenerateInvite = () => {
             },
             timestamp: errorData.timestamp || new Date().toISOString(),
           } as InviteSuccessResponse;
-
-          dispatch(setInviteLink(response));
+          
+          console.log(error)
           return response;
         }
 
@@ -93,13 +82,12 @@ export const useGenerateInvite = () => {
         if (error.response.status === 400) {
           const errorMessage =
             error.response.data.message || "이미 연인과 연결된 상태입니다.";
-          dispatch(generateInviteLinkFailure(errorMessage));
           throw new Error(errorMessage);
         }
 
         // 기타 에러 처리
+        
         const errorMessage = "초대 링크 생성 중 오류가 발생했습니다.";
-        dispatch(generateInviteLinkFailure(errorMessage));
         throw new Error(errorMessage);
       }
     },
