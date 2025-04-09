@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,9 +38,16 @@ public class Account {
 
     private Long amount = 0L;
 
-    private LocalDateTime lastUpdated = LocalDateTime.of(1980, 1, 1, 1, 0, 0);
+    private LocalDateTime lastUpdated;
 
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private List<History> history;
+
+    @PrePersist
+    public void prePersist() {
+        if (lastUpdated == null) {
+            lastUpdated = LocalDateTime.of(1980, 1, 1, 1, 0, 0);
+        }
+    }
 
 }
