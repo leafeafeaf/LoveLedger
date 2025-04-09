@@ -76,6 +76,7 @@ export const useDiaryCreate = () => {
 
       const targetDate = new Date(diary.targetDate);
       const today = new Date();
+      targetDate.setHours(0, 0, 0, 0);
       today.setHours(0, 0, 0, 0);
 
       if (targetDate > today) {

@@ -13,7 +13,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { MainTabScreenProps, LibraryStackParamList, LibraryScreenProps } from "../../types";
+import { MainTabScreenProps, LibraryStackParamList, LibraryScreenProps, BookItem } from "../../types";
 import { BookItem as BookItemType } from "../../types";
 import { DiaryContent } from "../../store/contentSlice";
 import SearchBar from "../../components/library/SearchBar";
@@ -48,15 +48,38 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
     const fetchFictionList = async () => {
       try {
         dispatch(fetchFictionListStart());
-        const response = await axiosInstance.get("/fiction", {
+        console.log('Fetching fiction list...');
+        const response = await axiosInstance.get("/fictions", {
           params: {
             pageno: 1,
             size: 50,
             sort: "DESC"
           }
         });
-        dispatch(fetchFictionListSuccess(response.data.data));
+
+        console.log('Fiction API Response:', JSON.stringify(response.data, null, 2));
+        if (response.data.data && response.data.data.content) {
+          // API 응답 데이터 구조를 Redux store에 맞게 변환
+          const transformedData = {
+            series: response.data.data.content.map((item: any) => ({
+              seriesid: item.seriesId,
+              seriesname: item.seriesName,
+              fictions: item.fictions.map((fiction: any) => ({
+                fictionId: fiction.fictionId,
+                title: fiction.title,
+                artUrl: fiction.artUrl,
+                createdAt: fiction.createdAt
+              }))
+            }))
+          };
+          console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
+          dispatch(fetchFictionListSuccess(transformedData));
+        } else {
+          console.error('Invalid API response structure:', response.data);
+          dispatch(fetchFictionListFailure("잘못된 API 응답 구조입니다."));
+        }
       } catch (error) {
+        console.error('Error fetching fiction list:', error);
         dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
       }
     };
@@ -77,39 +100,80 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
 
+    // 초기 데이터 로드
     fetchFictionList();
     fetchDiaryList();
-  }, [dispatch]);
+  }, [dispatch, activeContent]); // activeContent가 변경될 때마다 데이터 갱신
+
+  // mood 값을 변환하는 함수
+const getMoodText = (mood: number | string): string => {
+  switch (mood) {
+    case 1:
+      return 'happy';
+    case 2:
+      return 'angry';
+    case 3:
+      return 'peaceful';
+    case 4:
+      return 'sad';
+    default:
+      return 'happy'; // 기본값 설정
+  }
+};
 
   // Filter books by search query
-  const filteredBooks: BookItemType[] = 
-    activeContent === "diaries" 
-      ? diaries.map((diary) => ({
-          id: String(diary.id),
-          title: diary.title,
-          date: diary.targetDate,
-          type: 'diary' as const,
-          mood: diary.mood || 'happy',
-          content: diary.content,
-          createdAt: diary.createdAt,
-          updatedAt: diary.updatedAt || undefined,
-          theme: '',
-          coverImage: '',
-          seriesId: 0
-        }))
-      : series.flatMap(series => 
-          series.fictions.map(fiction => ({
-            id: fiction.createat,
-            title: fiction.title,
-            date: new Date(fiction.createat).toISOString().split('T')[0],
-            type: "story" as const,
-            theme: series.seriesname,
-            coverImage: fiction.arturl,
-            seriesId: series.seriesid,
-          }))
-        ).filter(item => 
-          item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredBooks: BookItem[] = activeContent === "diaries"
+    ? diaries.map((diary) => ({
+        id: String(diary.id),
+        title: diary.title,
+        date: diary.targetDate,
+        type: 'diary' as const,
+        mood: getMoodText(diary.mood),
+        content: diary.content,
+        createdAt: diary.createdAt,
+        updatedAt: diary.updatedAt || undefined,
+        theme: '',
+        coverImage: '',
+        seriesId: 0,
+      })).filter(item =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (() => {
+        console.log('Processing series data:', series);
+        if (!series || series.length === 0) {
+          console.log('No series data available');
+          return [];
+        }
+        const result = series.flatMap(series => {
+          console.log('Processing series:', series);
+          if (!series.fictions || !Array.isArray(series.fictions)) {
+            console.log('No fictions in series:', series);
+            return [];
+          }
+          return series.fictions.map(fiction => {
+            console.log('Processing fiction:', fiction);
+            const safeCreatedAt = fiction.createdAt ?? new Date().toISOString();
+            return {
+              id: String(fiction.fictionId ?? safeCreatedAt),
+              fictionId: fiction.fictionId,
+              title: fiction.title,
+              date: new Date(safeCreatedAt).toISOString().split('T')[0],
+              type: "story" as const,
+              theme: series.seriesname,
+              coverImage: fiction.arturl,
+              arturl: fiction.arturl,
+              createdAt: safeCreatedAt,
+              updatedAt: fiction.updatedAt,
+              seriesId: series.seriesid,
+            };
+          });
+        }).filter(item =>
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.theme.toLowerCase().includes(searchQuery.toLowerCase())
         );
+        console.log('Final filtered books:', result);
+        return result;
+      })();
 
   // Group books by month (for diaries) or series (for stories)
   const groupedBooks = filteredBooks.reduce((acc, item) => {

@@ -11,7 +11,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions, StackActions } from "@react-navigation/native";
 import { useAppDispatch } from "../../hooks/reduxHooks";
 import { logout } from "../../store/authSlice";
 
@@ -402,6 +402,12 @@ export default function ProfileMainScreen({
                           text: "확인",
                           onPress: () => {
                             dispatch(logout());
+                            navigation.dispatch(
+                              CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: "Auth" }],
+                              })
+                            );
                           },
                         },
                       ]

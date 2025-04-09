@@ -50,7 +50,7 @@ public class FictionService {
     public void createFiction(FictionAllCreateRequest fictionCreateReq) {
 
         Fiction fiction = Fiction.builder()
-            .series(Series.builder().id(fictionCreateReq.getSereisId()).build())
+            .series(Series.builder().id(fictionCreateReq.getSeriesId()).build())
             .Title(fictionCreateReq.getTitle())
             .artURL(fictionCreateReq.getImageUrl())
             .content(fictionCreateReq.getContent())
@@ -79,7 +79,8 @@ public class FictionService {
 
     // 시리즈별 소설 전부 조회
     @Transactional
-    public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size, String sort) {
+    public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size,
+                                                       String sort) {
 
         // 사용자 체크
         libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
@@ -92,7 +93,8 @@ public class FictionService {
         // Pageable 객체 생성 (페이지 번호는 0부터 시작해야 하므로 pageno - 1)
         Pageable pageable = PageRequest.of(pageNo - 1, size, Sort.by(direction, "id"));
 
-        Page<Series> seriesPage = seriesRepository.findByLibraryId(user.getLibrary().getId(), pageable);
+        Page<Series> seriesPage = seriesRepository.findByLibraryId(user.getLibrary().getId(),
+            pageable);
 
         return seriesPage.map(series -> {
             List<FictionReadResponse> fictionDtos = series.getFiction().stream()
@@ -133,7 +135,8 @@ public class FictionService {
 
     // AI 소설 생성.
     @Transactional(readOnly = true)
-    public FictionContentReadRes getFictionContentAI(User user, FictionContentCreateReq fictionContentCreateReq) {
+    public FictionContentReadRes getFictionContentAI(User user,
+                                                     FictionContentCreateReq fictionContentCreateReq) {
 
         Long themeId = fictionContentCreateReq.getThemeId();
         Long seriesId = fictionContentCreateReq.getSeriesId();
@@ -144,7 +147,8 @@ public class FictionService {
 
         // series 있는지 확인
         Series series = seriesRepository.findById(seriesId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND, String.valueOf(seriesId)));
+            .orElseThrow(() -> new LoveLedgerException(ErrorCode.SERIES_NOT_FOUND,
+                String.valueOf(seriesId)));
 
         // 유저 시리즈인지 확인
         if (!series.getLibrary().equals(user.getLibrary())) {
@@ -153,11 +157,13 @@ public class FictionService {
 
         // Theme 검증
         Theme theme = themeRepository.findById(themeId)
-            .orElseThrow(() -> new LoveLedgerException(ErrorCode.THEME_NOT_FOUND, String.valueOf(themeId)));
+            .orElseThrow(
+                () -> new LoveLedgerException(ErrorCode.THEME_NOT_FOUND, String.valueOf(themeId)));
 
         // 최근 10개의 소설 불러오기
         Pageable topTen = PageRequest.of(0, 10);
-        List<FictionReadRequest> fictionList = fictionRepository.findTop10BySeriesId(seriesId, topTen);
+        List<FictionReadRequest> fictionList = fictionRepository.findTop10BySeriesId(seriesId,
+            topTen);
 
         // 계좌 불러오기
         List<Account> accounts = user.getAccount();
@@ -179,13 +185,12 @@ public class FictionService {
 
         // 프롬프트 만들기
         String prompt = geminiUtil.createPromptByTheme(
-            theme.getName(), startDate, endDate, formatHistoryList(histories), formatFictionList(fictionList), gender, isMarried
+            theme.getName(), startDate, endDate, formatHistoryList(histories),
+            formatFictionList(fictionList), gender, isMarried
         );
 
-        log.info(prompt);
-
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
-            .thenApply(geminiUtil::mapResponseToMap);
+            .thenApply(geminiUtil::mapFictionResponseToMap);
 
         Map<String, Object> result = response.join();
 
@@ -206,24 +211,29 @@ public class FictionService {
         String drawStyle = fictionArtCreateReq.getDrawStyle();
         String title = fictionArtCreateReq.getTitle();
         String content = fictionArtCreateReq.getContent();
-
+        String visual = geminiUtil.getVisualFeature(drawStyle);
 
         String prompt = """
             당신은 그림체, 소설의 제목과 내용에 따라 한 장의 그림을 생성하여 이미지 url로 보여주는 AI 비서입니다.\s
+            당신의 임무는 주어진 소설 정보를 바탕으로 **딱 한 장면을 상상하여**, 입력된 그림체 스타일에 맞춰 묘사한 프롬프트를 만들고, 해당 프롬프트로 생성된 **이미지 URL**을 출력하는 것입니다.
             
             [입력값]
             - 그림체: %s (그림의 스타일)
+            - 그림체 시각적 특징 : %s
             - 제목: %s (소설의 중심 주제를 담고 있는 문장입니다.)
             - 내용: (주요 사건, 인물, 배경이 서술된 본문입니다. 이 내용을 바탕으로 장면을 상상해주세요.)
             %s
             
             [출력 목적]
-            제공된 정보를 바탕으로 하나의 장면을 묘사한 입력받은 그림체로 이미지를 생성하기 위한 구체적인 프롬프트 문장을 만드세요.
+            - 위의 정보를 바탕으로 **단 하나의 장면**을 **입력된 그림체 스타일로 시각적으로 묘사**하기 위한 텍스트 프롬프트를 생성하고,
+            - 해당 프롬프트로 생성된 이미지 URL을 **JSON 형식**으로 반환합니다.
             
             [출력 형식]
             {
               "image_url": "https://~"
             }
+            - 반드시 위와 같이 JSON 코드 블럭(json ... ) 안에 포함해 주세요.
+            - URL은 실제 이미지 생성에 사용 가능한 형태여야 하며, Markdown 문법을 따라야 합니다.
             
             [규칙]
             1. 반드시 소설의 인물을 중심으로 장면을 구성하세요.
@@ -233,11 +243,26 @@ public class FictionService {
             5. 민감하거나 부정적인 표현은 피해주세요.
             
             [중요 사항]
-            1. 반드시 입력값의 그림체에 해당하는 그림체로 귀엽게 만들어주세요.
-            2. 반드시 이미지 url로 출력해주세요.
-            """.formatted(drawStyle, title, content);
-
-        log.info(prompt);
+            1. 반드시 소설 속 인물을 중심으로 장면을 구성하세요. 인물은 감정, 행동, 의상, 표정이 드러나야 합니다.
+            
+            2. 인물의 주요 행동이나 상징적인 순간, 감정이 폭발하는 시점 등을 시각화하세요.
+            
+            3. 장면의 배경, 시간대, 분위기를 명확히 설정하세요. 예: 새벽녘, 실내 카페, 별빛 아래 언덕 등
+            
+            4. 배경에는 테마에 어울리는 색감, 조명, 구도 등을 포함하세요.
+            
+            5. 직접적인 대사 인용은 삼가고, 묘사 중심의 문장으로 구성하세요.
+            
+            6. 입력된 그림체 스타일의 시각적 특성을 문장 안에 통합해 주세요. 예: "수채화풍의 번진 붓터치", "실사 스타일의 현실적인 조명"
+            
+            7. 민감하거나 폭력적, 선정적인 표현은 절대 사용하지 마세요.
+            
+            8.가능한 한 귀엽고 따뜻한 분위기로 표현해 주세요 (단, 이야기의 분위기가 그렇지 않은 경우는 예외).
+            
+            9. 반환값은 반드시 "image_url" 키를 가진 유효한 JSON 객체여야 합니다.
+            
+            
+            """.formatted(drawStyle, visual, title, content);
 
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
             .thenApply(geminiUtil::mapResponseToMap);

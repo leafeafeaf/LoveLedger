@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { StoryScreenProps, StorySettings, Story, Series } from "../../types";
 import Header from "../../components/common/Header";
+import { useFictionArt } from "../../hooks/useFictionArt";
 import { useFictionSave } from "../../hooks/useFictionSave";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -22,71 +23,112 @@ import {
   storySavingFailure,
   clearStorySavingState,
 } from "../../store/contentSlice";
+import { useDatePicker } from "../../hooks/useDatePicker";
 
 const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
   navigation,
   route,
 }) => {
-  const { settings, series, story, coverImage, coverStyle } = route.params;
+  const { settings, series, story, coverStyle } = route.params;
   const dispatch = useDispatch();
   const { isSaving, error } = useSelector(
     (state: RootState) => state.content.storySaving
   );
-  const { mutate } = useFictionSave();
+  const { mutate, isPending: mutationLoading, error: apiError } = useFictionArt();
+  const { mutate: saveFiction } = useFictionSave();
+  const coverImage = useSelector(
+    (state: RootState) => state.content.storySaving.lastSavedStory?.coverImage
+  );
+  const { resetAllDates } = useDatePicker();
+
+  React.useEffect(() => {
+    // 화면 진입 시 커버 생성
+    if (story.content && coverStyle && story.title) {
+      console.log("그림 생성 시작 : CoverPreviewScreen")
+
+      mutate(
+        {
+          content: story.content,
+          drawStyle: coverStyle,
+          title: story.title,
+        },
+        {
+          onSuccess: (response) => {
+            const coverImageRes = response.data.imageUrl;
+            console.log(coverImageRes);
+            dispatch(
+              storySavingSuccess({
+                ...story,
+                id: "seriesid" in series ? series.seriesid.toString() : Date.now().toString(),
+                coverImage: coverImageRes,
+              })
+            );
+
+            // 여기선 자동 이동은 하지 않음, 저장 버튼 눌러야 넘어감
+          },
+          onError: (error) => {
+            console.error("커버 생성 오류:", error);
+            Alert.alert("커버 생성 실패", error.message || "오류가 발생했습니다.");
+          },
+        }
+      );
+    }
+  }, []);
+
 
   const handleSave = () => {
-    // 테마 ID 매핑
-    const themeIdMap: { [key: string]: number } = {
-      webtoon: 1,
-      fairytale: 2,
-      realistic: 3,
-      watercolor: 4,
-      oilpainting: 5,
-      sketch: 6,
-    };
-
-    const themeId = themeIdMap[coverStyle] || 1;
-    const seriesId = "id" in series ? series.id : Date.now();
-    const [startDate, endDate] = (settings.period || "")
-      .split("~")
+    console.log("저장해보기")
+    let coverImageUrl = coverImage;
+    const seriesId = "seriesid" in series ? series.seriesid : Date.now();
+    const [startDate, endDate] = (settings.period || "").split("~")
       .map((date) => date.trim());
 
-    dispatch(startStorySaving());
+    if (!coverImageUrl) {
+      coverImageUrl = "https://image.pollinations.ai/prompt/watercolor%2C%20a%20cute%20girl%20named%20Kim%20Juhyun%20with%20a%20flustered%20expression%2C%20running%20across%20a%20crosswalk%20in%20front%20of%20Seoul%20Transportation%20Corporation%2C%20a%20handsome%20man%20named%20Park%20Sunwoo%20with%20a%20bright%20smile%20is%20holding%20her%20arm%20and%20running%20with%20her%2C%20sunlight%20shining%20brightly%2C%20soft%20pastel%20colors%2C%20a%20sense%20of%20romantic%20excitement"
+    }
+    console.log(settings);
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
+    console.log("seriesId:", seriesId);
+    console.log("imageUrl:", coverImageUrl);
 
-    mutate(
+
+
+    //서버에 소설을 저장
+    dispatch(startStorySaving());
+    saveFiction(
       {
         content: story.content,
-        imageurl: coverImage,
-        startdate: startDate,
-        enddate: endDate,
+        imageUrl: coverImageUrl,
+        startDate,
+        endDate,
         title: story.title,
         seriesId,
-        themeId,
       },
       {
         onSuccess: (response) => {
+          console.log("저장 성공", response);
+
           dispatch(
             storySavingSuccess({
               ...story,
               id: seriesId.toString(),
-              coverImage,
+              coverImage: coverImageUrl,
             })
           );
           dispatch(clearCoverImage());
-          navigation.navigate("Publishing", {
-            settings,
-            series: {
-              id: seriesId,
-              title: "title" in series ? series.title : series.name,
-              episodes: "episodes" in series ? series.episodes : 1,
-              lastUpdated:
-                "lastUpdated" in series
-                  ? series.lastUpdated
-                  : new Date().toISOString(),
-            },
-            story,
-            coverImage,
-            coverStyle,
+          
+          // 날짜 초기화
+          resetAllDates();
+
+          // ✅ 저장 성공 후 메인 화면 또는 퍼블리싱 화면으로 이동
+          navigation.getParent()?.reset({
+            index: 0,
+            routes: [
+              {
+                name: "Main", // 또는 "Home"
+              },
+            ],
           });
         },
         onError: (error) => {
@@ -105,15 +147,15 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
             case "TITLE_TOO_LONG":
               errorMessage = "제목이 40자를 초과할 수 없습니다.";
               break;
-            default:
-              errorMessage = error.message;
           }
 
+          console.error("저장 오류", error);
           dispatch(storySavingFailure(errorMessage));
-          Alert.alert("오류", errorMessage);
+          Alert.alert("저장 실패", errorMessage);
         },
       }
     );
+    //main으로 라우팅
   };
 
   // 컴포넌트 언마운트 시 상태 초기화
@@ -137,11 +179,17 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <View style={styles.coverContainer}>
-            <Image
-              source={{ uri: coverImage }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
+            {coverImage ? (
+              <Image
+                source={{ uri: encodeURI(coverImage) }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.imageLoadingContainer}>
+    <Text style={styles.imageLoadingText}>이미지를 불러오는 중입니다...</Text>
+  </View>
+            )}
             <View style={styles.coverOverlay}>
               <Text style={styles.storyTitle}>{story.title}</Text>
               <Text style={styles.seriesTitle}>
@@ -240,6 +288,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  imageLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  imageLoadingText: {
+    fontSize: 18,
+    color: theme.colors.textLight, // 또는 원하는 색상
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
 

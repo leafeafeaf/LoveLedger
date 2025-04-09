@@ -25,6 +25,7 @@ public class GeminiUtil {
     private final String backUrl;
 
     private static final Map<String, String> promptMap = new HashMap<>();
+    private static final Map<String, String> promptArt = new HashMap<>();
 
     static {
         promptMap.put("파파라치", """
@@ -78,12 +79,48 @@ public class GeminiUtil {
             8. 너무 무겁거나 자극적인 표현은 피하고, 창의적이고 대중적인 스토리라인을 유지해 주세요.
             9. 금액은 되도록 최소한으로 언급해주세요.
             10. 가독성이 좋게 줄바꿈도 해주세요.
+            11. 이모티콘은 최소한으로 사용해주세요.
             
             ---
             
             💡 참고 팁
             - 각 회차에 랜덤으로 **잠입 로맨스 / 웃픈 현실 / 미스터리 도청 / 정체불명의 인물 / 잘못 찍힌 사진 한 장** 같은 아이디어를 흘려주세요.
-            - 필요한 경우 `장르`, `주제 코드`, `서술 형식`을 무작위로 생성해서 스토리를 시작해도 좋아요.
+            
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
+            
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             
             """);
         promptMap.put("중세 판타지", """
@@ -157,12 +194,49 @@ public class GeminiUtil {
                - 민감한 표현은 자제하고, 누구나 즐길 수 있는 고급스럽고 창의적인 표현을 사용해 주세요
                - 가독성이 좋게 줄바꿈도 해주세요.
             
+            7. 이모티콘은 최소한으로 사용해주세요.
+            
             ---
             
             ✨ **추가 힌트**
             - 필요하다면 '고대 마법사 협회', '운명의 서', '룬석을 깨우는 자', '타락한 궁정', '빛과 어둠의 신' 같은 고유 개념을 창작해서 세계관을 풍성하게 만들어주세요.
             - 각 화는 독립적으로도 읽히되, 큰 줄기 속 연결된 **운명적 이야기**의 일부여야 합니다.
             
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
+            
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             """);
         promptMap.put("러브 코미디", """
             당신은 사용자의 금융 거래 내역을 바탕으로 **유쾌하고 기발한 러브 코미디 시리즈**를 창작하는 AI 로맨틱 시나리오 작가입니다. \s
@@ -240,6 +314,8 @@ public class GeminiUtil {
                - 밝고 따뜻한 톤 유지
                - 자극적이거나 무거운 소재는 피하고, **현실 공감 + 설렘 + 웃음 코드**를 중심으로 구성
             
+            8. 이모티콘은 최소한으로 사용해주세요.
+            
             ---
             
             ✨ 추가 팁 (선택적으로 활용)
@@ -253,7 +329,52 @@ public class GeminiUtil {
             
             이 조건에 따라, 당신은 사용자의 지갑 속 흔적들을 유쾌하고 따뜻한 사랑 이야기로 되살리는 로맨틱 시나리오 장인이 됩니다.
             
+            다음 조건을 반드시 지켜서 JSON 형식으로 응답해 주세요:
+            
+            JSON 구조는 다음과 같이 해주세요:
+            
+            { "title": "제목", "content": "소설 본문 내용 (줄바꿈은 \\n으로 표현)" }
+            
+            JSON은 반드시 Markdown 코드 블럭 형식으로 감싸 주세요.
+            예: 시작은 ```json, 끝은 ```로 해주세요.
+            (즉, text 안의 문자열은 "```json\\n{...}\\n```" 형태여야 합니다.)
+            
+            문자열 처리 시 주의사항:
+            
+            content 안의 줄바꿈은 반드시 이스케이프된 \\n 으로 표현해 주세요. 실제 개행 문자(Enter)는 사용하지 마세요.
+            
+            content, title 모두 쌍따옴표(")는 반드시 "로 이스케이프 처리해주세요.
+            
+            작은따옴표(')는 절대 이스케이프하지 말고 그대로 사용하세요. → \\′ 이런 식의 escape는 사용하지 마세요.
+            
+            역슬래시()가 필요한 경우는 반드시 \\ 로 이스케이프 해주세요.
+            
+            JSON 내부는 유효한 JSON 형식이어야 하며, 파싱 가능한 형태로 출력해 주세요.
+            
+            예시 응답 형태:
+            
+            "parts": [ { "text": "```json\\n{\\n \\"title\\": \\"제목\\",\\n \\"content\\": \\"첫 문장입니다.\\\\n두 번째 줄입니다.\\\\n세 번째 줄입니다.\\"\\n}```" } ]
+            
+            이 형식을 꼭 지켜주세요.
+            
+            주의사항:
+            
+            작은따옴표(‘ ’)를 \\로 이스케이프하지 말고 그냥 쓰세요 ('그녀는 말했다')
+            
+            content 값 안에 줄바꿈이 필요할 경우 \\n 문자로 표현해 주세요.
+            
+            이중으로 escape된 문자열 ("\\n")은 사용하지 마세요.
             """);
+
+    }
+
+    static {
+        promptArt.put("webtoon", "밝고 선명한 선으로 구성된 만화 스타일. 인물의 표정과 감정 표현이 과장되어 있고, 장면은 마치 컷 만화처럼 구성된다. 깔끔한 배경과 평면적인 채색이 특징이며, 인물 중심의 연출이 강조된다. 감정을 시각적으로 드러내는 효과선이나 말풍선 효과 없이도 장면의 극적 분위기를 전달한다.");
+        promptArt.put("realistic", "사진처럼 사실적이고 정교한 묘사. 인물의 피부 질감, 조명, 의상 주름까지 디테일하게 표현되며, 실제 배경을 보는 듯한 깊이와 사실감을 갖춘다. 색감은 현실에 가깝고 자연광이나 인공조명에 따른 명암과 분위기가 명확하게 반영된다. 인물의 감정도 섬세한 표정과 자세를 통해 표현된다.");
+        promptArt.put("watercolor", "번진 듯한 물감 터치와 부드러운 색감이 특징이며, 투명하고 은은한 느낌을 준다. 종이 질감이 보일 정도로 자연스럽고, 경계가 선명하지 않아 몽환적이고 감성적인 분위기를 연출한다. 인물이나 배경도 날카로운 윤곽선 없이 흐릿하게 스며들듯 표현된다.");
+        promptArt.put("oilpainting", "유화는 붓터치가 살아있고, 색감이 풍부하며, 레이어와 명암 표현이 탁월하다. 그림 전체가 세부보다는 분위기와 감성 중심으로 구성되어 있고, 붓의 물성이나 물감의 두께가 회화적 질감을 부여한다.");
+        promptArt.put("sketch", "연필이나 펜으로 빠르게 그린 듯한 선 중심의 드로잉 스타일. 흑백 혹은 제한된 색상으로 표현되며, 라인과 명암만으로 인물의 형태와 감정을 묘사한다. 거칠지만 생동감 있는 선이 특징이며, 인물의 동세나 장면의 순간성을 강조하는 데 효과적이다.");
+        promptArt.put("ghibli", "스튜디오 지브리 애니메이션을 연상시키는 따뜻하고 디테일한 그림체. 부드러운 색감과 풍부한 배경 묘사, 감정을 담은 눈망울과 순수한 인물이 특징이다. 자연 배경과 도시 풍경 모두 섬세하게 표현되며, 현실과 환상이 섞인 듯한 서정적인 분위기를 자아낸다.");
 
     }
 
@@ -336,11 +457,89 @@ public class GeminiUtil {
         return resultMap;
     }
 
+    public Map<String, Object> mapFictionResponseToMap(String response) {
+        log.info("Gemini 응답 : {}", response);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> resultMap = new HashMap<>();
+
+        try {
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode candidatesNode = rootNode.path("candidates");
+
+            if (candidatesNode.isArray() && !candidatesNode.isEmpty()) {
+                JsonNode contentNode = candidatesNode.get(0).path("content");
+                JsonNode partsNode = contentNode.path("parts");
+
+                if (partsNode.isArray() && !partsNode.isEmpty()) {
+                    String rawText = partsNode.get(0).path("text").asText();
+
+                    // 1. 코드 블록 제거 (```json ~ ```)
+                    String jsonText = rawText
+                        .replaceAll("(?s)^```json\\s*", "")
+                        .replaceAll("\\s*```$", "")
+                        .trim();
+
+                    // 2. JSON 파싱을 위한 처리
+                    Map<String, Object> tempMap = null;
+
+                    try {
+                        // 먼저 파싱 시도 (이 때 줄바꿈이 이스케이프 돼 있으면 성공함)
+                        tempMap = objectMapper.readValue(jsonText, HashMap.class);
+                    } catch (Exception e) {
+                        log.warn("1차 JSON 파싱 실패: {}", e.getMessage());
+                        // 실패하면 → 줄바꿈 문자들을 이스케이프 처리 후 다시 시도
+                        String escapedJsonText = jsonText
+                            .replace("\r\n", "\\n")
+                            .replace("\n", "\\n");
+
+                        try {
+                            tempMap = objectMapper.readValue(escapedJsonText, HashMap.class);
+                        } catch (Exception ex) {
+                            log.warn("2차 JSON 파싱 실패: {}", ex.getMessage());
+                            log.warn("문제된 JSON 문자열:\n{}", jsonText);
+                            resultMap.put("error", "Invalid JSON format after retry");
+                            return resultMap;
+                        }
+                    }
+
+                    // 3. content 안의 줄바꿈 이스케이프를 실제 줄바꿈으로 변환
+                    if (tempMap.containsKey("content")) {
+                        Object contentObj = tempMap.get("content");
+                        if (contentObj instanceof String) {
+                            String content = (String) contentObj;
+                            content = content.replace("\\n", "\n");  // \n → 실제 개행
+                            tempMap.put("content", content);
+                        }
+                    }
+
+                    resultMap = tempMap;
+
+                } else {
+                    resultMap.put("error", "No valid parts found");
+                }
+            } else {
+                resultMap.put("error", "No valid candidates found");
+            }
+
+        } catch (Exception e) {
+            log.error("전체 파싱 실패: {}", e.getMessage());
+            resultMap.put("error", "Failed to parse Gemini response");
+        }
+
+        return resultMap;
+    }
+
     public String createPromptByTheme(
         String themeName, LocalDate startDate, LocalDate endDate, String histories, String fictions, Boolean gender, Boolean isMarried) {
         log.info(themeName);
         String template = promptMap.get(themeName);
 
         return template.formatted(startDate, endDate, histories, fictions, gender, isMarried);
+    }
+
+    public String getVisualFeature(String drawStyle) {
+
+        return promptArt.get(drawStyle);
     }
 }

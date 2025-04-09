@@ -27,7 +27,7 @@ export const useDatePicker = () => {
   // 단일 날짜 설정
   const selectDate = useCallback(
     (date: Date | null) => {
-      dispatch(setSelectedDate(date));
+      dispatch(setSelectedDate(date ? date.toISOString() : null));
     },
     [dispatch]
   );
@@ -35,7 +35,7 @@ export const useDatePicker = () => {
   // 시작 날짜 설정
   const selectStartDate = useCallback(
     (date: Date | null) => {
-      dispatch(setStartDate(date));
+      dispatch(setStartDate(date ? date.toISOString() : null));
     },
     [dispatch]
   );
@@ -43,7 +43,7 @@ export const useDatePicker = () => {
   // 종료 날짜 설정
   const selectEndDate = useCallback(
     (date: Date | null) => {
-      dispatch(setEndDate(date));
+      dispatch(setEndDate(date ? date.toISOString() : null));
     },
     [dispatch]
   );
@@ -64,8 +64,8 @@ export const useDatePicker = () => {
   // 날짜 범위 한번에 설정 (깊은 복사 추가)
   const selectDateRange = useCallback(
     (startDate: Date, endDate: Date) => {
-      const startClone = new Date(startDate.getTime());
-      const endClone = new Date(endDate.getTime());
+      const startClone = new Date(startDate.getTime()).toISOString();
+      const endClone = new Date(endDate.getTime()).toISOString();
       dispatch(setDateRange({ startDate: startClone, endDate: endClone }));
     },
     [dispatch]

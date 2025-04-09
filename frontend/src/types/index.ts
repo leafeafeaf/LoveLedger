@@ -73,6 +73,7 @@ export type StoryStackParamList = {
   StorySettings: {
     themeStyle?: string;
     toneStyle?: string;
+    selectedDate?: string;
   };
   SeriesSelection: {
     settings: StorySettings;
@@ -95,7 +96,6 @@ export type StoryStackParamList = {
     settings: StorySettings;
     series: Series | NewSeries;
     story: Story;
-    coverImage: string;
     coverStyle: string;
   };
   StoryList: undefined;
@@ -129,7 +129,7 @@ export type DiaryStackParamList = {
 export type DailyStackParamList = {
   DailyDetail: {
     selectedDate: string;
-    transactions: Transaction[];
+    transactions: TransactionDetail[];
   };
 };
 
@@ -233,6 +233,8 @@ export type DatePickerProps = {
 
 // 도서 항목 타입
 export interface BookItem {
+  fictionId?: number; // 함수 아님!
+  arturl?: string;
   id: string;
   title: string;
   date: string;
@@ -307,7 +309,7 @@ export type GoalTransaction = {
 
 // 시리즈 타입
 export type Series = {
-  id: number;
+  seriesid: number;
   title: string;
   episodes: number;
   lastUpdated: string;
@@ -324,6 +326,7 @@ export type SeriesData = {
 // 새 시리즈 타입
 export type NewSeries = {
   name: string;
+  seriesid : number;
 };
 
 // 스토리 타입
@@ -553,4 +556,23 @@ export interface InviteValidateResponse {
     isValid: boolean;
     expiresAt?: string;
   };
+}
+export interface TransactionHistory {
+  transactionId: string;
+  time: string;
+  remittance: boolean;
+  targetname: string;
+  category_id: number | null;
+  afterAmount: number;
+  amount: number;
+  memo: string;
+  transactionTypeName: string;
+  summary: string;
+  updatedTargetName: string | null;
+}
+
+export interface TransactionChange {
+  original: TransactionHistory;
+  modified: TransactionHistory;
+  isSelected: boolean;
 }

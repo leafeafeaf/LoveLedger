@@ -14,12 +14,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { DiaryStackParamList } from "../../types";
+import { NativeStackScreenProps, NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { DiaryStackParamList, RootStackParamList } from "../../types";
 import WoodHeader from "../../components/common/WoodHeader";
 import DatePicker from "../../components/common/DatePicker";
 import { useDiaryUpdate } from "../../hooks/useDiaryUpdate";
 import { useDiaryDelete } from '../../hooks/useDiaryDelete';
+import { useNavigation } from '@react-navigation/native';
 
 type DiaryEditScreenProps = NativeStackScreenProps<
   DiaryStackParamList,
@@ -27,13 +28,51 @@ type DiaryEditScreenProps = NativeStackScreenProps<
 >;
 
 // 기분 타입 정의
-type MoodType = "happy" | "excited" | "peaceful" | "sad";
+type MoodType = "happy" | "angry" | "peaceful" | "sad";
 
 interface MoodOption {
   id: MoodType;
   label: string;
   icon: string;
 }
+
+// mood 값을 MoodType으로 변환하는 함수
+const getMoodText = (mood: number | string | undefined): MoodType => {
+  if (mood === undefined) return 'happy';
+  
+  switch (mood) {
+    case 1:
+    case 'happy':
+      return 'happy';
+    case 2:
+    case 'angry':
+      return 'angry';
+    case 3:
+    case 'peaceful':
+      return 'peaceful';
+    case 4:
+    case 'sad':
+      return 'sad';
+    default:
+      return 'happy';
+  }
+};
+
+// MoodType을 숫자로 변환하는 함수
+const getMoodNumber = (mood: MoodType): number => {
+  switch (mood) {
+    case 'happy':
+      return 1;
+    case 'angry':
+      return 2;
+    case 'peaceful':
+      return 3;
+    case 'sad':
+      return 4;
+    default:
+      return 1;
+  }
+};
 
 export default function DiaryEditScreen({
   navigation,
@@ -49,9 +88,7 @@ export default function DiaryEditScreen({
 
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent || "");
-  const [selectedMood, setSelectedMood] = useState<MoodType>(
-    (initialMood as MoodType) || "happy"
-  );
+  const [selectedMood, setSelectedMood] = useState<MoodType>(initialMood as MoodType);
   const [expense, setExpense] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
     try {
@@ -65,10 +102,13 @@ export default function DiaryEditScreen({
   const { mutate: updateDiary, isPending } = useDiaryUpdate(id);
   const { mutate: deleteDiary, isPending: isDeleting } = useDiaryDelete();
 
+  // 루트 네비게이션 가져오기
+  const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   // 기분 옵션
   const moods: MoodOption[] = [
     { id: "happy", icon: "emoticon-happy", label: "행복함" },
-    { id: "excited", icon: "emoticon-excited", label: "설렘" },
+    { id: "angry", icon: "emoticon-angry", label: "화남" },
     { id: "peaceful", icon: "emoticon-cool", label: "평온함" },
     { id: "sad", icon: "emoticon-sad", label: "슬픔" },
   ];
@@ -90,7 +130,7 @@ export default function DiaryEditScreen({
         title: title.trim(),
         content: content.trim(),
         targetDate: selectedDate.toISOString().split('T')[0],
-        mood: selectedMood,
+        mood: getMoodNumber(selectedMood),
       },
       {
         onSuccess: () => {
@@ -118,7 +158,12 @@ export default function DiaryEditScreen({
               Alert.alert("삭제 완료", "일기가 삭제되었습니다.", [
                 {
                   text: "확인",
-                  onPress: () => navigation.goBack(),
+                  onPress: () => {
+                    // DiaryEditScreen 닫기
+                    navigation.goBack();
+                    // DiaryDetailScreen도 닫기
+                    rootNavigation.goBack();
+                  },
                 },
               ]);
             },

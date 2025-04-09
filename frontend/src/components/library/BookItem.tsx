@@ -31,14 +31,32 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const refreshFictionList = async () => {
     try {
       dispatch(fetchFictionListStart());
-      const response = await axiosInstance.get("/fiction", {
+      const response = await axiosInstance.get("/fictions", {
         params: {
           pageno: 1,
           size: 50,
           sort: "DESC"
         }
       });
-      dispatch(fetchFictionListSuccess(response.data.data));
+
+      if (response.data.data && response.data.data.content) {
+        // API 응답 데이터 구조를 Redux store에 맞게 변환
+        const transformedData = {
+          series: response.data.data.content.map((item: any) => ({
+            seriesid: item.seriesId,
+            seriesname: item.seriesName,
+            fictions: item.fictions.map((fiction: any) => ({
+              fictionId: fiction.fictionId,
+              title: fiction.title,
+              artUrl: fiction.artUrl,
+              createdAt: fiction.createdAt
+            }))
+          }))
+        };
+        dispatch(fetchFictionListSuccess(transformedData));
+      } else {
+        dispatch(fetchFictionListFailure("잘못된 API 응답 구조입니다."));
+      }
     } catch (error) {
       dispatch(fetchFictionListFailure(error instanceof Error ? error.message : "소설 목록을 불러오는데 실패했습니다."));
     }
@@ -67,7 +85,7 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const handleDelete = async () => {
     try {
       dispatch(deleteFictionStart());
-      await axiosInstance.delete(`/fiction/${item.id}`);
+      await axiosInstance.delete(`/fictions/${item.id}`);
       dispatch(deleteFictionSuccess());
       await refreshFictionList(); // 삭제 후 목록 새로고침
       Alert.alert('성공', '소설이 삭제되었습니다.');
@@ -76,6 +94,11 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
       Alert.alert('오류', '소설 삭제에 실패했습니다.');
     }
   };
+
+  const validMoods = ['happy', 'angry', 'peaceful', 'sad'] as const;
+type ValidMood = typeof validMoods[number];
+
+const fallbackMood: ValidMood = 'happy';
 
   // 스토리는 이미지, 다이어리는 색상과 기분 아이콘 사용
   const renderContent = () => {
@@ -89,11 +112,14 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
       );
     } else {
       // 다이어리는 색상 배경과 기분 아이콘 사용
-      const backgroundColor = getMoodColor(item.mood);
+      const mood: ValidMood = typeof item.mood === 'string' && validMoods.includes(item.mood as ValidMood)
+  ? item.mood as ValidMood
+  : fallbackMood;
+      const backgroundColor = getMoodColor(mood);
       
       return (
         <View style={[styles.diaryContent, { backgroundColor }]}>
-          <MoodIcon mood={item.mood as any || 'happy'} size={32} color="white" />
+          <MoodIcon mood={mood} size={32} color="white" />
           <Text style={styles.diaryTitle} numberOfLines={2}>{item.title}</Text>
           <Text style={styles.diaryDate}>{formatDate(item.date)}</Text>
         </View>
@@ -105,7 +131,7 @@ const BookItem: React.FC<BookItemProps> = ({ item, onPress, type }) => {
   const getMoodColor = (mood?: string): string => {
     switch (mood) {
       case 'happy': return '#F6C324'; // 노랑
-      case 'excited': return '#55CDFC'; // 하늘색
+      case 'angry': return '#55CDFC'; // 하늘색
       case 'peaceful': return '#FFA7C4'; // 분홍색
       case 'sad': return '#CCCCCC'; // 회색
       default: return '#F6C324'; // 기본 노랑

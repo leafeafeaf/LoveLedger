@@ -10,7 +10,10 @@ import {
 interface SeriesCreateResponse {
   status: number;
   message: string;
-  data: null;
+  data: {
+    title: string;
+    seriesId: number;
+  }
   timestamp: string;
   errorCode?: string;
 }

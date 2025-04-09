@@ -14,5 +14,5 @@ public class GoalReadResponse {
     private LocalDate startDate;
     private LocalDate goalDate;
     private String title;
-    private String contentUrl;
+    private String contentURL;
 }
