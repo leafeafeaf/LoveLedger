@@ -210,6 +210,8 @@ export default function ProfileMainScreen({
     userDetail.partnerAge ||
     (partnerBirthDay ? calculateAge(partnerBirthDay) : 0);
   const age = calculateAge(userDetail.birthDay);
+  const partnerPhoto =
+  userDetail.coupleInfo?.darlingPicture || userDetail.coupleInfo?.darlingPicture || null;
 
   const profileData: ProfileData = {
     couple: {
@@ -231,7 +233,7 @@ export default function ProfileMainScreen({
     partner2: {
       name: partnerName,
       age: partnerAge,
-      photo: userDetail.coupleInfo ? null : userDetail.partnerPhoto || null,
+      photo: partnerPhoto,
     },
   };
 

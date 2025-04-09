@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAppSelector, useAppDispatch } from "../reduxHooks";
 import { axiosInstance } from "../../api/axios";
-import { setExtendedInviteLink } from "../../store/coupleSlice";
 
 interface CurrentInviteResponse {
   status: number;
@@ -29,64 +27,16 @@ interface CurrentInviteError {
  * @returns 초대 링크 정보를 조회하는 쿼리 객체
  */
 export const useCurrentInvite = () => {
-  const accessToken = useAppSelector((state) => state.auth.userToken);
-  const userId = useAppSelector((state) => state.auth.userInfo?.id);
-  const dispatch = useAppDispatch();
 
   return useQuery<CurrentInviteResponse, CurrentInviteError>({
-    queryKey: ["currentInvite", userId],
+    queryKey: ["currentInvite"],
     queryFn: async () => {
-      if (!accessToken) {
-        throw {
-          status: 401,
-          message: "인증 토큰이 없습니다.",
-          data: null,
-          timestamp: new Date().toISOString(),
-        } as CurrentInviteError;
-      }
-
-      if (!userId) {
-        throw {
-          status: 400,
-          message: "사용자 ID가 필요합니다.",
-          data: null,
-          timestamp: new Date().toISOString(),
-        } as CurrentInviteError;
-      }
 
       try {
         const response = await axiosInstance.get<CurrentInviteResponse>(
-          "/invite/current",
-          {
-            headers: {
-              Authorization: accessToken,
-              "Content-Type": "application/json; charset=utf8",
-            },
-            params: {
-              userId,
-            },
-          }
+          "/invite/current"
         );
-
-        // 성공적으로 데이터를 가져왔다면 Redux 스토어에 저장
-        if (response.data.success) {
-          dispatch(
-            setExtendedInviteLink({
-              status: response.data.status.toString(),
-              message: "초대 링크가 조회되었습니다.",
-              data: {
-                link: response.data.data.link,
-                inviteCode: response.data.data.inviteCode,
-                createdAt: response.data.data.createdAt,
-                expiresAt: response.data.data.expiresAt,
-                remainingHours: response.data.data.remainingHours,
-              },
-              timestamp: response.data.timestamp,
-              success: response.data.success,
-            })
-          );
-        }
-
+        console.log(response.data)
         return response.data;
       } catch (error: any) {
         // 서버 응답이 없는 경우
@@ -118,8 +68,8 @@ export const useCurrentInvite = () => {
         }) as CurrentInviteError;
       }
     },
-    enabled: !!accessToken && !!userId,
-    retry: 1,
-    staleTime: 1 * 60 * 1000, // 1분 동안 캐시 유지
+    enabled: true,
+    staleTime: 0,
+    retry: 1,         // 실패 시 한 번만 재시도 (기본은 3회)
   });
 };

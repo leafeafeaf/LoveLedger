@@ -97,6 +97,6 @@ export const useUserDetail = () => {
 
       return userData;
     },
-    staleTime: 5 * 60 * 1000, // 5분 동안 캐시 유지
+    staleTime: 0, // 5분 동안 캐시 유지
   });
 };

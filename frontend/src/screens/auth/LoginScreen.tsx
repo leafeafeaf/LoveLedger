@@ -34,7 +34,18 @@ import { useTokenIntegration } from "../../hooks/useTokenIntegration";
 import { axiosInstance } from "../../api/axios";
 import { StackActions, useNavigation } from "@react-navigation/native";
 
-// TestQueryButton 컴포넌트 (내부에 정의)
+
+// 소셜 로그인 이미지 임포트
+const GOOGLE_ICON = require("../../../assets/images/login/google.png");
+const NAVER_ICON = require("../../../assets/images/login/naver.png");
+const KAKAO_ICON = require("../../../assets/images/login/kakao-talk.png");
+
+export default function LoginScreen() {
+  const dispatch = useAppDispatch();
+  const navigation = useNavigation();
+
+//////////TODO 삭제
+  // TestQueryButton 컴포넌트 (내부에 정의)
 const TestQueryButton = () => {
   const { fetchTokenWithQuery, fetchTokenWithRedux, token, isLoading, error } =
     useTokenIntegration();
@@ -45,6 +56,11 @@ const TestQueryButton = () => {
       const userId = 1;
       const result = await fetchTokenWithQuery(userId);
       setQueryResult(JSON.stringify(result.data, null, 2));
+      
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
+
     } catch (err: any) {
       setQueryResult(`오류: ${err.message}`);
     }
@@ -55,6 +71,9 @@ const TestQueryButton = () => {
       const userId = 1;
       await fetchTokenWithRedux(userId);
       setQueryResult(`Redux 토큰: ${token}`);
+      navigation.dispatch(
+        StackActions.replace("Main")
+      );
     } catch (err: any) {
       setQueryResult(`오류: ${err.message}`);
     }
@@ -108,15 +127,7 @@ const tokenTestStyles = StyleSheet.create({
     marginTop: 5,
   },
 });
-
-// 소셜 로그인 이미지 임포트
-const GOOGLE_ICON = require("../../../assets/images/login/google.png");
-const NAVER_ICON = require("../../../assets/images/login/naver.png");
-const KAKAO_ICON = require("../../../assets/images/login/kakao-talk.png");
-
-export default function LoginScreen() {
-  const dispatch = useAppDispatch();
-  const navigation = useNavigation();
+///////////여기까지
   const { isLoading: authLoading, error } = useAppSelector(
     (state) => state.auth
   );
@@ -555,6 +566,8 @@ export default function LoginScreen() {
             <Text style={styles.helpText}>
               로그인하면 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
             </Text>
+
+            {TestQueryButton()}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
