@@ -311,6 +311,52 @@ export default function ProfileMainScreen({
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert("로그아웃", "정말로 로그아웃하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "로그아웃",
+        onPress: async () => {
+          try {
+            // AsyncStorage에서 토큰 삭제
+            await AsyncStorage.removeItem("token");
+            
+            // Redux 로그아웃 액션 디스패치
+            dispatch(logout());
+            
+            // 로그아웃 성공 메시지 표시 후 Auth 화면으로 즉시 이동
+            Alert.alert("로그아웃 성공", "성공적으로 로그아웃되었습니다.", [
+              {
+                text: "확인",
+                onPress: () => {
+                  // 네비게이션 스택을 초기화하고 Auth 스택 내의 Login 화면으로 직접 이동
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [
+                        { 
+                          name: "Auth", 
+                          state: {
+                            routes: [
+                              { name: "Login" }
+                            ]
+                          }
+                        }
+                      ]
+                    })
+                  );
+                }
+              }
+            ]);
+          } catch (error) {
+            console.error("로그아웃 중 오류 발생:", error);
+            Alert.alert("오류", "로그아웃 중 오류가 발생했습니다.");
+          }
+        }
+      }
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -609,28 +655,7 @@ export default function ProfileMainScreen({
 
           <Pressable
             style={styles.menuItem}
-            onPress={() => {
-              Alert.alert("로그아웃", "정말로 로그아웃하시겠습니까?", [
-                { text: "취소", style: "cancel" },
-                {
-                  text: "로그아웃",
-                  onPress: () => {
-                    Alert.alert(
-                      "로그아웃 성공",
-                      "성공적으로 로그아웃되었습니다.",
-                      [
-                        {
-                          text: "확인",
-                          onPress: () => {
-                            setShouldLogout(true);
-                          },
-                        },
-                      ]
-                    );
-                  },
-                },
-              ]);
-            }}
+            onPress={handleLogout}
           >
             <View
               style={[

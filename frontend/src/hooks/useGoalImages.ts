@@ -1,3 +1,4 @@
+// 필요 시 useGoalImages.ts를 최적화하여 이미지 캐싱 성능 개선
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../store";
@@ -16,7 +17,6 @@ import {
   normalizeImagePath,
 } from "../store/goalSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 
@@ -97,48 +97,15 @@ export const useGoalImages = () => {
     }
   };
 
-  // 원격 URL 이미지 저장
-  const saveRemoteGoalImage = async (
-    goalId: string,
-    remoteUrl: string,
-    metadata?: GoalImageMapping["metadata"]
-  ): Promise<void> => {
-    try {
-      dispatch(
-        addRemoteGoalImage({
-          id: goalId,
-          remoteUrl,
-          metadata,
-        })
-      );
-    } catch (error) {
-      console.error("원격 이미지 저장 중 오류 발생:", error);
-      dispatch(setError("원격 이미지 저장 중 오류가 발생했습니다."));
-    }
-  };
-
-  // 목표 이미지 메타데이터 업데이트
-  const updateGoalImageMetadata = (
-    goalId: string,
-    metadata: GoalImageMapping["metadata"]
-  ) => {
-    dispatch(updateGoalMetadata({ id: goalId, metadata }));
-  };
-
-  // 목표 이미지 삭제
-  const deleteGoalImage = (goalId: string) => {
-    dispatch(removeGoalImage(goalId));
-  };
-
   // 목표 이미지 소스 가져오기 (React Native Image 컴포넌트용)
   const getGoalImageSourceForId = (goalId: string) => {
     const image = findGoalImageById(goalId);
     return getGoalImageSource(image);
   };
 
-  // 모든 목표 이미지 초기화
-  const clearAllGoalImages = () => {
-    dispatch(setGoalImages([]));
+  // 목표 이미지 삭제
+  const deleteGoalImage = (goalId: string) => {
+    dispatch(removeGoalImage(goalId));
   };
 
   return {
@@ -148,11 +115,8 @@ export const useGoalImages = () => {
     lastSyncTimestamp,
     findGoalImageById,
     pickGoalImage,
-    saveRemoteGoalImage,
-    updateGoalImageMetadata,
     deleteGoalImage,
     getGoalImageSourceForId,
-    clearAllGoalImages,
   };
 };
 
