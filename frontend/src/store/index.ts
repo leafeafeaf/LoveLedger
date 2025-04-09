@@ -27,6 +27,7 @@ const persistConfig = {
   whitelist: ["auth", "token", "goal"],
 };
 
+
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
 const persistedTokenReducer = persistReducer(persistConfig, tokenReducer);
 const persistedGoalReducer = persistReducer(persistConfig, goalReducer);
@@ -43,6 +44,7 @@ export const store = configureStore({
     account: accountReducer,
     couple: coupleReducer,
     goal: persistedGoalReducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

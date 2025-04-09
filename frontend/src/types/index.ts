@@ -56,6 +56,9 @@ export type RootStackParamList = {
     partnerName: string;
     partnerEmail: string;
   };
+  LinkError: {
+    errorType: "expired" | "invalid" | "already_linked" | "generic";
+  };
   AccountVerification: undefined;
 };
 
@@ -83,6 +86,7 @@ export type ProfileStackParamList = {
     partnerEmail: string;
   };
 };
+
 
 // 스토리 스택 파라미터 타입
 export type StoryStackParamList = {
@@ -483,6 +487,7 @@ export interface AccountVerifyResponse {
   success: boolean;
 }
 
+
 // 계좌 인증 에러 타입
 export interface AccountVerifyError {
   status: string;
@@ -631,6 +636,7 @@ export interface InviteConflictResponse {
   };
   timestamp: string;
 }
+
 export interface TransactionHistory {
   transactionId: string;
   time: string;

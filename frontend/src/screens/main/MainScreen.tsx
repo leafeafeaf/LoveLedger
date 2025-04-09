@@ -640,14 +640,14 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const handleSelectDate = (date: Date) => {
     const dailyTransactions = getTransactionsForDate(date, transactions).map(
       (t) => ({
-        id: t.id.toString(),
-        transactionid: t.id.toString(),
-        amount: t.amount,
+        transactionId: t.id.toString(),
         date: t.date,
         time: t.time || "",
         remittance: t.remittance,
-        targetname: t.targetname || "",
-        category: t.category || "",
+        targetName: t.targetname || "",
+        afterAmount: 0, // 필요한 경우 실제 값으로 변경
+        amount: t.amount,
+        categoryName: t.category || "",
         accountNo: t.id.toString().split("-")[0],
       })
     );

@@ -83,6 +83,7 @@ export default function ProfileMainScreen({
     useUpdateUserProfile();
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isImageUpdating, setIsImageUpdating] = useState(false);
+  const [shouldLogout, setShouldLogout] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,6 +91,19 @@ export default function ProfileMainScreen({
       loadSavedCoverImage();
     }, [queryClient])
   );
+
+  useEffect(() => {
+    if (shouldLogout) {
+      dispatch(logout());
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Auth" }],
+        })
+      );
+      setShouldLogout(false);
+    }
+  }, [shouldLogout, dispatch, navigation]);
 
   // 저장된 커버 이미지 로드
   const loadSavedCoverImage = async () => {
@@ -608,13 +622,7 @@ export default function ProfileMainScreen({
                         {
                           text: "확인",
                           onPress: () => {
-                            dispatch(logout());
-                            navigation.dispatch(
-                              CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: "Auth" }],
-                              })
-                            );
+                            setShouldLogout(true);
                           },
                         },
                       ]

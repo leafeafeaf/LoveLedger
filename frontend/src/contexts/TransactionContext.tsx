@@ -31,6 +31,18 @@ interface TransactionProviderProps {
   children: ReactNode;
 }
 
+// 더미 데이터의 Transaction 타입을 src/types/index.ts의 Transaction 타입으로 변환
+const convertDummyTransaction = (dummyTransaction: any): Transaction => {
+  return {
+    ...dummyTransaction,
+    accountNo: dummyTransaction.accountNo || dummyTransaction.id.toString().split('-')[0] || '',
+    transactionId: dummyTransaction.id.toString(),
+    targetName: dummyTransaction.targetname || '',
+    categoryName: dummyTransaction.category || '',
+    afterAmount: dummyTransaction.afterAmount || 0
+  };
+};
+
 export const TransactionProvider: React.FC<TransactionProviderProps> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +65,9 @@ export const TransactionProvider: React.FC<TransactionProviderProps> = ({ childr
         filteredTransactions = transactionHistoryData.data.history;
       }
       
-      setTransactions(filteredTransactions);
+      // 더미 데이터를 src/types/index.ts의 Transaction 타입으로 변환
+      const convertedTransactions = filteredTransactions.map(convertDummyTransaction);
+      setTransactions(convertedTransactions);
       setIsLoading(false);
     } catch (err) {
       setError('트랜잭션 데이터 로드 중 오류가 발생했습니다.');

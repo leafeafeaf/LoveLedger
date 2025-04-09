@@ -6,12 +6,12 @@ import {
   fetchGoalListSuccess,
   fetchGoalListFailure,
 } from "../../store/financeSlice";
-import type { Goal, NewGoal } from "../../types";
+import type { Goal as TypesGoal, NewGoal } from "../../types";
 
 interface GoalResponse {
   status: number;
   message: string;
-  data: Goal;
+  data: TypesGoal;
   timestamp: string;
 }
 
@@ -22,22 +22,42 @@ interface GoalError {
   timestamp: string;
 }
 
+// financeSlice.ts에서 사용하는 Goal 타입과 일치하도록 변환
+const convertToFinanceGoal = (goal: TypesGoal) => {
+  return {
+    goalamount: goal.goalAmount,
+    currentamount: goal.currentAmount,
+    startdate: goal.startDate,
+    goaldate: goal.goalDate,
+    title: goal.title,
+    contenturl: goal.contentURL,
+  };
+};
+
 export const useGoalList = () => {
   const dispatch = useDispatch();
 
-  return useQuery<Goal | null, GoalError>({
+  return useQuery<TypesGoal | null, GoalError>({
     queryKey: ["goal"],
     queryFn: async () => {
       try {
         dispatch(fetchGoalListStart());
         const response = await axiosInstance.get<GoalResponse>("/goal");
 
-        dispatch(fetchGoalListSuccess(response.data.data));
+        // financeSlice.ts의 Goal 타입으로 변환하여 디스패치
+        dispatch(fetchGoalListSuccess(convertToFinanceGoal(response.data.data)));
         return response.data.data;
       } catch (error: any) {
         // 404 에러인 경우 (목표가 없는 경우) 조용히 null 반환
         if (error.response && error.response.status === 404) {
-          dispatch(fetchGoalListSuccess(null));
+          dispatch(fetchGoalListSuccess({
+            goalamount: 0,
+            currentamount: 0,
+            startdate: "",
+            goaldate: "",
+            title: "",
+            contenturl: ""
+          }));
           return null;
         }
 

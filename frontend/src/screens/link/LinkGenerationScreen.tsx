@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CompositeNavigationProp } from "@react-navigation/native";
 import { ProfileStackParamList, RootStackParamList } from "../../types";
 import {
   useStoredInviteLink,
@@ -21,10 +22,12 @@ import { useCurrentInvite } from "../../hooks/couple/useCurrentInvite";
 import * as Clipboard from "expo-clipboard";
 import { InviteConflictResponse } from "../../types";
 
-type LinkGenerationScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "LinkGeneration"
->;
+type LinkGenerationScreenProps = {
+  navigation: CompositeNavigationProp<
+    NativeStackScreenProps<ProfileStackParamList, "LinkGeneration">["navigation"],
+    NativeStackScreenProps<RootStackParamList, "LinkGeneration">["navigation"]
+  >;
+};
 
 // 확장된 링크 데이터 인터페이스
 interface InviteLinkData {

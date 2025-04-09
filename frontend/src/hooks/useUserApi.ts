@@ -8,6 +8,7 @@ import {
   updateUserInfo as updateUserInfoAction,
 } from "../store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import React from "react";
 
 /**
  * 유저 기본 정보 업데이트를 위한 커스텀 훅
@@ -74,12 +75,18 @@ export const useUpdateUserProfile = () => {
 export const useUserDetail = () => {
   const dispatch = useAppDispatch();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["userDetail"],
     queryFn: getUserDetail,
     select: (response) => {
-      const userData = response.data as UserDetailResponse;
+      return response.data as UserDetailResponse;
+    },
+    staleTime: 0,
+  });
 
+  React.useEffect(() => {
+    if (query.data) {
+      const userData = query.data;
       const userInfoToUpdate = {
         email: userData.email,
         name: userData.name,
@@ -91,12 +98,9 @@ export const useUserDetail = () => {
         marryDate: userData.marryDate,
         marriageDuration: userData.marriageDuration,
       };
-
-      // Redux 스토어에 유저 정보 업데이트
       dispatch(updateUserInfoAction(userInfoToUpdate));
+    }
+  }, [query.data, dispatch]);
 
-      return userData;
-    },
-    staleTime: 0, // 5분 동안 캐시 유지
-  });
+  return query;
 };
