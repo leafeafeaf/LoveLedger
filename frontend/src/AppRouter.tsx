@@ -26,6 +26,28 @@ import LinkErrorScreen from "./screens/link/LinkErrorScreen";
 import DiaryDetailScreen from "./screens/diary/DiaryDetailScreen";
 import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
+import * as Linking from 'expo-linking';
+
+const prefix = Linking.createURL('/');
+
+const linking = {
+  prefixes: [prefix, 'loveledger://'],
+  config: {
+    screens: {
+      Auth: 'auth',
+      Main: 'main',
+      LinkConfirm: {
+        path: 'link-confirm',
+        parse: {
+          linkCode: (code: string) => code ?? '',
+        },
+      },
+      LinkSuccess: 'link-success',
+      LinkError: 'link-error',
+    },
+  },
+};
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // 로딩 화면 컴포넌트
@@ -64,7 +86,7 @@ const AppRouter = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           // 인증되지 않은 상태
