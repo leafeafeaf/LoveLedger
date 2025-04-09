@@ -563,6 +563,7 @@ export interface CoupleInfo {
   darlingEmail: string;
   darlingName: string;
   darlingBirthDay: string;
+  darlingPicture: string;
 }
 
 export interface UserDetailResponse {

@@ -128,7 +128,7 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
         }
       }
     }
-  }, [isValidationLoading, data, error, navigation, linkCode, joinCouple]);
+  }, [isValidationLoading, data, error, navigation, joinCouple]);
 
   const handleValidateLink = async () => {
     if (!linkCode.trim()) {

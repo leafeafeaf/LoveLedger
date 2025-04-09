@@ -41,22 +41,19 @@ interface CombinedLinkResponse {
   message: string;
   data: InviteLinkData;
   timestamp?: string;
+  success: boolean;
 }
 
 export default function LinkGenerationScreen({
   navigation,
 }: LinkGenerationScreenProps) {
   const [isCopying, setIsCopying] = useState(false);
-  const {
-    data: storedLinkData,
-    isLoading: isStoredLinkLoading,
-    error: storedLinkError,
-  } = useStoredInviteLink();
 
   const {
     data: currentLinkApiData,
     isLoading: isCurrentLinkLoading,
     error: currentLinkError,
+    refetch: refetchCurrentInvite
   } = useCurrentInvite();
 
   const generateInviteMutation = useGenerateInvite();
@@ -64,26 +61,29 @@ export default function LinkGenerationScreen({
   // API 응답 데이터와 로컬 저장 데이터 통합
   const data: CombinedLinkResponse | null = currentLinkApiData?.success
     ? {
-        status: String(currentLinkApiData.status),
-        message: "초대 링크가 조회되었습니다.",
-        data: {
-          link: currentLinkApiData.data?.link || "",
-          inviteCode: currentLinkApiData.data?.inviteCode,
-          createdAt: currentLinkApiData.data?.createdAt,
-          expiresAt: currentLinkApiData.data?.expiresAt,
-          remainingHours: currentLinkApiData.data?.remainingHours,
-        },
-        timestamp: currentLinkApiData.timestamp,
-      }
-    : storedLinkData;
+      status: String(currentLinkApiData.status),
+      message: "초대 링크가 조회되었습니다.",
+      data: {
+        link: currentLinkApiData.data?.link,
+        inviteCode: currentLinkApiData.data?.inviteCode,
+        createdAt: currentLinkApiData.data?.createdAt,
+        expiresAt: currentLinkApiData.data?.expiresAt,
+        remainingHours: currentLinkApiData.data?.remainingHours,
+      },
+      timestamp: currentLinkApiData.timestamp,
+      success: true
+    }
+    : null;
 
-  const isLoading = isCurrentLinkLoading || isStoredLinkLoading;
-  const error = currentLinkError || storedLinkError;
+  const isLoading = isCurrentLinkLoading;
+  const error = currentLinkError;
+
+  const inviteCode = data?.data?.inviteCode;
+  const isValidInvite = data?.success && !!inviteCode;
 
   useEffect(() => {
     if (error) {
-      const errorData = error as InviteConflictResponse;
-      console.log(errorData);
+      console.log(error);
     } else if (data?.status === "400") {
       Alert.alert("이미 연인과 연결된 상태입니다", data.message, [
         { text: "확인", onPress: () => navigation.goBack() },
@@ -121,6 +121,7 @@ export default function LinkGenerationScreen({
   const handleGenerateLink = async () => {
     try {
       await generateInviteMutation.mutateAsync();
+      await refetchCurrentInvite();
     } catch (err: any) {
       Alert.alert("오류", err.message || "링크 생성에 실패했습니다.");
     }
@@ -128,163 +129,110 @@ export default function LinkGenerationScreen({
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={28}
-            color={theme.colors.text}
-          />
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color={theme.colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>초대 링크 생성</Text>
         <View style={{ width: 28 }} />
       </View>
-
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-      >
+  
+      {/* 본문 */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {isLoading || generateInviteMutation.isPending ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>
-              초대 링크를 생성하고 있습니다...
+            <Text style={styles.loadingText}>초대 링크를 생성하고 있습니다...</Text>
+          </View>
+        ) : error || !isValidInvite ? (
+          <View style={styles.noLinkContainer}>
+            <Text style={styles.noLinkText}>아직 생성된 초대 코드가 없습니다.</Text>
+            <Text style={styles.noLinkSubtext}>
+              아래 버튼을 눌러 초대 코드를 생성해보세요.
             </Text>
           </View>
         ) : (
           <>
+            {/* ✅ 초대 코드가 있는 경우 */}
             <View style={styles.linkCard}>
-              <Text style={styles.linkTitle}>
-                {data?.message === "이미 활성화된 초대 링크가 있습니다."
-                  ? "기존 초대 코드 안내"
-                  : "초대 코드"}
-              </Text>
-              {data?.data?.inviteCode ? (
-                <>
-                  <View style={styles.linkContainer}>
-                    <Text style={styles.linkText} numberOfLines={1}>
-                      {data.data.inviteCode}
-                    </Text>
-                    <Pressable
-                      style={styles.copyButton}
-                      onPress={handleCopyCode}
-                      disabled={isCopying}
-                    >
-                      <MaterialCommunityIcons
-                        name={isCopying ? "check" : "content-copy"}
-                        size={24}
-                        color={theme.colors.primary}
-                      />
-                    </Pressable>
-                  </View>
-
-                  {data.data.createdAt && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>생성 일시:</Text>
-                      <Text style={styles.infoValue}>
-                        {new Date(data.data.createdAt).toLocaleString("ko-KR")}
-                      </Text>
-                    </View>
-                  )}
-
-                  {data.data.expiresAt && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>만료 일시:</Text>
-                      <Text style={styles.infoValue}>
-                        {new Date(data.data.expiresAt).toLocaleString("ko-KR")}
-                      </Text>
-                    </View>
-                  )}
-
-                  {typeof data.data.remainingHours === "number" && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>남은 시간:</Text>
-                      <Text
-                        style={[
-                          styles.infoValue,
-                          data.data.remainingHours < 12 && styles.warningText,
-                        ]}
-                      >
-                        {data.data.remainingHours}시간
-                      </Text>
-                    </View>
-                  )}
-
-                  <Pressable
-                    style={styles.shareButton}
-                    onPress={handleShareCode}
-                  >
-                    <MaterialCommunityIcons
-                      name="share-variant"
-                      size={24}
-                      color={theme.colors.white}
-                    />
-                    <Text style={styles.shareButtonText}>코드 공유하기</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <View style={styles.noLinkContainer}>
-                  <Text style={styles.noLinkText}>
-                    아직 생성된 초대 코드가 없습니다.
-                  </Text>
-                  <Text style={styles.noLinkSubtext}>
-                    아래 버튼을 눌러 초대 코드를 생성해보세요.
+              <Text style={styles.linkTitle}>초대 코드</Text>
+              <View style={styles.linkContainer}>
+                <Text style={styles.linkText}>{inviteCode}</Text>
+                <Pressable onPress={handleCopyCode}>
+                  <MaterialCommunityIcons name="content-copy" size={24} color={theme.colors.primary} />
+                </Pressable>
+              </View>
+  
+              {data?.data.createdAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>생성 일시:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(data.data.createdAt).toLocaleString("ko-KR")}
                   </Text>
                 </View>
               )}
-
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>초대 코드 사용 안내</Text>
-                {data?.message === "이미 활성화된 초대 링크가 있습니다." ? (
-                  <>
-                    <Text style={styles.infoText}>
-                      • 이미 생성된 초대 코드가 있습니다.
-                    </Text>
-                    <Text style={styles.infoText}>
-                      • 관리자에게 문의하여 기존 코드 정보를 확인하세요.
-                    </Text>
-                    <Text style={styles.infoText}>
-                      • 기존 코드가 만료되면 새로운 코드를 생성할 수 있습니다.
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.infoText}>
-                      • 생성된 코드는 7일간 유효합니다.
-                    </Text>
-                    <Text style={styles.infoText}>
-                      • 코드는 한 번만 사용할 수 있습니다.
-                    </Text>
-                    <Text style={styles.infoText}>
-                      • 코드가 만료되면 다시 초대 코드 생성 페이지를 방문하여 새
-                      코드를 생성해주세요.
-                    </Text>
-                  </>
-                )}
-              </View>
+  
+              {data?.data.expiresAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>만료 일시:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(data.data.expiresAt).toLocaleString("ko-KR")}
+                  </Text>
+                </View>
+              )}
+  
+              {typeof data?.data.remainingHours === "number" && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>남은 시간:</Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      data.data.remainingHours < 12 && styles.warningText,
+                    ]}
+                  >
+                    {data.data.remainingHours}시간
+                  </Text>
+                </View>
+              )}
+  
+              <Pressable style={styles.shareButton} onPress={handleShareCode}>
+                <MaterialCommunityIcons name="share-variant" size={24} color={theme.colors.white} />
+                <Text style={styles.shareButtonText}>코드 공유하기</Text>
+              </Pressable>
             </View>
-
-            <Pressable
-              style={styles.generateButton}
-              onPress={handleGenerateLink}
-              disabled={generateInviteMutation.isPending}
-            >
-              <MaterialCommunityIcons
-                name="link-plus"
-                size={24}
-                color={theme.colors.white}
-              />
-              <Text style={styles.generateButtonText}>
-                {data?.data?.inviteCode
-                  ? "새 초대 코드 생성하기"
-                  : "초대 코드 생성하기"}
-              </Text>
-            </Pressable>
+  
+            {/* 안내 영역 */}
+            <View style={styles.infoSection}>
+              <Text style={styles.infoSectionTitle}>초대 코드 사용 안내</Text>
+              {data?.message === "이미 활성화된 초대 링크가 있습니다." ? (
+                <>
+                  <Text style={styles.infoText}>• 이미 생성된 초대 코드가 있습니다.</Text>
+                  <Text style={styles.infoText}>• 관리자에게 문의하여 기존 코드 정보를 확인하세요.</Text>
+                  <Text style={styles.infoText}>• 기존 코드가 만료되면 새로운 코드를 생성할 수 있습니다.</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.infoText}>• 생성된 코드는 7일간 유효합니다.</Text>
+                  <Text style={styles.infoText}>• 코드는 한 번만 사용할 수 있습니다.</Text>
+                  <Text style={styles.infoText}>• 만료되면 새로 생성해주세요.</Text>
+                </>
+              )}
+            </View>
           </>
         )}
+  
+        {/* 링크 생성 버튼은 항상 표시 */}
+        <Pressable
+          style={styles.generateButton}
+          onPress={handleGenerateLink}
+          disabled={generateInviteMutation.isPending}
+        >
+          <MaterialCommunityIcons name="link-plus" size={24} color={theme.colors.white} />
+          <Text style={styles.generateButtonText}>
+            {data?.data?.inviteCode ? "새 초대 코드 생성하기" : "초대 코드 생성하기"}
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
