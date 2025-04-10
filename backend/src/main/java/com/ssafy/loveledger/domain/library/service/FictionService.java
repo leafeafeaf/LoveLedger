@@ -14,11 +14,19 @@ import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.Fict
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionArtCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionContentCreateReq;
 import com.ssafy.loveledger.domain.library.presentation.dto.request.fiction.FictionReadRequest;
-import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.*;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionAllReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionArtReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionContentReadRes;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionDetailReadResponse;
+import com.ssafy.loveledger.domain.library.presentation.dto.response.fiction.FictionReadResponse;
 import com.ssafy.loveledger.domain.user.domain.User;
 import com.ssafy.loveledger.global.response.exception.ErrorCode;
 import com.ssafy.loveledger.global.response.exception.LoveLedgerException;
 import com.ssafy.loveledger.global.util.GeminiUtil;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,11 +35,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -80,7 +83,7 @@ public class FictionService {
     // 시리즈별 소설 전부 조회
     @Transactional
     public Page<FictionAllReadResponse> readAllFiction(User user, int pageNo, int size,
-                                                       String sort) {
+        String sort) {
 
         // 사용자 체크
         libraryRepository.findById(user.getLibrary().getId()).orElseThrow(
@@ -136,7 +139,7 @@ public class FictionService {
     // AI 소설 생성.
     @Transactional(readOnly = true)
     public FictionContentReadRes getFictionContentAI(User user,
-                                                     FictionContentCreateReq fictionContentCreateReq) {
+        FictionContentCreateReq fictionContentCreateReq) {
 
         Long themeId = fictionContentCreateReq.getThemeId();
         Long seriesId = fictionContentCreateReq.getSeriesId();
@@ -298,7 +301,7 @@ public class FictionService {
                 history.getTransactionId(),
                 history.getCreatedDate(),
                 history.getCreatedTime(),
-                history.getTransactionType() == 1 ? "true" : "false",
+                history.getTransactionType() == 1 ? "입금" : "출금",
                 history.getTransactionTarget(),
                 history.getCategory(),
                 history.getAmountAfterTransaction(),
