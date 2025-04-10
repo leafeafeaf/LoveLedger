@@ -86,7 +86,7 @@ export default function ProfileMainScreen({
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isImageUpdating, setIsImageUpdating] = useState(false);
   const [shouldLogout, setShouldLogout] = useState(false);
-  
+
   // DatePicker 관련 상태 추가
   const [showMarryDatePicker, setShowMarryDatePicker] = useState(false);
   const [localMarryDate, setLocalMarryDate] = useState<string | null>(null);
@@ -95,6 +95,19 @@ export default function ProfileMainScreen({
     useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ["userDetail"] });
       loadSavedCoverImage();
+
+      const loadMarryDate = async () => {
+        try {
+          const savedDate = await AsyncStorage.getItem("localMarryDate");
+          if (savedDate) {
+            setLocalMarryDate(savedDate);
+          }
+        } catch (err) {
+          console.error("결혼일 로드 실패", err);
+        }
+      };
+
+      loadMarryDate();
     }, [queryClient])
   );
 
@@ -205,15 +218,21 @@ export default function ProfileMainScreen({
   }, [userDetail]);
 
   // 3. marryDate를 처리하는 함수 추가
-  const handleMarryDateSelect = (date: Date) => {
+  const handleMarryDateSelect = async (date: Date) => {
     // YYYY-MM-DD 형식으로 변환
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
-    
+
     setLocalMarryDate(formattedDate);
     setShowMarryDatePicker(false);
+
+    try {
+      await AsyncStorage.setItem("localMarryDate", formattedDate);
+    } catch (err) {
+      console.error("결혼일 저장 실패", err);
+    }
   };
 
   if (isLoading || isUpdating || isImageUpdating) {
@@ -250,7 +269,7 @@ export default function ProfileMainScreen({
     (partnerBirthDay ? calculateAge(partnerBirthDay) : 0);
   const age = calculateAge(userDetail.birthDay);
   const partnerPhoto =
-  userDetail.coupleInfo?.darlingPicture || userDetail.coupleInfo?.darlingPicture || null;
+    userDetail.coupleInfo?.darlingPicture || userDetail.coupleInfo?.darlingPicture || null;
 
   const profileData: ProfileData = {
     couple: {
@@ -345,10 +364,10 @@ export default function ProfileMainScreen({
           try {
             // AsyncStorage에서 토큰 삭제
             await AsyncStorage.removeItem("token");
-            
+
             // Redux 로그아웃 액션 디스패치
             dispatch(logout());
-            
+
             // 로그아웃 성공 메시지 표시 후 Auth 화면으로 즉시 이동
             Alert.alert("로그아웃 성공", "성공적으로 로그아웃되었습니다.", [
               {
@@ -359,8 +378,8 @@ export default function ProfileMainScreen({
                     CommonActions.reset({
                       index: 0,
                       routes: [
-                        { 
-                          name: "Auth", 
+                        {
+                          name: "Auth",
                           state: {
                             routes: [
                               { name: "Login" }
@@ -454,62 +473,37 @@ export default function ProfileMainScreen({
               </Text>
             </View>
           )}
-          {/* 결혼일 표시 부분 수정 */}
-          {!isSolo && (
-            <View style={styles.sinceDateContainer}>
-              <Text style={styles.sinceDate}>{profileData.couple.since}</Text>
-              <Pressable 
-                style={styles.dateEditButton}
-                onPress={() => setShowMarryDatePicker(true)}
-              >
-                <MaterialCommunityIcons
-                  name="calendar-edit"
-                  size={18}
-                  color={theme.colors.textLight}
-                />
-              </Pressable>
-            </View>
-          )}
+
           {isSolo && <Text style={styles.sinceDate}>{profileData.couple.since}</Text>}
 
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons
-                name="calendar-heart"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.statValue}>
-                {profileData.couple.meetDays}
-              </Text>
-              <Text style={styles.statLabel}>함께한 일수</Text>
+          {!isSolo && (
+            <View style={styles.meetInfoRow}>
+              <Pressable onPress={() => setShowMarryDatePicker(true)}>
+                <MaterialCommunityIcons
+                  name="calendar-heart"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </Pressable>
+              <View style={styles.meetTextWrapper}>
+                {localMarryDate ? (
+                  <>
+                    <Text style={styles.meetText}>
+                      {profileData.couple.meetDays}일 함께했어요
+                    </Text>
+                    <Text style={styles.meetSubText}>
+                      ({localMarryDate.replace(/-/g, ".")}부터)
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.meetText}>결혼일을 등록해주세요</Text>
+                )}
+              </View>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons
-                name="notebook"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.statValue}>
-                {profileData.couple.diariesCount}
-              </Text>
-              <Text style={styles.statLabel}>함께한 일기</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons
-                name="book-open-variant"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.statValue}>
-                {profileData.couple.storiesCount}
-              </Text>
-              <Text style={styles.statLabel}>함께한 이야기</Text>
-            </View>
-          </View>
+          )}
         </View>
+
+
         <View style={styles.partnerSection}>
           <Text style={styles.sectionTitle}>개인 정보 수정</Text>
 
@@ -774,7 +768,7 @@ export default function ProfileMainScreen({
           <Text style={styles.copyrightText}>© 2025 Love Ledger</Text>
         </View>
       </ScrollView>
-      
+
       {/* DatePicker 모달 추가 */}
       <DatePicker
         visible={showMarryDatePicker}
@@ -1061,5 +1055,41 @@ const styles = StyleSheet.create({
   sinceDate: {
     fontSize: 16,
     color: theme.colors.textLight,
+  },
+  meetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6, // RN 0.71 이상에서 지원. 하위 버전이면 marginRight으로 대체
+  },
+  meetEditButton: {
+    marginLeft: 6,
+    padding: 4,
+  },
+
+  meetInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: theme.spacing.sm,
+    backgroundColor: `${theme.colors.primary}05`,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+  },
+
+  meetTextWrapper: {
+    marginHorizontal: theme.spacing.sm,
+  },
+
+  meetText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+
+  meetSubText: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginTop: 2,
   },
 });

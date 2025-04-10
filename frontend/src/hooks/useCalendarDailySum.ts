@@ -30,13 +30,30 @@ interface CalendarDailySumError {
 }
 
 // API 호출 함수
-const fetchCalendarDailySum = async ({ year, month }: { year: number; month: number }): Promise<CalendarDailySumResponse> => {
+const fetchCalendarDailySum = async ({
+  year,
+  month,
+  activeView,
+}: {
+  year: number;
+  month: number;
+  activeView: "you" | "partner" | "combined";
+}): Promise<CalendarDailySumResponse> => {
   try {
-    const response = await axiosInstance.get<CalendarDailySumResponse>(`/account/history/sum/list?year=${year}&month=${month}`);
-    console.log('API 응답:', response.data);
+    const endpoint =
+      activeView === "partner"
+        ? `/account/history/lover/sum/list`
+        : `/account/history/sum/list`;
+    
+    console.log(endpoint)
+    const response = await axiosInstance.get<CalendarDailySumResponse>(
+      `${endpoint}?year=${year}&month=${month}`
+    );
+
+    console.log(`[${activeView.toUpperCase()}] API 응답:`, response.data);
     return response.data;
   } catch (error) {
-    console.error('API 에러:', error);
+    console.error("API 에러:", error);
     throw error;
   }
 };
@@ -45,17 +62,19 @@ const fetchCalendarDailySum = async ({ year, month }: { year: number; month: num
 export const useCalendarDailySum = (year: number, month: number) => {
   const dispatch = useDispatch();
   const calendarData = useSelector((state: RootState) => state.finance.calendarDailySum);
+  const activeView = useSelector((state: RootState) => state.partner.activeView);
+  console.log("쿼리 키:", ["calendarDailySum", activeView, year, month]);
 
   const query = useQuery({
-    queryKey: ['calendarDailySum', year, month],
-    queryFn: () => fetchCalendarDailySum({ year, month }),
+    queryKey: ["calendarDailySum", activeView, year, month],
+    queryFn: () => fetchCalendarDailySum({ year, month, activeView }),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
 
   useEffect(() => {
     if (query.data) {
-      console.log('Redux에 저장될 데이터:', query.data.data);
+      console.log("Redux에 저장될 데이터:", query.data.data);
       dispatch(fetchCalendarDailySumSuccess(query.data.data));
     }
   }, [query.data, dispatch]);
@@ -74,6 +93,7 @@ export const useCalendarDailySum = (year: number, month: number) => {
 
   return { ...query, calendarData };
 };
+
 
 // axios.ts의 인터셉터에서
 axiosInstance.interceptors.request.use(

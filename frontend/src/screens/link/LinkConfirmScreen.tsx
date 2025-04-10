@@ -43,6 +43,7 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
   const { mutate: joinCouple, isPending: isJoining } = useJoinCouple();
 
 
+
   // 유효성 검사 완료 후 처리
   useEffect(() => {
     if (!isValidationLoading && (data || error)) {
@@ -66,17 +67,17 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
           Alert.alert(
             "만료된 초대 링크",
             "이 초대 링크는 만료되었습니다. 새로운 링크를 요청해주세요.",
-            [{ text: "확인", onPress: () => navigation.goBack() }]
+            [{ text: "확인", onPress: () => console.log("이미 연동된 계정") }]
           );
         } else if (error.status === "400") {
           Alert.alert(
             "이미 연동된 계정",
             "이미 다른 계정과 연동되어 있습니다.",
-            [{ text: "확인", onPress: () => navigation.goBack() }]
+            [{ text: "확인", onPress: () => console.log("이미 연동된 계정") }]
           );
         } else {
           Alert.alert("오류가 발생했습니다", "잠시 후 다시 시도해주세요.", [
-            { text: "확인", onPress: () => navigation.goBack() },
+            { text: "확인", onPress: () => console.log("이미 연동된 계정") },
           ]);
         }
       } else if (data) {

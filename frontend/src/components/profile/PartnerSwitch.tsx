@@ -40,22 +40,6 @@ const PartnerSwitch: React.FC = () => {
           {partnerName}
         </Text>
       </Pressable>
-      <Pressable
-        style={[
-          styles.tabButton,
-          activeView === "combined" && styles.activeTab,
-        ]}
-        onPress={() => handleViewChange("combined")}
-      >
-        <Text
-          style={[
-            styles.tabText,
-            activeView === "combined" && styles.activeTabText,
-          ]}
-        >
-          Together
-        </Text>
-      </Pressable>
     </View>
   );
 };

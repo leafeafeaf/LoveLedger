@@ -311,25 +311,22 @@ const tokenTestStyles = StyleSheet.create({
   };
 
   // 구글 로그인 버튼 렌더링 함수
-  const renderGoogleButton = () => {
-    return (
-      <Pressable
-        style={styles.socialButton}
-        onPress={() => handleSocialLogin("google")}
-        disabled={false} // 항상 활성화 상태로 유지 (이전 요청은 자동으로 취소됨)
-      >
-        {googleLoading && loginAttemptTimestamp ? (
-          <ActivityIndicator size="small" color={theme.colors.primary} />
-        ) : (
-          <Image
-            source={GOOGLE_ICON}
-            style={styles.socialIcon}
-            resizeMode="contain"
-          />
-        )}
-      </Pressable>
-    );
-  };
+  const renderGoogleButton = () => (
+    <Pressable
+      style={styles.googleButton}
+      onPress={() => handleSocialLogin("google")}
+      disabled={googleLoading}
+    >
+      {googleLoading && loginAttemptTimestamp ? (
+        <ActivityIndicator size="small" color={theme.colors.text} />
+      ) : (
+        <>
+          <Image source={GOOGLE_ICON} style={styles.googleIcon} />
+          <Text style={styles.googleButtonText}>Google로 로그인</Text>
+        </>
+      )}
+    </Pressable>
+  );
 
   // 회원가입 모달 렌더링
   const renderSignUpModal = () => {
@@ -532,35 +529,11 @@ const tokenTestStyles = StyleSheet.create({
           <View style={styles.socialLoginContainer}>
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Text style={styles.socialLoginText}>소셜 계정으로 로그인</Text>
+            <Text style={styles.socialLoginText}>소셜 로그인</Text>
 
             <View style={styles.socialButtonsContainer}>
               {/* 구글 로그인 버튼 */}
               {renderGoogleButton()}
-
-              <Pressable
-                style={styles.socialButton}
-                onPress={() => handleSocialLogin("naver")}
-                disabled={isLoading}
-              >
-                <Image
-                  source={NAVER_ICON}
-                  style={styles.socialIcon}
-                  resizeMode="contain"
-                />
-              </Pressable>
-
-              <Pressable
-                style={styles.socialButton}
-                onPress={() => handleSocialLogin("kakao")}
-                disabled={isLoading}
-              >
-                <Image
-                  source={KAKAO_ICON}
-                  style={styles.socialIcon}
-                  resizeMode="contain"
-                />
-              </Pressable>
             </View>
 
             <Text style={styles.helpText}>
@@ -775,5 +748,28 @@ const styles = StyleSheet.create({
   },
   toggleCircleActive: {
     transform: [{ translateX: 22 }],
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    width: "95%",
+    alignSelf: "center",
+    ...theme.shadows.small,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: theme.spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
   },
 });

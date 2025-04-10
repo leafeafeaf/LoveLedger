@@ -378,11 +378,11 @@ const CalendarDay = React.memo(
             height: dayCellWidth,
           },
           financeData &&
-            totalAmount !== 0 && {
-              backgroundColor: isPositive
-                ? `rgba(193, 225, 193, ${opacity})`
-                : `rgba(255, 87, 51, ${opacity})`,
-            },
+          totalAmount !== 0 && {
+            backgroundColor: isPositive
+              ? `rgba(193, 225, 193, ${opacity})`
+              : `rgba(255, 87, 51, ${opacity})`,
+          },
           day.isToday && styles.todayCard,
           isSelected && {
             backgroundColor: theme.colors.primary,
@@ -506,11 +506,13 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const [selectedDayTransactions, setSelectedDayTransactions] = useState<
     Transaction[]
   >([]);
-  const [activeView, setActiveView] = useState("you");
+  const activeView = useSelector((state: RootState) => state.partner.activeView);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
   const [thresholdAmount, setThresholdAmount] = useState(100000);
+  const [sliderValue, setSliderValue] = useState(thresholdAmount);
+
   const dimensions = useWindowDimensions();
   const screenWidth = dimensions.width;
   const calendarWidth = screenWidth - theme.spacing.xl * 2;
@@ -638,6 +640,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   );
 
   const handleSelectDate = (date: Date) => {
+    if (activeView === "partner") {
+      return;
+    }
+
     const dailyTransactions = getTransactionsForDate(date, transactions).map(
       (t) => ({
         transactionId: t.id.toString(),
@@ -696,23 +702,23 @@ export default function MainScreen({ navigation }: MainScreenProps) {
         </View>
         <View style={styles.monthSelector}>
           <Text style={styles.monthText}>
-            {`${displayedMonth.getFullYear()}년 ${
-              displayedMonth.getMonth() + 1
-            }월`}
+            {`${displayedMonth.getFullYear()}년 ${displayedMonth.getMonth() + 1
+              }월`}
           </Text>
         </View>
 
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>
-            {`우리의 예산 : ${(thresholdAmount / 10000).toFixed(0)}만원`}
+            {`우리의 예산 : ${(sliderValue / 10000).toFixed(0)}만원`}
           </Text>
           <Slider
             style={styles.slider}
             minimumValue={10000}
             maximumValue={500000}
             step={10000}
-            value={thresholdAmount}
-            onValueChange={setThresholdAmount}
+            // value={sliderValue}
+            onValueChange={(value) => setSliderValue(value)}
+            onSlidingComplete={(value) => setThresholdAmount(value)}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.border}
             thumbTintColor={theme.colors.primary}
@@ -791,11 +797,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                     <View key={`prev-week-${weekIndex}`} style={styles.weekRow}>
                       {week.map((day, dayIndex) => (
                         <CalendarDay
-                          key={`prev-${
-                            day.isEmpty
-                              ? `empty-${dayIndex}`
-                              : day.date?.toString()
-                          }`}
+                          key={`prev-${day.isEmpty
+                            ? `empty-${dayIndex}`
+                            : day.date?.toString()
+                            }`}
                           day={day}
                           navigation={navigation}
                           onSelectDate={handleSelectDate}
@@ -803,7 +808,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                             selectedDate &&
                             day.date &&
                             selectedDate.toDateString() ===
-                              day.date.toDateString()
+                            day.date.toDateString()
                           }
                           dayCellWidth={dayCellWidth}
                           thresholdAmount={thresholdAmount}
@@ -847,11 +852,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                     >
                       {week.map((day, dayIndex) => (
                         <CalendarDay
-                          key={`current-${
-                            day.isEmpty
-                              ? `empty-${dayIndex}`
-                              : day.date?.toString()
-                          }`}
+                          key={`current-${day.isEmpty
+                            ? `empty-${dayIndex}`
+                            : day.date?.toString()
+                            }`}
                           day={day}
                           navigation={navigation}
                           onSelectDate={handleSelectDate}
@@ -859,7 +863,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                             selectedDate &&
                             day.date &&
                             selectedDate.toDateString() ===
-                              day.date.toDateString()
+                            day.date.toDateString()
                           }
                           dayCellWidth={dayCellWidth}
                           thresholdAmount={thresholdAmount}
@@ -910,11 +914,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                     <View key={`next-week-${weekIndex}`} style={styles.weekRow}>
                       {week.map((day, dayIndex) => (
                         <CalendarDay
-                          key={`next-${
-                            day.isEmpty
-                              ? `empty-${dayIndex}`
-                              : day.date?.toString()
-                          }`}
+                          key={`next-${day.isEmpty
+                            ? `empty-${dayIndex}`
+                            : day.date?.toString()
+                            }`}
                           day={day}
                           navigation={navigation}
                           onSelectDate={handleSelectDate}
@@ -922,7 +925,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
                             selectedDate &&
                             day.date &&
                             selectedDate.toDateString() ===
-                              day.date.toDateString()
+                            day.date.toDateString()
                           }
                           dayCellWidth={dayCellWidth}
                           thresholdAmount={thresholdAmount}
@@ -1152,7 +1155,7 @@ const styles = StyleSheet.create({
   fabContainer: {
     position: "absolute",
     right: theme.spacing.xl,
-    bottom: 90,
+    bottom: 70,
     alignItems: "flex-end",
     elevation: 1000,
     zIndex: 1000,
@@ -1206,11 +1209,12 @@ const styles = StyleSheet.create({
   sliderContainer: {
     position: "absolute",
     left: theme.spacing.xl,
-    bottom: 90,
+    bottom: 60,
     width: 200,
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.xs,
+    zIndex:5
   },
   sliderLabel: {
     fontSize: 14,
