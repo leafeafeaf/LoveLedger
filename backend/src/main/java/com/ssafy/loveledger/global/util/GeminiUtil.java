@@ -47,7 +47,7 @@ public class GeminiUtil {
             %s
             - 주인공 이름 :
             %s
-            - 배우자 이름 : 
+            - 배우자 이름 :
             %s
             - 성별:
             %s
