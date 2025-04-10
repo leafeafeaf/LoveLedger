@@ -136,7 +136,10 @@ const FABComponent: FC<{
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // 드래그 동작이 명확할 때만 PanResponder 활성화
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
       onPanResponderGrant: () => {
         pan.setOffset({
           x: getValue(pan.x),
@@ -162,7 +165,7 @@ const FABComponent: FC<{
 
   const menuTranslateY = menuAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -120],
+    outputRange: [0, -65],
   });
 
   const menuOpacity = menuAnimation.interpolate({
@@ -178,7 +181,7 @@ const FABComponent: FC<{
           transform: [{ translateX: position.x }, { translateY: position.y }],
         },
       ]}
-      {...panResponder.panHandlers}
+      collapsable={false}
     >
       <Animated.View
         style={[
@@ -188,6 +191,7 @@ const FABComponent: FC<{
             opacity: menuOpacity,
           },
         ]}
+        pointerEvents={showFabMenu ? "auto" : "none"}
       >
         <Pressable
           style={styles.fabMenuItem}
@@ -202,6 +206,7 @@ const FABComponent: FC<{
               },
             });
           }}
+          android_ripple={{color: 'rgba(255,255,255,0.3)'}}
         >
           <MaterialCommunityIcons
             name="book-open-variant"
@@ -222,6 +227,7 @@ const FABComponent: FC<{
               },
             });
           }}
+          android_ripple={{color: 'rgba(255,255,255,0.3)'}}
         >
           <MaterialCommunityIcons
             name="notebook"
@@ -231,26 +237,35 @@ const FABComponent: FC<{
           <Text style={styles.fabMenuText}>Write Diary</Text>
         </Pressable>
       </Animated.View>
-      <Pressable style={styles.fab} onPress={toggleFabMenu}>
-        <Animated.View
-          style={{
-            transform: [
-              {
-                rotate: fabAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0deg", "45deg"],
-                }),
-              },
-            ],
-          }}
+
+      {/* FAB 버튼을 PanResponder 외부로 분리 */}
+      <View {...panResponder.panHandlers} style={styles.dragHandle}>
+        <Pressable 
+          style={styles.fab} 
+          onPress={toggleFabMenu}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+          android_ripple={{color: 'rgba(255,255,255,0.3)', borderless: true}}
         >
-          <MaterialCommunityIcons
-            name="plus"
-            size={24}
-            color={theme.colors.white}
-          />
-        </Animated.View>
-      </Pressable>
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  rotate: fabAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0deg", "45deg"],
+                  }),
+                },
+              ],
+            }}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={24}
+              color={theme.colors.white}
+            />
+          </Animated.View>
+        </Pressable>
+      </View>
     </Animated.View>
   );
 };
@@ -554,8 +569,8 @@ const styles = StyleSheet.create({
     right: theme.spacing.xl,
     bottom: 90,
     alignItems: "flex-end",
-    elevation: 1000,
-    zIndex: 1000,
+    elevation: 5,
+    zIndex: 5,
   },
   fab: {
     width: 56,
@@ -566,12 +581,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...theme.shadows.medium,
   },
+  dragHandle: {
+    width: 56,
+    height: 56,
+  },
   fabMenu: {
     position: "absolute",
-    bottom: 70,
+    bottom: 20,
     right: 0,
     backgroundColor: "transparent",
-    gap: theme.spacing.md,
+    gap: theme.spacing.xs,
+    zIndex: 1000,
   },
   fabMenuItem: {
     flexDirection: "row",
@@ -583,7 +603,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.05 }],
     maxWidth: 140,
     minWidth: 126,
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
     ...theme.shadows.small,
   },
   fabMenuText: {
