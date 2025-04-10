@@ -182,7 +182,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
           <View style={styles.coverContainer}>
             {coverImage ? (
               <Image
-                source={{ uri: coverImage }}
+                source={{ uri: encodeURI(coverImage) }}
                 style={styles.coverImage}
                 resizeMode="cover"
               />

@@ -69,7 +69,8 @@ export const useCurrentInvite = () => {
       }
     },
     enabled: true,
-    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: 1,         // 실패 시 한 번만 재시도 (기본은 3회)
   });
 };

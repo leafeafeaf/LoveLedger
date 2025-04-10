@@ -98,6 +98,7 @@ export const useValidateInvite = (inviteCode: string, userId: string) => {
     // 자동 실행되지 않도록 enabled 옵션 비활성화
     enabled: false,
     retry: 1,
-    staleTime: 1 * 60 * 1000, // 1분 동안 캐시 유지
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 };
