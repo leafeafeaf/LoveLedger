@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, FC } from "react";
-import { View, Text, StyleSheet, Animated, Easing } from "react-native";
+import React, { useEffect, useRef, FC, useState } from "react";
+import { View, Text, StyleSheet, Animated, Easing, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,7 +14,11 @@ import {
   updateStoryGenerationProgress,
   storyGenerationSuccess,
   storyGenerationFailure,
+  clearCoverImage,
+  clearCurrentStory,
+  clearStorySavingState
 } from "../../store/contentSlice";
+import { CommonActions } from "@react-navigation/native";
 
 type RootStackParamList = {
   StoryGeneration: {
@@ -70,7 +74,8 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
   const { resetAllDates } = useDatePicker();
 
   const bookAnimation = useRef(new Animated.Value(0)).current;
-  const pageAnimation = useRef(new Animated.Value(0)).current;
+  const bookVariantOpacity = useRef(new Animated.Value(1)).current;
+  const pageVariantOpacity = useRef(new Animated.Value(0)).current;
   const loadingTextOpacity = useRef(new Animated.Value(0)).current;
   const loadingProgress = useRef(new Animated.Value(0)).current;
 
@@ -83,7 +88,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
     // API 호출
     generateStory();
 
-    // 화면을 나갈 때 날짜 초기화
+    // 화면을 나갈 때 정리 작업
     return () => {
       resetAllDates();
     };
@@ -98,21 +103,39 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
       easing: Easing.elastic(1),
     }).start();
 
-    // Page flip animation (repeating)
+    // 책 아이콘 교차 애니메이션 (반복)
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pageAnimation, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.quad),
-        }),
-        Animated.timing(pageAnimation, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.quad),
-        }),
+        // 첫 번째 아이콘 페이드 아웃, 두 번째 아이콘 페이드 인
+        Animated.parallel([
+          Animated.timing(bookVariantOpacity, {
+            toValue: 0,
+            duration: 700,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          Animated.timing(pageVariantOpacity, {
+            toValue: 1,
+            duration: 700, 
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+        ]),
+        // 두 번째 아이콘 페이드 아웃, 첫 번째 아이콘 페이드 인
+        Animated.parallel([
+          Animated.timing(bookVariantOpacity, {
+            toValue: 1,
+            duration: 700,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          Animated.timing(pageVariantOpacity, {
+            toValue: 0,
+            duration: 700,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+        ]),
       ])
     ).start();
 
@@ -188,6 +211,31 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
         onError: (error) => {
           console.error("스토리 생성 중 오류 발생:", error);
           dispatch(storyGenerationFailure(error.message));
+          
+          // 모든 설정 초기화
+          resetAllDates();
+          dispatch(clearCurrentStory());
+          dispatch(clearCoverImage());
+          dispatch(clearStorySavingState());
+          
+          // 오류 메시지 표시 후 메인 화면으로 리디렉션
+          Alert.alert(
+            "스토리 생성 오류",
+            "스토리 생성 중 오류가 발생했습니다. 메인 화면으로 돌아갑니다.",
+            [
+              {
+                text: "확인",
+                onPress: () => {
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [{ name: "Main" }],
+                    })
+                  );
+                },
+              },
+            ]
+          );
         },
       }
     );
@@ -222,34 +270,24 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
             },
           ]}
         >
-          <MaterialCommunityIcons
-            name="book-open-variant"
-            size={100}
-            color={theme.colors.primary}
-          />
+          <Animated.View style={{ 
+            position: 'absolute',
+            opacity: bookVariantOpacity 
+          }}>
+            <MaterialCommunityIcons
+              name="book-open-variant"
+              size={100}
+              color={theme.colors.primary}
+            />
+          </Animated.View>
 
-          <Animated.View
-            style={[
-              styles.pageOverlay,
-              {
-                opacity: pageAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 1],
-                }),
-                transform: [
-                  {
-                    translateX: pageAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 20],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          <Animated.View style={{ 
+            position: 'absolute',
+            opacity: pageVariantOpacity 
+          }}>
             <MaterialCommunityIcons
               name="book-open-page-variant"
-              size={60}
+              size={100}
               color={theme.colors.primary}
             />
           </Animated.View>
@@ -298,10 +336,9 @@ const styles = StyleSheet.create({
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: theme.spacing.xl,
-  },
-  pageOverlay: {
-    position: "absolute",
+    marginBottom: theme.spacing.md,
+    height: 120,
+    width: 120,
   },
   loadingText: {
     fontSize: 18,

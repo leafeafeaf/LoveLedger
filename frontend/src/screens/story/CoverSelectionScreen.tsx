@@ -39,6 +39,8 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
   const { isGenerating, selectedStyle, coverImage, error } = useSelector(
     (state: RootState) => state.content.coverGeneration
   );
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [useLocalImage, setUseLocalImage] = useState<boolean>(false);
 
   const coverStyles: CoverStyle[] = [
     { id: "webtoon", label: "웹툰", icon: "book-open-page-variant" },
@@ -49,54 +51,50 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
     { id: "sketch", label: "스케치", icon: "pencil" },
   ];
 
-  // useEffect(() => {
-  //   generateCover();
-  // }, [selectedStyle]);
+  // 그림체별 미리보기 이미지 URL 매핑
+  const stylePreviewImages: Record<string, string> = {
+    webtoon: "https://image.pollinations.ai/prompt/A_webtoon-style_scene_of_a_person_gazing_up_at_the_moon_in_the_top_left_corner_of_the_frame",
+    ghibli: "",
+    realistic: "https://image.pollinations.ai/prompt/A_photorealistic_image_of_a_bustling_city_street_at_night,_with_neon_signs_reflecting_on_the_wet_pavement.jpg",
+    watercolor: "https://image.pollinations.ai/prompt/A_vibrant_oil_painting_depicting_a_serene_sunset_over_a_tranquil_lake,_with_soft_light_reflecting_on_the_water's_surface.jpg",
+    oilpainting: "https://image.pollinations.ai/prompt/A_single_scene_in_the_style_of_an_oil_painting,_depicting",
+    sketch: "https://image.pollinations.ai/prompt/A_sketch_of_a_person_sitting_at_a_table_in_a_cafe,_with_their_face_visible",
+  };
 
-  // const generateCover = async () => {
-  //   dispatch(startCoverGeneration(selectedStyle));
-
-  //   try {
-  //     // 테마 ID 매핑
-  //     const themeIdMap: { [key: string]: number } = {
-  //       webtoon: 1,
-  //       fairytale: 2,
-  //       realistic: 3,
-  //       watercolor: 4,
-  //       oilpainting: 5,
-  //       sketch: 6,
-  //     };
-
-  //     const themeId = themeIdMap[selectedStyle] || 1;
-
-  //     // API 호출
-  //     // mutate(
-  //     //   {
-  //     //     context: story.content || "",
-  //     //     themeId,
-  //     //     title: story.title,
-  //     //   },
-  //     //   {
-  //     //     onSuccess: (response) => {
-  //     //       if (response?.data?.imageUrl) {
-  //     //         dispatch(coverGenerationSuccess(response.data.imageUrl));
-  //     //       }
-  //     //     },
-  //     //     onError: (error) => {
-  //     //       console.error("커버 이미지 생성 중 오류 발생:", error);
-  //     //       dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
-  //     //     },
-  //     //   }
-  //     // );
-  //   } catch (error) {
-  //     dispatch(coverGenerationFailure(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."));
-  //   }
-  // };
+  // 컴포넌트 마운트 시 기본 선택 스타일 설정
+  useEffect(() => {
+    if (selectedStyle && selectedStyle === "ghibli") {
+      setUseLocalImage(true);
+      setPreviewImage(null);
+    } else if (selectedStyle && stylePreviewImages[selectedStyle]) {
+      setUseLocalImage(false);
+      setPreviewImage(stylePreviewImages[selectedStyle]);
+    } else if (coverStyles.length > 0) {
+      const defaultStyle = coverStyles[0].id;
+      dispatch(setCoverStyle(defaultStyle));
+      setUseLocalImage(false);
+      setPreviewImage(stylePreviewImages[defaultStyle]);
+    }
+  }, []);
 
   const handleStyleSelect = (styleId: string) => {
-    console.log("선택된 커버 스타일:", styleId)
-    console.log("이 스타일 ID는 CoverPreviewScreen에서 drawStyle로 사용됩니다.")
+    console.log("선택된 커버 스타일:", styleId);
+    console.log("이 스타일 ID는 CoverPreviewScreen에서 drawStyle로 사용됩니다.");
     dispatch(setCoverStyle(styleId));
+    
+    // 지브리 스타일은 로컬 이미지 사용
+    if (styleId === "ghibli") {
+      setUseLocalImage(true);
+      setPreviewImage(null);
+    } else {
+      setUseLocalImage(false);
+      // 선택한 스타일에 맞는 미리보기 이미지 설정
+      if (stylePreviewImages[styleId]) {
+        setPreviewImage(stylePreviewImages[styleId]);
+      } else {
+        setPreviewImage(null);
+      }
+    }
   };
 
   const handleNext = () => {
@@ -185,10 +183,10 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
                   그림체를 불러오고 있어요...
                 </Text>
               </View>
-            ) : coverImage ? (
+            ) : useLocalImage && selectedStyle === "ghibli" ? (
               <View style={styles.coverContainer}>
                 <Image
-                  source={{ uri: coverImage }}
+                  source={require("../../../assets/images/cover/ghibli.jpg")}
                   style={styles.coverImage}
                   resizeMode="cover"
                 />
@@ -199,7 +197,32 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
                   </Text>
                 </View>
               </View>
-            ) : null}
+            ) : previewImage ? (
+              <View style={styles.coverContainer}>
+                <Image
+                  source={{ uri: previewImage }}
+                  style={styles.coverImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.coverOverlay}>
+                  <Text style={styles.storyTitle}>{story.title}</Text>
+                  <Text style={styles.seriesTitle}>
+                    {"title" in series ? series.title : series.name}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.emptyPreviewContainer}>
+                <MaterialCommunityIcons
+                  name="image-outline"
+                  size={60}
+                  color={theme.colors.textLight}
+                />
+                <Text style={styles.emptyPreviewText}>
+                  그림체를 선택하면 예시 이미지가 표시됩니다
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -244,7 +267,6 @@ const styles = StyleSheet.create({
   previewNotice: {
     fontSize: 12,
     color: "rgba(0, 0, 0, 0.7)",
-
     marginBottom: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
   },
@@ -334,6 +356,18 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: theme.colors.white,
     opacity: 0.9,
+  },
+  emptyPreviewContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  emptyPreviewText: {
+    fontSize: 16,
+    color: theme.colors.textLight,
+    textAlign: "center",
+    marginTop: theme.spacing.md,
   },
   regenerateButton: {
     flexDirection: "row",

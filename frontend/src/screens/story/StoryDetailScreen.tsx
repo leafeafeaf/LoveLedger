@@ -10,6 +10,8 @@ import {
   ImageBackground,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LibraryStackParamList, LibraryScreenProps } from '../../types';
@@ -31,9 +33,14 @@ type Props = LibraryScreenProps<"StoryDetail">;
 
 const { width, height } = Dimensions.get("window");
 
+// 폰트 타입 정의
+type FontType = "default" | "신라문화체" | "빛의 계승자체" | "강원교육새음체" | "조선일보명조체";
+
 const StoryDetailScreen = ({ navigation, route }: Props) => {
   const { id } = route.params;
   const [showCover, setShowCover] = useState(true);
+  const [fontModalVisible, setFontModalVisible] = useState(false);
+  const [selectedFont, setSelectedFont] = useState<FontType>("default");
   const dispatch = useDispatch();
   const { data, isLoading, error } = useSelector((state: RootState) => state.content.fictionDetail);
 
@@ -57,6 +64,28 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
 
     fetchFictionDetail();
   }, [dispatch, id]);
+
+  // 폰트 스타일에 따른 스타일 객체를 반환하는 함수
+  const getFontStyle = () => {
+    switch (selectedFont) {
+      case "신라문화체":
+        return styles.shillaFont;
+      case "빛의 계승자체":
+        return styles.heirFont;
+      case "강원교육새음체":
+        return styles.gangwonFont;
+      case "조선일보명조체":
+        return styles.chosunFont;
+      default:
+        return null;
+    }
+  };
+
+  // 폰트 선택 핸들러
+  const handleFontSelect = (font: FontType) => {
+    setSelectedFont(font);
+    setFontModalVisible(false);
+  };
 
   if (isLoading) {
     return (
@@ -90,17 +119,17 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
     // 첫 번째 페이지: 제목과 내용 분리
     <View key="title-page" style={styles.contentPage}>
       <View style={styles.titleContainer}>
-        <Text style={styles.bookTitle}>{storyData.title}</Text>
+        <Text style={[styles.bookTitle, getFontStyle()]}>{storyData.title}</Text>
       </View>
       <View style={styles.contentContainer}>
-        <Text style={styles.contentText}>{contentPages[0]}</Text>
+        <Text style={[styles.contentText, getFontStyle()]}>{contentPages[0]}</Text>
       </View>
     </View>,
     // 나머지 페이지: 내용만
     ...contentPages.slice(1).map((pageContent, index) => (
       <View key={`content-page-${index}`} style={styles.contentPage}>
         <View style={styles.contentContainer}>
-          <Text style={styles.contentText}>{pageContent}</Text>
+          <Text style={[styles.contentText, getFontStyle()]}>{pageContent}</Text>
         </View>
       </View>
     )),
@@ -128,8 +157,10 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
         title="Story"
         showBack={true}
         showShare={true}
+        showFontSelector={!showCover}
         onBack={() => navigation.goBack()}
         onShare={handleShare}
+        onFontSelect={() => setFontModalVisible(true)}
       />
 
       {showCover ? (
@@ -158,6 +189,70 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
         // 책 내용 페이지 (넘김 효과 포함)
         <PageTurningView pages={pages} />
       )}
+
+      {/* 폰트 선택 모달 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={fontModalVisible}
+        onRequestClose={() => setFontModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>폰트 선택</Text>
+            
+            <TouchableOpacity
+              style={[styles.fontOption, selectedFont === "default" && styles.selectedFontOption]}
+              onPress={() => handleFontSelect("default")}
+            >
+              <Text style={[styles.fontOptionText, selectedFont === "default" && styles.selectedFontText]}>기본</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.fontOption, selectedFont === "신라문화체" && styles.selectedFontOption]}
+              onPress={() => handleFontSelect("신라문화체")}
+            >
+              <Text style={[styles.fontOptionText, selectedFont === "신라문화체" && styles.selectedFontText, styles.shillaFont]}>
+                신라문화체
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.fontOption, selectedFont === "빛의 계승자체" && styles.selectedFontOption]}
+              onPress={() => handleFontSelect("빛의 계승자체")}
+            >
+              <Text style={[styles.fontOptionText, selectedFont === "빛의 계승자체" && styles.selectedFontText, styles.heirFont]}>
+                빛의 계승자체
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.fontOption, selectedFont === "강원교육새음체" && styles.selectedFontOption]}
+              onPress={() => handleFontSelect("강원교육새음체")}
+            >
+              <Text style={[styles.fontOptionText, selectedFont === "강원교육새음체" && styles.selectedFontText, styles.gangwonFont]}>
+                강원교육새음체
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.fontOption, selectedFont === "조선일보명조체" && styles.selectedFontOption]}
+              onPress={() => handleFontSelect("조선일보명조체")}
+            >
+              <Text style={[styles.fontOptionText, selectedFont === "조선일보명조체" && styles.selectedFontText, styles.chosunFont]}>
+                조선일보명조체
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setFontModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -295,6 +390,74 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: theme.colors.error,
+  },
+  // 폰트 스타일
+  shillaFont: {
+    fontFamily: "Shilla_Culture(B)",
+  },
+  heirFont: {
+    fontFamily: "HeirofLightBold",
+  },
+  gangwonFont: {
+    fontFamily: "강원교육새음",
+  },
+  chosunFont: {
+    fontFamily: "ChosunNm",
+  },
+  
+  // 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: width * 0.8,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: theme.colors.primary,
+  },
+  fontOption: {
+    width: '100%',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: '#f5f5f5',
+  },
+  selectedFontOption: {
+    backgroundColor: 'rgba(246, 195, 36, 0.3)',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  fontOptionText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  selectedFontText: {
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  closeButton: {
+    marginTop: 10,
+    padding: 15,
+    width: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 

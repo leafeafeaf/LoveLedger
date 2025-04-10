@@ -365,6 +365,7 @@ export interface StorySettings {
   lengthStyle: string;
   period: string;
   customQuery?: string; // RAG 연동을 위한 사용자 입력 쿼리, 선택적
+  fontStyle?: string; // 선택된 폰트 스타일
 }
 
 // 커버 스타일 타입

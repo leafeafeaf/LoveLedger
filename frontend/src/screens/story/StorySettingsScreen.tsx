@@ -175,10 +175,10 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
 
   // 폰트 옵션
   const fonts: FontItem[] = [
-    { id: 1, label: "Pretendard", icon: "format-font" },
-    { id: 2, label: "고딕", icon: "format-font" },
-    { id: 3, label: "명조", icon: "format-font" },
-    { id: 4, label: "필기체", icon: "format-text" },
+    { id: 1, label: "신라문화체", icon: "format-font" },
+    { id: 2, label: "빛의 계승자체", icon: "format-font" },
+    { id: 3, label: "강원교육새음체", icon: "format-font" },
+    { id: 4, label: "조선일보명조체", icon: "format-text" },
   ];
 
   const formatDateToYYYYMMDD = (date: Date) => {
@@ -284,10 +284,10 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
           <Text
             style={[
               styles.fontSampleText,
-              item.label === "Pretendard" && styles.pretendardFont,
-              item.label === "고딕" && styles.gothicFont,
-              item.label === "명조" && styles.myeongjoFont,
-              item.label === "필기체" && styles.handwritingFont,
+              item.label === "신라문화체" && styles.shillaFont,
+              item.label === "빛의 계승자체" && styles.heirFont,
+              item.label === "강원교육새음체" && styles.gangwonFont,
+              item.label === "조선일보명조체" && styles.chosunFont,
               isSelected && styles.selectedFontText,
             ]}
           >
@@ -326,6 +326,7 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
         lengthStyle: "default",
         period: selectedPeriod.label,
         customQuery: queryAdded ? customQuery : undefined, // 쿼리가 추가되었을 때만 전달
+        fontStyle: selectedFont.label, // 선택된 폰트 스타일 전달
       },
     });
   };
@@ -715,18 +716,17 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
   },
-  pretendardFont: {
-    fontFamily: "Pretendard",
+  shillaFont: {
+    fontFamily: "Shilla_Culture(B)",
   },
-  gothicFont: {
-    fontFamily: "Pretendard-Bold",
+  heirFont: {
+    fontFamily: "HeirofLightBold",
   },
-  myeongjoFont: {
-    fontFamily: "Pretendard-Medium",
+  gangwonFont: {
+    fontFamily: "강원교육새음",
   },
-  handwritingFont: {
-    fontFamily: "Pretendard-Regular",
-    fontStyle: "italic",
+  chosunFont: {
+    fontFamily: "ChosunNm",
   },
   selectedFontText: {
     color: theme.colors.primary,

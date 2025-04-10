@@ -8,16 +8,20 @@ interface WoodHeaderProps {
   title: string;
   showBack?: boolean;
   showShare?: boolean;
+  showFontSelector?: boolean;
   onBack?: () => void;
   onShare?: () => void;
+  onFontSelect?: () => void;
 }
 
 const WoodHeader: React.FC<WoodHeaderProps> = ({
   title,
   showBack = false,
   showShare = false,
+  showFontSelector = false,
   onBack,
   onShare,
+  onFontSelect,
 }) => {
   return (
     <ImageBackground 
@@ -33,13 +37,23 @@ const WoodHeader: React.FC<WoodHeaderProps> = ({
         
         <Text style={styles.title}>{title}</Text>
         
-        {showShare && (
-          <Pressable style={styles.iconButton} onPress={onShare}>
-            <MaterialCommunityIcons name="share-variant" size={24} color="white" />
-          </Pressable>
-        )}
-        
-        {!showShare && <View style={{width: 28}} />}
+        <View style={styles.rightButtons}>
+          {showFontSelector && (
+            <Pressable style={styles.iconButton} onPress={onFontSelect}>
+              <View style={styles.fontButton}>
+                <Text style={styles.fontButtonText}>A</Text>
+              </View>
+            </Pressable>
+          )}
+          
+          {showShare && (
+            <Pressable style={styles.iconButton} onPress={onShare}>
+              <MaterialCommunityIcons name="share-variant" size={24} color="white" />
+            </Pressable>
+          )}
+          
+          {!showShare && !showFontSelector && <View style={{width: 28}} />}
+        </View>
       </View>
     </ImageBackground>
   );
@@ -64,6 +78,23 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
+  },
+  rightButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fontButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fontButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });
 
