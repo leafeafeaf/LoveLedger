@@ -80,7 +80,7 @@ export default function DiaryEditDailyScreen({
     fetchTransactionHistory();
   }, []);
 
-  const { mutate: fetchTransactionHistory } = useTransactionHistory(diaryId, setChanges, setIsLoading);
+  const { mutate: fetchTransactionHistory } = useTransactionHistory(diaryId, setChanges, setIsLoading, navigation);
   const updateMutation = useUpdateTransactionHistory();
 
   const toggleChangeSelection = (index: number) => {
@@ -192,11 +192,11 @@ export default function DiaryEditDailyScreen({
                         style={[
                           styles.transactionAmount,
                           change.original.remittance
-                            ? styles.expenseAmount
-                            : styles.incomeAmount,
+                            ? styles.incomeAmount
+                            : styles.expenseAmount,
                         ]}
                       >
-                        {change.original.remittance ? "- " : "+ "}
+                        {change.original.remittance ? "" : "-"}
                         {formatCurrency(change.original.amount)}
                       </Text>
                     </View>
@@ -223,11 +223,11 @@ export default function DiaryEditDailyScreen({
                         style={[
                           styles.transactionAmount,
                           change.modified.remittance
-                            ? styles.expenseAmount
-                            : styles.incomeAmount,
+                            ? styles.incomeAmount
+                            : styles.expenseAmount,
                         ]}
                       >
-                        {change.modified.remittance ? "- " : "+ "}
+                        {change.modified.remittance ? "" : "-"}
                         {formatCurrency(change.modified.amount)}
                       </Text>
                     </View>

@@ -4,6 +4,8 @@ import { useDispatch } from 'react-redux';
 import { setLoading, setError } from '../store/contentSlice';
 import { Alert } from 'react-native';
 import {TransactionHistory, TransactionChange } from "../types";
+import { StackActions } from "@react-navigation/native";
+
 
 interface TransactionHistoryResponse {
   status: number;
@@ -17,7 +19,8 @@ interface TransactionHistoryResponse {
 export const useTransactionHistory = (
   diaryId: string,
   setChanges: (changes: TransactionChange[]) => void,
-  setIsLoading: (isLoading: boolean) => void
+  setIsLoading: (isLoading: boolean) => void,
+  navigation: any
 ) => {
   const dispatch = useDispatch();
 
@@ -56,8 +59,9 @@ export const useTransactionHistory = (
     onError: (error) => {
       dispatch(setLoading(false));
       console.log(error)
-      Alert.alert('오류', '거래 내역을 불러오는데 실패했습니다.');
+      Alert.alert("",'수정할 거래 내역이 없습니다.');
       dispatch(setError('거래 내역 불러오기 실패'));
+      navigation.dispatch(StackActions.replace("Main"));
     },
 
     onSettled: () => {

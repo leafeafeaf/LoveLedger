@@ -31,15 +31,20 @@ import { useFocusEffect } from "@react-navigation/native";
 const formatKoreanCurrency = (amount: number): string => {
   if (amount === 0) return "0원";
 
-  // 억 단위로 변환 (소수점 첫째자리까지 표시)
-  const billionAmount = amount / 100000000;
-  
-  // 소수점 첫째자리까지 표시하고 반올림
-  const roundedAmount = Math.round(billionAmount * 10) / 10;
-  
-  return `${roundedAmount}억원`;
-};
+  if (amount >= 100_000_000) {
+    const billion = amount / 100_000_000;
+    const rounded = Math.round(billion * 10) / 10;
+    return `${rounded}억원`;
+  }
 
+  if (amount >= 10_000_000) {
+    const tenThousand = amount / 10_000;
+    const rounded = Math.round(tenThousand);
+    return `${rounded.toLocaleString()}만원`;
+  }
+
+  return `${amount.toLocaleString()}원`;
+};
 // API 응답 타입 정의
 interface GoalResponse {
   status: number;
@@ -76,14 +81,14 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
     const initImageCache = async () => {
       try {
         console.log("이미지 캐시 초기화 시작");
-  
+
         const keys = await AsyncStorage.getAllKeys();
         const imageKeys = keys.filter(key => key.startsWith("goalImage_"));
         console.log("필터링된 이미지 키:", imageKeys);
-  
+
         if (imageKeys.length > 0) {
           const keyValuePairs = await AsyncStorage.multiGet(imageKeys);
-  
+
           const cache: Record<string, string> = {};
           keyValuePairs.forEach(([key, value]) => {
             if (value) {
@@ -92,13 +97,13 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
               console.log(`이미지 캐시에 추가됨: ${goalId}, URI 시작부분: ${value.substring(0, 15)}...`);
             }
           });
-  
+
           setImageCache(cache);
-  
+
           // 마지막 키 기준으로 가장 최근 이미지 URI를 선택
           const sortedKeys = Object.keys(cache).sort(); // 문자열 정렬이지만 일단 가장 마지막으로
           const latestKey = sortedKeys[sortedKeys.length - 1];
-  
+
           if (latestKey && cache[latestKey]) {
             console.log("가장 마지막 목표 이미지 선택:", latestKey);
             setLocalImage(cache[latestKey]);
@@ -112,7 +117,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
         console.error("이미지 캐시 초기화 오류:", error);
       }
     };
-  
+
     initImageCache();
   }, []);  // goalData 의존성 제거하여 초기 렌더링 시에만 실행
 
@@ -120,30 +125,30 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
   useFocusEffect(
     React.useCallback(() => {
       console.log("화면 포커스: 목표 및 이미지 데이터 새로고침");
-      
+
       // 데이터 및 이미지 캐시 갱신
       const refreshData = async () => {
         try {
           // 먼저 목표 데이터 다시 불러오기
           const refreshedData = await refetch();
-          
+
           // 이미지 캐시 초기화
           const keys = await AsyncStorage.getAllKeys();
           const imageKeys = keys.filter(key => key.startsWith('goalImage_'));
-          
+
           if (imageKeys.length > 0) {
             const keyValuePairs = await AsyncStorage.multiGet(imageKeys);
             const cache: Record<string, string> = {};
-            
+
             keyValuePairs.forEach(([key, value]) => {
               if (value) {
                 const goalId = key.replace('goalImage_', '');
                 cache[goalId] = value;
               }
             });
-            
+
             setImageCache(cache);
-            
+
             // 새로 불러온 목표 데이터에 ID가 있고 해당 ID의 이미지가 캐시에 있으면 표시
             const goalId = refreshedData.data?.id;
             if (goalId && typeof goalId === 'string') {
@@ -161,7 +166,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
           console.error("데이터 및 이미지 새로고침 오류:", error);
         }
       };
-      
+
       refreshData();
 
       return () => {
@@ -192,39 +197,39 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
         setLocalImage(null);
         return;
       }
-      
+
       // AsyncStorage 키 구성
       const storageKey = `goalImage_${goalId}`;
       console.log("이미지 로드 키:", storageKey);
-      
+
       // 먼저 메모리 캐시에서 확인
       if (imageCache[goalId]) {
         console.log("메모리 캐시에서 이미지 발견:", goalId);
         console.log("캐시 이미지 URI:", imageCache[goalId].substring(0, 30) + "...");
-        
+
         setLocalImage(imageCache[goalId]);
         return;
       }
-      
+
       // AsyncStorage에서 이미지 로드 시도
       try {
         const storedImage = await AsyncStorage.getItem(storageKey);
         console.log("AsyncStorage 조회 결과:", storedImage ? "이미지 발견" : "이미지 없음");
-        
+
         if (storedImage) {
           console.log("AsyncStorage에서 이미지를 불러옴, URI 시작부분:", storedImage.substring(0, 30) + "...");
-          
+
           // 유효한 URI 형식인지 확인
           if (storedImage.startsWith('file://') || storedImage.startsWith('content://') || storedImage.startsWith('ph://')) {
             console.log("유효한 URI 형식 확인됨");
-            
+
             // 메모리 캐시에 저장
             setImageCache(prev => {
               const newCache = { ...prev, [goalId]: storedImage };
               console.log("이미지 캐시에 추가됨, 캐시 크기:", Object.keys(newCache).length);
               return newCache;
             });
-            
+
             // 이미지 표시
             setLocalImage(storedImage);
             console.log("이미지 로드 완료");
@@ -253,26 +258,26 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
         Alert.alert("알림", "먼저 목표를 생성해주세요.");
         return;
       }
-  
+
       const goalId = goalData.id || `${goalData.title.replace(/\s+/g, '')}_${Date.now()}`;
-  
+
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
         return;
       }
-  
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
       });
-  
+
       if (!result.canceled && result.assets[0].uri) {
         const selectedImageUri = result.assets[0].uri;
         setIsImageLoading(true);
-  
+
         // ✅ 1. 기존 goalImage_ 키들 모두 삭제
         const allKeys = await AsyncStorage.getAllKeys();
         const imageKeys = allKeys.filter(key => key.startsWith("goalImage_"));
@@ -280,12 +285,12 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
           console.log("기존 이미지 키 삭제:", imageKeys);
           await AsyncStorage.multiRemove(imageKeys);
         }
-  
+
         // ✅ 2. 새 이미지 저장
         const storageKey = `goalImage_${goalId}`;
         await AsyncStorage.setItem(storageKey, selectedImageUri);
         console.log("새 이미지 저장 완료:", storageKey);
-  
+
         // ✅ 3. 캐시 및 상태 반영
         setImageCache({ [goalId]: selectedImageUri });
         setLocalImage(selectedImageUri);
@@ -322,10 +327,10 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
         // 업데이트 모드일 경우
         await goalUpdateMutation.mutateAsync(goalData);
         closeModal();
-        
+
         // 목표 데이터를 다시 가져오지만 이미지는 유지
         await refetch();
-        
+
         Alert.alert("성공", "목표가 성공적으로 업데이트되었습니다.");
       } else {
         // 생성 모드일 경우
@@ -334,15 +339,15 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
         )) as GoalResponse;
 
         closeModal();
-        
+
         // 새 목표 ID를 얻고, 기존에 임시로 저장된 이미지가 있다면 새 ID로 이동
         if (response?.data?.goalId || response?.data?.id) {
           const newGoalId = response.data.goalId || response.data.id;
           console.log("새 목표 ID 생성됨:", newGoalId);
-          
+
           // 새 목표 데이터를 불러옴
           await refetch();
-          
+
           // 새 목표 ID로 이미지 로드
           if (newGoalId) {
             loadLocalImage(newGoalId);
@@ -351,7 +356,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
           // 정상적인 ID를 받지 못한 경우 그냥 데이터 리로드
           await refetch();
         }
-        
+
         Alert.alert("성공", "목표가 성공적으로 생성되었습니다.");
       }
     } catch (error: any) {
@@ -383,7 +388,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                 console.log("이미지 삭제 시도:", imageKey);
                 await AsyncStorage.removeItem(imageKey);
                 console.log("이미지가 AsyncStorage에서 삭제되었습니다");
-                
+
                 // 메모리 캐시에서도 삭제
                 setImageCache(prev => {
                   const newCache = { ...prev };
@@ -393,7 +398,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                   }
                   return newCache;
                 });
-                
+
                 // 로컬 이미지 상태 초기화
                 setLocalImage(null);
               }
@@ -401,7 +406,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
               // 목표 삭제 API 호출
               await deleteGoalMutation.mutateAsync();
               Alert.alert("삭제 완료", "목표가 성공적으로 삭제되었습니다.");
-              
+
               // 데이터 새로고침
               refetch();
             } catch (error) {
@@ -431,9 +436,9 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
 
   return (
     <View style={styles.container}>
-      <Header 
-        title="목표 관리" 
-        onBack={() => navigation.goBack()} 
+      <Header
+        title="목표 관리"
+        onBack={() => navigation.goBack()}
       />
 
       {error || !goalData ? (
@@ -482,7 +487,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                 </View>
 
                 {/* 이미지 컨테이너 */}
-                <Pressable 
+                <Pressable
                   style={styles.imageContainer}
                   onPress={handleImageUpload}
                   disabled={isImageLoading}
@@ -493,7 +498,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                         size="large"
                         color={theme.colors.primary}
                       />
-                      <Text style={[styles.emptyImageText, {marginTop: 10}]}>
+                      <Text style={[styles.emptyImageText, { marginTop: 10 }]}>
                         이미지 처리 중...
                       </Text>
                     </View>
@@ -543,10 +548,9 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                         style={[
                           styles.progressBar,
                           {
-                            width: `${
-                              (goalData.currentAmount / goalData.goalAmount) *
+                            width: `${(goalData.currentAmount / goalData.goalAmount) *
                               100
-                            }%`,
+                              }%`,
                           },
                         ]}
                       />
@@ -557,10 +561,7 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                         {formatKoreanCurrency(goalData.goalAmount)}
                       </Text>
                       <Text style={styles.goalPercentage}>
-                        {Math.round(
-                          (goalData.currentAmount / goalData.goalAmount) * 100
-                        )}
-                        %
+                        {((goalData.currentAmount / goalData.goalAmount) * 100).toFixed(2)}%
                       </Text>
                     </View>
                   </View>
