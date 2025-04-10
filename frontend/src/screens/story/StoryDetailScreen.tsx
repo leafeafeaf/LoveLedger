@@ -77,7 +77,6 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
   const storyData = {
     id,
     title: data.title,
-    series: 'Medium Raw', // API 응답에 series 정보가 없으므로 기본값 사용
     content: data.content,
     date: data.createdAt,
     coverImage: { uri: data.artUrl },
@@ -86,20 +85,23 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
   // 컨텐츠를 여러 페이지로 나누기
   const contentPages = splitContentIntoPages(storyData.content);
 
-  // 모든 페이지 생성 (첫 페이지는 시리즈명과
+  // 모든 페이지 생성
   const pages = [
-    // 첫 번째 페이지: 제목과 시리즈명
-    <View key="title-page" style={styles.titlePage}>
-      <Text style={styles.seriesName}>{storyData.series}</Text>
-      <Text style={styles.bookTitle}>{storyData.title}</Text>
-      <View style={styles.contentPreview}>
+    // 첫 번째 페이지: 제목과 내용 분리
+    <View key="title-page" style={styles.contentPage}>
+      <View style={styles.titleContainer}>
+        <Text style={styles.bookTitle}>{storyData.title}</Text>
+      </View>
+      <View style={styles.contentContainer}>
         <Text style={styles.contentText}>{contentPages[0]}</Text>
       </View>
     </View>,
     // 나머지 페이지: 내용만
     ...contentPages.slice(1).map((pageContent, index) => (
       <View key={`content-page-${index}`} style={styles.contentPage}>
-        <Text style={styles.contentText}>{pageContent}</Text>
+        <View style={styles.contentContainer}>
+          <Text style={styles.contentText}>{pageContent}</Text>
+        </View>
       </View>
     )),
   ];
@@ -178,30 +180,34 @@ function getBookImage(id: string) {
 
 // 콘텐츠를 페이지로 나누는 함수
 function splitContentIntoPages(content: string): string[] {
-  // 페이지당 글자 수 제한
-  const charsPerPage = 1000;
-
-  // 문단으로 분리
+  // 페이지당 글자 수가 아닌 페이지당 라인 수로 처리
+  const linesPerPage = 15; // 한 페이지에 보여줄 줄 수
   const paragraphs = content.split("\n\n");
-
+  
   const pages: string[] = [];
   let currentPage = "";
-
+  let lineCount = 0;
+  
   for (const paragraph of paragraphs) {
-    // 현재 페이지에 단락 추가했을 때 제한 넘으면 다음 페이지로
-    if (currentPage.length + paragraph.length > charsPerPage) {
-      pages.push(currentPage);
+    // 단락의 예상 줄 수 계산 (평균적으로 한 줄에 50자)
+    const paragraphLines = Math.ceil(paragraph.length / 50) + 1; // +1은 단락 다음의 여백
+    
+    // 현재 페이지에 이 단락을 추가했을 때 라인 제한을 넘는지 확인
+    if (lineCount + paragraphLines > linesPerPage) {
+      pages.push(currentPage.trim());
       currentPage = paragraph + "\n\n";
+      lineCount = paragraphLines;
     } else {
       currentPage += paragraph + "\n\n";
+      lineCount += paragraphLines;
     }
   }
-
+  
   // 마지막 페이지 추가
   if (currentPage.length > 0) {
-    pages.push(currentPage);
+    pages.push(currentPage.trim());
   }
-
+  
   return pages;
 }
 
@@ -251,27 +257,25 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 5,
   },
-  titlePage: {
+  contentPage: {
+    flex: 1,
     padding: 20,
-    paddingTop: 40,
+    // 배경 없음
   },
-  seriesName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#666",
-    marginBottom: 8,
+  titleContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   bookTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: "purple",
-    marginBottom: 40,
   },
-  contentPage: {
-    padding: 20,
-  },
-  contentPreview: {
-    marginTop: 20,
+  contentContainer: {
+    flex: 1,
+    height: height * 0.7, // 화면 높이의 70%로 지정
+    overflow: 'hidden', // 컨텐츠가 영역을 벗어나지 않도록 설정
+    // 배경 없음
   },
   contentText: {
     fontSize: 16,

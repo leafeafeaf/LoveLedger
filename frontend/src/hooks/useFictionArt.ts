@@ -29,6 +29,8 @@ export const useFictionArt = () => {
   return useMutation<FictionArtResponse, FictionArtError, FictionArtRequest>({
     mutationFn: async ({ content, drawStyle, title }) => {
       console.log("그림 생성 API 실행")
+      console.log("API에 전송되는 drawStyle:", drawStyle)
+      console.log("API 요청 데이터:", { content: content.substring(0, 50) + "...", drawStyle, title })
       
       const response = await axiosInstance.post<FictionArtResponse>("/fictions/art", {
         content,

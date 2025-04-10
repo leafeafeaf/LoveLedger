@@ -18,8 +18,8 @@ const ContentToggle: React.FC<ContentToggleProps> = ({ activeContent, onToggle }
         <ImageBackground
           source={
             activeContent === 'diaries'
-              ? require('../../../assets/images/library/library_bg.png')
-              : require('../../../assets/images/library/library_bg2.png')
+              ? require('../../../assets/images/library/library_bg2.png')
+              : require('../../../assets/images/library/library_bg.png')
           }
           style={styles.buttonBg}
           imageStyle={{ borderRadius: 20 }}
@@ -42,8 +42,8 @@ const ContentToggle: React.FC<ContentToggleProps> = ({ activeContent, onToggle }
         <ImageBackground
           source={
             activeContent === 'stories'
-              ? require('../../../assets/images/library/library_bg.png')
-              : require('../../../assets/images/library/library_bg2.png')
+              ? require('../../../assets/images/library/library_bg2.png')
+              : require('../../../assets/images/library/library_bg.png')
           }
           style={styles.buttonBg}
           imageStyle={{ borderRadius: 20 }}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     height: 40,
     marginHorizontal: 4,
     borderRadius: 20,
-    overflow: 'hidden',
+    // overflow: 'hidden',
   },
   buttonBg: {
     width: '100%',
@@ -87,24 +87,24 @@ const styles = StyleSheet.create({
   },
   activeButton: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: -2, height: -2 },
     shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   inactiveButton: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    elevation: 4,
+    elevation: 3,
     transform: [{ translateY: -2 }]
   },
   activeButtonText: {
-    color: 'white',
+    color: theme.colors.primary,
   },
   inactiveButtonText: {
-    color: theme.colors.primary,
+    color: 'white',
   }
 });
 

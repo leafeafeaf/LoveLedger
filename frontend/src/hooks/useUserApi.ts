@@ -87,6 +87,18 @@ export const useUserDetail = () => {
   React.useEffect(() => {
     if (query.data) {
       const userData = query.data;
+      
+      // 부부 연동 상태 로깅
+      console.log("[useUserDetail] 부부 연동 상태:", {
+        isMarried: userData.isMarried,
+        coupleInfo: userData.coupleInfo,
+        marryDate: userData.marryDate,
+        marriageDuration: userData.marriageDuration,
+        partnerName: userData.coupleInfo?.darlingName,
+        partnerBirthDay: userData.coupleInfo?.darlingBirthDay,
+        partnerPicture: userData.coupleInfo?.darlingPicture,
+      });
+
       const userInfoToUpdate = {
         email: userData.email,
         name: userData.name,

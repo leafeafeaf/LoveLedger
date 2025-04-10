@@ -94,7 +94,8 @@ const CoverSelectionScreen: FC<StoryScreenProps<"CoverSelection">> = ({
   // };
 
   const handleStyleSelect = (styleId: string) => {
-    console.log(styleId)
+    console.log("선택된 커버 스타일:", styleId)
+    console.log("이 스타일 ID는 CoverPreviewScreen에서 drawStyle로 사용됩니다.")
     dispatch(setCoverStyle(styleId));
   };
 

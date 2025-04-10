@@ -58,7 +58,10 @@ const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
 
   // 현재 날짜 구하기
   const today = new Date();
-  const formattedToday = today.toISOString().split("T")[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const formattedToday = `${year}-${month}-${day}`;
 
   const [newGoal, setNewGoal] = useState<NewGoalForm>({
     title: "",
@@ -108,11 +111,44 @@ const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
   };
 
   const handleDateSelect = (date: Date) => {
-    const formattedDate = date.toISOString().split("T")[0];
+    // 날짜를 YYYY-MM-DD 형식으로 포맷팅
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
 
     if (datePickerType === "start") {
+      // 시작일이 오늘보다 미래인지 확인
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // 시간 부분 초기화
+      
+      const selectedDate = new Date(date);
+      selectedDate.setHours(0, 0, 0, 0); // 시간 부분 초기화
+      
+      if (selectedDate > today) {
+        Alert.alert(
+          "날짜 오류", 
+          "시작일은 오늘 또는 과거 날짜만 선택 가능합니다.",
+          [{ text: "확인" }]
+        );
+        return;
+      }
+      
       setNewGoal((prev) => ({ ...prev, startDate: formattedDate }));
     } else {
+      // 목표일 선택 시 시작일보다 미래인지 확인
+      const startDate = new Date(newGoal.startDate);
+      const selectedDate = new Date(date);
+      
+      if (selectedDate <= startDate) {
+        Alert.alert(
+          "날짜 오류", 
+          "목표일은 시작일보다 미래 날짜여야 합니다.",
+          [{ text: "확인" }]
+        );
+        return;
+      }
+      
       setNewGoal((prev) => ({ ...prev, goalDate: formattedDate }));
     }
 
@@ -165,6 +201,26 @@ const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
 
     if (!newGoal.goalDate) {
       Alert.alert("입력 오류", "목표일을 선택해주세요.");
+      return;
+    }
+    
+    // 시작일이 오늘보다 미래인지 다시 확인
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(newGoal.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    if (startDate > today) {
+      Alert.alert("날짜 오류", "시작일은 오늘 또는 과거 날짜만 선택 가능합니다.");
+      return;
+    }
+    
+    // 목표일이 시작일보다 미래인지 확인
+    const goalDate = new Date(newGoal.goalDate);
+    
+    if (goalDate <= startDate) {
+      Alert.alert("날짜 오류", "목표일은 시작일보다 미래 날짜여야 합니다.");
       return;
     }
 
@@ -279,7 +335,7 @@ const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
                 />
               </Pressable>
               <Text style={styles.helperText}>
-                시작일은 2000-01-01 이후여야 합니다
+                시작일은 오늘 또는 과거 날짜만 선택 가능합니다
               </Text>
             </View>
 
@@ -298,6 +354,9 @@ const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
                   color={theme.colors.textLight}
                 />
               </Pressable>
+              <Text style={styles.helperText}>
+                목표일은 시작일보다 미래 날짜여야 합니다
+              </Text>
             </View>
 
             <DatePicker
@@ -426,7 +485,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: "theme.colors.textLight",
+    color: theme.colors.textLight,
     marginTop: theme.spacing.xs,
   },
   buttonContainer: {

@@ -24,18 +24,18 @@ const PageTurningView: React.FC<PageTurningViewProps> = ({ pages, onPageChange }
   const pagePosition = useRef(new Animated.Value(0)).current;
   const pageCurl = useRef(new Animated.Value(0)).current;
 
-  // 페이지 전환 효과
+  // 페이지 전환 효과 - 더 빠르고 강한 효과로 수정
   const animatePageTurn = (toValue: number, callback?: () => void) => {
     setIsAnimating(true);
     Animated.parallel([
       Animated.timing(pagePosition, {
         toValue,
-        duration: 400,
+        duration: 300, // 애니메이션 시간 단축
         useNativeDriver: true,
       }),
       Animated.timing(pageCurl, {
         toValue: toValue === 0 ? 0 : 1,
-        duration: 400,
+        duration: 300, // 애니메이션 시간 단축
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -74,31 +74,33 @@ const PageTurningView: React.FC<PageTurningViewProps> = ({ pages, onPageChange }
     }
   };
 
-  // 페이지 드래그 제스처 설정
+  // 페이지 드래그 제스처 설정 - 민감도 향상
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 20 && !isAnimating;
+        return Math.abs(gestureState.dx) > 5 && !isAnimating; // 민감도 증가 (20 -> 5)
       },
       onPanResponderMove: (_, gestureState) => {
         // 오른쪽에서 왼쪽으로 스와이프 (다음 페이지)
         if (gestureState.dx < 0 && currentPage < pages.length - 1) {
           const newPosition = Math.max(gestureState.dx, -width);
           pagePosition.setValue(newPosition);
-          pageCurl.setValue(Math.min(Math.abs(newPosition) / width, 1));
+          // 커브 효과 강화
+          pageCurl.setValue(Math.min(Math.abs(newPosition) / (width * 0.7), 1));
         }
         // 왼쪽에서 오른쪽으로 스와이프 (이전 페이지)
         else if (gestureState.dx > 0 && currentPage > 0) {
           const reversePosition = -width + gestureState.dx;
           pagePosition.setValue(Math.min(reversePosition, 0));
-          pageCurl.setValue(Math.max(1 - gestureState.dx / width, 0));
+          // 커브 효과 강화
+          pageCurl.setValue(Math.max(1 - gestureState.dx / (width * 0.7), 0));
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -50 && currentPage < pages.length - 1) {
+        if (gestureState.dx < -20 && currentPage < pages.length - 1) { // 민감도 증가 (-50 -> -20)
           // 다음 페이지로
           goToNextPage();
-        } else if (gestureState.dx > 50 && currentPage > 0) {
+        } else if (gestureState.dx > 20 && currentPage > 0) { // 민감도 증가 (50 -> 20)
           // 이전 페이지로
           goToPrevPage();
         } else {
@@ -119,16 +121,16 @@ const PageTurningView: React.FC<PageTurningViewProps> = ({ pages, onPageChange }
     );
   };
 
-  // 페이지 넘김 효과
+  // 페이지 넘김 효과 - 강화된 3D 효과
   const curlStyles = {
     transform: [
       {
-        perspective: 1000,
+        perspective: 1200, // 증가된 원근감
       },
       {
         rotateY: pageCurl.interpolate({
           inputRange: [0, 1],
-          outputRange: ['0deg', '-20deg'],
+          outputRange: ['0deg', '-30deg'], // 더 깊은 회전 효과
         }),
       },
       {
@@ -140,16 +142,16 @@ const PageTurningView: React.FC<PageTurningViewProps> = ({ pages, onPageChange }
     shadowOffset: {
       width: pageCurl.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, -5],
+        outputRange: [0, -8], // 더 깊은 그림자
       }),
       height: 0,
     },
     shadowOpacity: pageCurl.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, 0.5],
+      outputRange: [0, 0.7], // 더 진한 그림자
     }),
-    shadowRadius: 5,
-    elevation: 5,
+    shadowRadius: 8, // 더 넓은 그림자
+    elevation: 8,
   };
 
   return (
@@ -191,25 +193,28 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     backgroundColor: '#FFFBF2',
+    width: width, // 전체 화면 너비 사용
+    overflow: 'hidden', // 넘치는 내용 숨김
   },
   pageContainer: {
-    width,
-    minHeight: height - 180, // 헤더와 푸터 공간 확보
+    width: width,
+    minHeight: height - 160, // 헤더 공간 여유 확보
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
   page: {
     position: 'absolute',
-    width: '100%',
+    width: width, // 전체 화면 너비 사용
     height: '100%',
     backgroundColor: 'white',
+    zIndex: 1, // 현재 페이지가 위에 오도록
   },
   nextPage: {
     position: 'absolute',
-    width: '100%',
+    width: width, // 전체 화면 너비 사용
     height: '100%',
     backgroundColor: 'white',
-    zIndex: -1,
+    zIndex: 0, // 다음 페이지가 아래에 오도록
   },
   paperTexture: {
     width: '100%',
@@ -217,12 +222,17 @@ const styles = StyleSheet.create({
   },
   pageNumberContainer: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 30,
     alignSelf: 'center',
+    zIndex: 2, // 페이지 번호가 항상 보이도록
   },
   pageNumber: {
     fontSize: 12,
-    color: '#999',
+    color: '#666', // 더 진한 색상으로 변경
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // 반투명 배경 추가
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
 });
 

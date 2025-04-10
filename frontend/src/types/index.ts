@@ -359,12 +359,13 @@ export type Story = {
 };
 
 // 스토리 설정 타입
-export type StorySettings = {
+export interface StorySettings {
   themeStyle: string;
   toneStyle: string;
-  lengthStyle?: string;
-  period?: string;
-};
+  lengthStyle: string;
+  period: string;
+  customQuery?: string; // RAG 연동을 위한 사용자 입력 쿼리, 선택적
+}
 
 // 커버 스타일 타입
 export type CoverStyle = {

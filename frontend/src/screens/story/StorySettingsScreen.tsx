@@ -10,6 +10,8 @@ import {
   FlatList,
   Image,
   Dimensions,
+  Modal,
+  TextInput,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
@@ -29,7 +31,8 @@ type IconName =
   | "brush"
   | "format-font"
   | "format-size"
-  | "format-text";
+  | "format-text"
+  | "plus-circle";
 
 // 각 항목에 대한 인터페이스 정의
 interface PeriodItem {
@@ -94,6 +97,9 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
   const [selectedFont, setSelectedFont] = useState<FontItem | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectingEndDate, setSelectingEndDate] = useState(false);
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [customQuery, setCustomQuery] = useState("");
+  const [queryAdded, setQueryAdded] = useState(false);
 
   // CUSTOM_DATE_ID를 초기화 시에 사용
   const CUSTOM_DATE_ID = 0;
@@ -159,6 +165,12 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
       icon: "palette",
       image: require("../../../assets/images/theme/뉴스.png"),
     },
+    {
+      id: 5,
+      label: "유행어",
+      icon: "plus-circle",
+      image: null, // 이미지 대신 커스텀 디자인을 사용할 것임
+    },
   ];
 
   // 폰트 옵션
@@ -173,9 +185,78 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
     return date.toLocaleDateString("sv-SE"); // "YYYY-MM-DD" 형식 (스웨덴 표준)
   };
 
+  // 직접 추가 버튼 클릭 핸들러
+  const handleCustomThemeClick = () => {
+    setShowQueryModal(true);
+    setCustomQuery("");
+  };
+
+  // 쿼리 저장 핸들러
+  const handleQuerySave = () => {
+    if (!customQuery.trim()) {
+      // 입력값이 비어있으면 저장하지 않음
+      return;
+    }
+    
+    console.log("사용자 입력 RAG 키워드:", customQuery);
+    
+    // 사용자가 입력한 쿼리를 저장하고 모달 닫기
+    setQueryAdded(true);
+    setShowQueryModal(false);
+    
+    // 테마도 선택되어 있어야 하므로 테마 설정
+    if (!selectedTheme) {
+      // 일상 테마를 기본으로 선택
+      setSelectedTheme(themes[0]);
+    }
+  };
+
   // 테마 옵션 렌더링
   const renderThemeOption = ({ item }: { item: ThemeItem }) => {
     const isSelected = selectedTheme?.id === item.id;
+
+    // 직접 추가 버튼인 경우 별도 렌더링
+    if (item.id === 5) {
+      return (
+        <TouchableOpacity
+          style={[
+            styles.themeCard, 
+            styles.customThemeCard,
+            queryAdded && styles.queryAddedCard
+          ]}
+          onPress={handleCustomThemeClick}
+        >
+          <View style={styles.customThemeContent}>
+            {queryAdded ? (
+              <>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={40}
+                  color="#4CAF50"
+                />
+                <Text style={styles.queryAddedText}>키워드 추가됨</Text>
+                <Text style={styles.customQueryPreview} numberOfLines={2}>
+                  "{customQuery}"
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.customThemeIconContainer}>
+                  <MaterialCommunityIcons
+                    name="plus-circle"
+                    size={60}
+                    color="#F6C324"
+                  />
+                </View>
+                <Text style={styles.customThemeLabel}>유행어</Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    // 기존 테마 카드 렌더링
     return (
       <TouchableOpacity
         style={[styles.themeCard, isSelected && styles.selectedThemeCard]}
@@ -237,12 +318,14 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
     
     console.log(selectedPeriod)
 
+    // 다음 화면으로 설정 및 쿼리 전달
     navigation.navigate("SeriesSelection", {
       settings: {
         themeStyle: selectedTheme.label,
         toneStyle: "default",
         lengthStyle: "default",
         period: selectedPeriod.label,
+        customQuery: queryAdded ? customQuery : undefined, // 쿼리가 추가되었을 때만 전달
       },
     });
   };
@@ -308,6 +391,72 @@ const StorySettingsScreen: FC<StoryScreenProps<"StorySettings">> = ({
         startDate={startDate as Date | undefined}
         endDate={endDate as Date | undefined}
       />
+      
+      {/* 키워드 입력 모달 */}
+      <Modal
+        visible={showQueryModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowQueryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>키워드 추가</Text>
+              <Pressable 
+                style={styles.closeButton} 
+                onPress={() => setShowQueryModal(false)}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.colors.text}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>소설에 포함할 키워드를 입력하세요</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={customQuery}
+                  onChangeText={setCustomQuery}
+                  placeholder="예: '여행, 바다, 가을'"
+                  placeholderTextColor={theme.colors.textLight}
+                  multiline={true}
+                  numberOfLines={4}
+                  maxLength={200}
+                />
+                <Text style={styles.helperText}>
+                  입력한 키워드와 관련된 내용이 소설에 포함됩니다.
+                </Text>
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={() => setShowQueryModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>취소</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.submitButton,
+                    !customQuery.trim() && styles.buttonDisabled,
+                  ]}
+                  onPress={handleQuerySave}
+                  disabled={!customQuery.trim()}
+                >
+                  <Text style={styles.submitButtonText}>추가하기</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>기간 선택</Text>
@@ -666,5 +815,143 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#000000",
     marginTop: 4,
+  },
+  customThemeCard: {
+    backgroundColor: theme.colors.white,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#F6C324",
+    borderRadius: theme.borderRadius.lg,
+    overflow: "hidden",
+  },
+  queryAddedCard: {
+    borderStyle: "solid",
+    borderColor: "#4CAF50",
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+  },
+  queryAddedText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4CAF50",
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
+  },
+  customQueryPreview: {
+    fontSize: 14,
+    fontStyle: "italic",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  multilineInput: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  customThemeContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  },
+  customThemeIconContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  customThemeLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#F6C324",
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    width: "85%",
+    maxHeight: "80%",
+    ...theme.shadows.medium,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  closeButton: {
+    padding: theme.spacing.xs,
+  },
+  modalBody: {
+    padding: theme.spacing.lg,
+  },
+  formGroup: {
+    marginBottom: theme.spacing.lg,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  input: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
+    backgroundColor: theme.colors.textLight,
+  },
+  cancelButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  submitButton: {
+    flex: 2,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
+  },
+  submitButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buttonDisabled: {
+    backgroundColor: theme.colors.textLight,
+    opacity: 0.7,
+  },
+  helperText: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
   },
 });

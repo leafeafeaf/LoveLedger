@@ -27,34 +27,17 @@ import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 
-// 금액을 억, 만, 천 단위로 포맷하는 함수
+// 금액을 억 단위로 포맷하는 함수
 const formatKoreanCurrency = (amount: number): string => {
   if (amount === 0) return "0원";
 
-  const billion = Math.floor(amount / 1000000000);
-  const million = Math.floor((amount % 1000000000) / 10000);
-  const thousand = Math.floor((amount % 10000) / 1000);
-  const remainder = amount % 1000;
-
-  let result = "";
-
-  if (billion > 0) {
-    result += `${billion}억 `;
-  }
-
-  if (million > 0) {
-    result += `${million}만 `;
-  }
-
-  if (thousand > 0) {
-    result += `${thousand}천 `;
-  }
-
-  if (remainder > 0) {
-    result += `${remainder}`;
-  }
-
-  return result.trim() + "원";
+  // 억 단위로 변환 (소수점 첫째자리까지 표시)
+  const billionAmount = amount / 100000000;
+  
+  // 소수점 첫째자리까지 표시하고 반올림
+  const roundedAmount = Math.round(billionAmount * 10) / 10;
+  
+  return `${roundedAmount}억원`;
 };
 
 // API 응답 타입 정의
