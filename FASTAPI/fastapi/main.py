@@ -1,5 +1,6 @@
 print("🟢 FastAPI main.py 진입")
-
+from datetime import datetime  # 올바른 임포트 방식
+import traceback  # traceback 모듈 추가
 import requests
 import uvicorn
 import json, sys, os, datetime, torch
@@ -49,8 +50,16 @@ except Exception as e:
     MODEL1, TOKENIZER1 = None, None  # 또는 그냥 raise 해서 명확히 터뜨려도 됨
 
 
-MODEL2, TOKENIZER2 = load_model('KoELECTRA', 26, 'Cross Entropy', 'cpu')
-MODEL3, TOKENIZER3 = load_model('RoBERTa', 32, 'Cross Entropy', 'cpu')
+# MODEL2, TOKENIZER2 = load_model('KoELECTRA', 26, 'Cross Entropy', 'cpu')
+# MODEL3, TOKENIZER3 = load_model('RoBERTa', 32, 'Cross Entropy', 'cpu')
+
+
+# 요청 모델 정의
+class Transaction(BaseModel):
+    date: str
+    description: str
+    amount: int
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -60,6 +69,16 @@ class QueryRequest(BaseModel):
     marital_status: bool
     previous_story: str = ""
     theme: str
+
+
+# API 응답 모델
+# 단순화된 응답 모델 - title과 content만 포함
+class StoryData(BaseModel):
+    title: str
+    content: str
+
+    
+
 
 MODEL_DICT = {'KoBERT_26_CrossEntropy' : MODEL1}
               # 'KoELECTRA_26_CrossEntropy' : MODEL2,
@@ -156,7 +175,6 @@ async def handle_query_rag(request: QueryRequest):
         # 더 구체적인 쿼리 생성 - 단일 키워드가 아닌 문맥 추가
         query_text = f"한국 인터넷 밈: {request.query}"
         print(f"임베딩 요청 텍스트: {query_text}")
-        # embedding_vector = embeddingClient.call_llm(query_text).data[0].embedding
 
         if not embedding_vector or len(embedding_vector) == 0:
             print("경고: 임베딩 벡터가 비어 있습니다. 검색 생략.")
@@ -308,12 +326,47 @@ async def handle_query_rag(request: QueryRequest):
         print("LLM 호출 시작")
         response = llmClient.call_llm(system_prompt, question_prompt)
         print("LLM 응답 생성 완료")
-        return {"answer": response.choices[0].message.content}
+
+        # 현재 시간 가져오기
+        # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 응답 형식 가공
+        story_content = response.choices[0].message.content
+
+         # JSON 내용 추출 시도 (응답이 이미 JSON 형식인 경우를 처리)
+        try:
+            # JSON 코드 블록을 찾아 추출
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', story_content, re.DOTALL)
+            
+            if json_match:
+                json_str = json_match.group(1)
+                story_json = json.loads(json_str)
+                
+                return StoryData(
+                    title=story_json.get("title", "제목 없음"),
+                    content=story_content
+                )
+            else:
+                # JSON 블록이 없는 경우, 전체 내용을 content로 설정
+                return StoryData(
+                    title="생성된 이야기",
+                    content=story_content
+                )
+        except json.JSONDecodeError:
+            # JSON 파싱 실패 시 전체 내용을 그대로 반환
+            return StoryData(
+                title="생성된 이야기",
+                content=story_content
+            )
+    
     except Exception as e:
         print(f"LLM 호출 중 오류 발생: {str(e)}")
-        import traceback
         traceback.print_exc()
-        return {"error": f"소설 생성 중 오류가 발생했습니다: {str(e)}"}
+        return StoryData(
+            title="오류",
+            content=f"소설 생성 중 오류가 발생했습니다: {str(e)}"
+        )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=PORT)
