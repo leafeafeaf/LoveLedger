@@ -2,6 +2,7 @@ package com.ssafy.loveledger.domain.account.presentation;
 
 import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountAuthenticationRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.UpdateHistoryTargetRequest;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.AccountResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
@@ -68,12 +69,11 @@ public class AccountController {
             year, month, pageno, size, sort);
         return monthStat;
     }
-
-    // TODO : 1. 계좌 0 번 리턴
-    @GetMapping("/saveus")
-    public List<WeekStatisticsResponse> saveAccount() {
+    
+    @GetMapping("/getzero")
+    public AccountResponse getAccount() {
         User user = userUtil.getCurrentUser();
-        return accountService.getAccountHistoryByWeek(user, 2025, 3);
+        return accountService.getAccount(user);
     }
 
     @GetMapping("/history/stat")
@@ -127,7 +127,6 @@ public class AccountController {
     public void getVerification(@RequestBody AccountAuthenticationRequest request) {
         User user = userUtil.getCurrentUser();
         accountService.getVerificationCode(user, request.getAccountNo());
-        // TODO : 2. return authCode
     }
 
     @PostMapping("/verify/confirm")
