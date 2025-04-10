@@ -476,7 +476,7 @@ export default function ProfileMainScreen({
 
           {isSolo && <Text style={styles.sinceDate}>{profileData.couple.since}</Text>}
 
-          {!isSolo && localMarryDate && (
+          {!isSolo && (
             <View style={styles.meetInfoRow}>
               <Pressable onPress={() => setShowMarryDatePicker(true)}>
                 <MaterialCommunityIcons
@@ -486,12 +486,18 @@ export default function ProfileMainScreen({
                 />
               </Pressable>
               <View style={styles.meetTextWrapper}>
-                <Text style={styles.meetText}>
-                  {profileData.couple.meetDays}일 함께했어요
-                </Text>
-                <Text style={styles.meetSubText}>
-                  ({localMarryDate.replace(/-/g, ".")}부터)
-                </Text>
+                {localMarryDate ? (
+                  <>
+                    <Text style={styles.meetText}>
+                      {profileData.couple.meetDays}일 함께했어요
+                    </Text>
+                    <Text style={styles.meetSubText}>
+                      ({localMarryDate.replace(/-/g, ".")}부터)
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.meetText}>결혼일을 등록해주세요</Text>
+                )}
               </View>
             </View>
           )}

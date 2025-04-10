@@ -16,20 +16,10 @@ export type ValidateInviteError = {
 };
 
 export const useValidateInvite = (inviteCode: string, userId: string) => {
-  const accessToken = useAppSelector((state) => state.auth.userToken);
 
   return useQuery<InviteValidateResponse, ValidateInviteError>({
     queryKey: ["validateInvite", inviteCode, userId],
     queryFn: async () => {
-      if (!accessToken) {
-        throw {
-          status: "401",
-          message: "인증 토큰이 없습니다.",
-          data: null,
-          timestamp: new Date().toISOString(),
-        } as ValidateInviteError;
-      }
-
       if (!inviteCode) {
         throw {
           status: "400",
@@ -52,16 +42,12 @@ export const useValidateInvite = (inviteCode: string, userId: string) => {
         console.log("[useValidateInvite] API 요청 시작:", {
           url: `/invite/validate/${inviteCode}`,
           method: "GET",
-          headers: { Authorization: accessToken },
           params: { userId },
         });
 
         const response = await axiosInstance.get<InviteValidateResponse>(
           `/invite/validate/${inviteCode}`,
           {
-            headers: {
-              Authorization: accessToken,
-            },
             params: {
               userId,
             },
