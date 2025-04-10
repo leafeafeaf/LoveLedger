@@ -506,7 +506,7 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   const [selectedDayTransactions, setSelectedDayTransactions] = useState<
     Transaction[]
   >([]);
-  const [activeView, setActiveView] = useState("you");
+  const activeView = useSelector((state: RootState) => state.partner.activeView);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [fabPosition, setFabPosition] = useState({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
@@ -638,6 +638,10 @@ export default function MainScreen({ navigation }: MainScreenProps) {
   );
 
   const handleSelectDate = (date: Date) => {
+      if (activeView === "partner") {
+        return;
+      }
+
     const dailyTransactions = getTransactionsForDate(date, transactions).map(
       (t) => ({
         transactionId: t.id.toString(),
@@ -1152,7 +1156,7 @@ const styles = StyleSheet.create({
   fabContainer: {
     position: "absolute",
     right: theme.spacing.xl,
-    bottom: 90,
+    bottom: 70,
     alignItems: "flex-end",
     elevation: 1000,
     zIndex: 1000,
@@ -1206,7 +1210,7 @@ const styles = StyleSheet.create({
   sliderContainer: {
     position: "absolute",
     left: theme.spacing.xl,
-    bottom: 90,
+    bottom: 60,
     width: 200,
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.lg,
