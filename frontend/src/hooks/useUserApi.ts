@@ -81,7 +81,8 @@ export const useUserDetail = () => {
     select: (response) => {
       return response.data as UserDetailResponse;
     },
-    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   React.useEffect(() => {
