@@ -76,51 +76,43 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
     const initImageCache = async () => {
       try {
         console.log("이미지 캐시 초기화 시작");
-        
-        // AsyncStorage의 모든 키를 가져옴
+  
         const keys = await AsyncStorage.getAllKeys();
-        console.log("AsyncStorage 키 목록 조회:", keys.length, "개");
-        
-        // 목표 이미지 키만 필터링
-        const imageKeys = keys.filter(key => key.startsWith('goalImage_'));
+        const imageKeys = keys.filter(key => key.startsWith("goalImage_"));
         console.log("필터링된 이미지 키:", imageKeys);
-        
+  
         if (imageKeys.length > 0) {
-          console.log(`${imageKeys.length}개의 목표 이미지 키를 찾았습니다`);
-          
-          // 모든 키에 대한 값을 가져옴
           const keyValuePairs = await AsyncStorage.multiGet(imageKeys);
-          console.log("키-값 조회 결과:", keyValuePairs.length, "개 항목");
-          
-          // 캐시 객체 생성
+  
           const cache: Record<string, string> = {};
           keyValuePairs.forEach(([key, value]) => {
             if (value) {
-              const goalId = key.replace('goalImage_', '');
+              const goalId = key.replace("goalImage_", "");
               cache[goalId] = value;
               console.log(`이미지 캐시에 추가됨: ${goalId}, URI 시작부분: ${value.substring(0, 15)}...`);
-            } else {
-              console.log(`NULL 값 발견: ${key}`);
             }
           });
-          
-          // 캐시 설정
-          console.log("이미지 캐시 설정:", Object.keys(cache).length, "개 이미지");
+  
           setImageCache(cache);
-          
-          // 목표 데이터가 있고 현재 캐시에 목표 ID가 있으면 이미지 미리 표시
-          if (goalData?.id && cache[goalData.id]) {
-            console.log("초기화 중 목표 이미지 발견, 즉시 표시:", goalData.id);
-            setLocalImage(cache[goalData.id]);
+  
+          // 마지막 키 기준으로 가장 최근 이미지 URI를 선택
+          const sortedKeys = Object.keys(cache).sort(); // 문자열 정렬이지만 일단 가장 마지막으로
+          const latestKey = sortedKeys[sortedKeys.length - 1];
+  
+          if (latestKey && cache[latestKey]) {
+            console.log("가장 마지막 목표 이미지 선택:", latestKey);
+            setLocalImage(cache[latestKey]);
+          } else {
+            console.log("최신 이미지가 없어 표시 생략");
           }
         } else {
-          console.log('캐시할 목표 이미지가 없습니다');
+          console.log("저장된 목표 이미지가 없습니다");
         }
       } catch (error) {
-        console.error('이미지 캐시 초기화 오류:', error);
+        console.error("이미지 캐시 초기화 오류:", error);
       }
     };
-    
+  
     initImageCache();
   }, []);  // goalData 의존성 제거하여 초기 렌더링 시에만 실행
 
@@ -180,13 +172,13 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
 
   // 목표 데이터 변경 시 이미지 로드
   useEffect(() => {
-    if (goalData?.id) {
-      console.log("목표 ID 확인됨, 이미지 로드 시도:", goalData.id);
-      
-      // 이미지 로드 시도
-      loadLocalImage(goalData.id);
+    if (goalData) {
+      const goalId = goalData.id || goalData.title || ''; // 가능한 값 찾기
+      console.log("목표 데이터 기반 이미지 로드 시도:", goalId);
+      if (goalId) loadLocalImage(goalId);
+      else console.log("유효한 goal ID 없음. 로드 스킵.");
     } else {
-      console.log("목표 ID가 없어 이미지 로드를 건너뜁니다.");
+      console.log("goalData가 없어 이미지 로드를 건너뜁니다.");
       setLocalImage(null);
     }
   }, [goalData]);
@@ -257,78 +249,52 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
   // 이미지 선택 및 업로드 처리
   const handleImageUpload = async () => {
     try {
-      // 디버깅을 위한 목표 데이터 출력
-      console.log("목표 데이터 확인:", goalData);
-      
-      // 유효한 목표가 있는지 확인
       if (!goalData || (!goalData.id && !goalData.title)) {
-        console.log("목표가 없음 - goalData:", goalData);
         Alert.alert("알림", "먼저 목표를 생성해주세요.");
         return;
       }
-      
-      // 목표 ID 생성 (없는 경우 타이틀과 현재 시간으로 고유 ID 생성)
+  
       const goalId = goalData.id || `${goalData.title.replace(/\s+/g, '')}_${Date.now()}`;
-      console.log("사용할 목표 ID:", goalId);
-
-      // 이미지 권한 요청
+  
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
       if (status !== "granted") {
         Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
         return;
       }
-
-      // 이미지 선택기 실행
+  
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
       });
-
+  
       if (!result.canceled && result.assets[0].uri) {
         const selectedImageUri = result.assets[0].uri;
-        console.log("이미지 선택됨:", selectedImageUri);
-
-        try {
-          setIsImageLoading(true);
-
-          // AsyncStorage 키 구성
-          const storageKey = `goalImage_${goalId}`;
-          
-          // 이전 이미지가 있다면 삭제
-          const previousImage = await AsyncStorage.getItem(storageKey);
-          if (previousImage) {
-            console.log("이전 이미지 삭제");
-            await AsyncStorage.removeItem(storageKey);
-          }
-
-          // 새 이미지 저장
-          await AsyncStorage.setItem(storageKey, selectedImageUri);
-          console.log("새 이미지 저장 완료");
-
-          // 메모리 캐시 업데이트
-          setImageCache(prev => ({
-            ...prev,
-            [goalId]: selectedImageUri
-          }));
-
-          // 로컬 상태 업데이트
-          setLocalImage(selectedImageUri);
-          console.log("이미지 상태 업데이트 완료");
-
-          Alert.alert("성공", "이미지가 저장되었습니다.");
-        } catch (error) {
-          console.error("이미지 저장 중 오류:", error);
-          Alert.alert("오류", "이미지 저장에 실패했습니다.");
-        } finally {
-          setIsImageLoading(false);
+        setIsImageLoading(true);
+  
+        // ✅ 1. 기존 goalImage_ 키들 모두 삭제
+        const allKeys = await AsyncStorage.getAllKeys();
+        const imageKeys = allKeys.filter(key => key.startsWith("goalImage_"));
+        if (imageKeys.length > 0) {
+          console.log("기존 이미지 키 삭제:", imageKeys);
+          await AsyncStorage.multiRemove(imageKeys);
         }
+  
+        // ✅ 2. 새 이미지 저장
+        const storageKey = `goalImage_${goalId}`;
+        await AsyncStorage.setItem(storageKey, selectedImageUri);
+        console.log("새 이미지 저장 완료:", storageKey);
+  
+        // ✅ 3. 캐시 및 상태 반영
+        setImageCache({ [goalId]: selectedImageUri });
+        setLocalImage(selectedImageUri);
+        Alert.alert("성공", "새 이미지가 저장되었습니다.");
       }
     } catch (error) {
-      console.error("이미지 업로드 중 오류:", error);
+      console.error("이미지 업로드 오류:", error);
       Alert.alert("오류", "이미지 업로드에 실패했습니다.");
+    } finally {
       setIsImageLoading(false);
     }
   };
@@ -531,25 +497,17 @@ export default function GoalListScreen({ navigation }: GoalListScreenProps) {
                         이미지 처리 중...
                       </Text>
                     </View>
-                  ) : localImage ? (
-                    <>
-                      <View style={styles.goalImage}>
-                        <Image
-                          source={{ uri: localImage }}
-                          style={{width: '100%', height: '100%'}}
-                          resizeMode="cover"
-                          onLoad={() => console.log("이미지 렌더링 성공")}
-                          onError={(error) => {
-                            console.error("이미지 렌더링 실패:", error.nativeEvent.error);
-                            // 실패 시 기본 UI로 대체
-                            setLocalImage(null);
-                          }}
-                        />
-                      </View>
-                      <Text style={styles.debugText}>
-                        {localImage.substring(0, 20)}...
-                      </Text>
-                    </>
+                  ) : localImage && localImage.startsWith("file") ? (
+                    <Image
+                      source={{ uri: localImage }}
+                      style={styles.goalImage}
+                      resizeMode="cover"
+                      onLoad={() => console.log("이미지 로드 성공")}
+                      onError={(error) => {
+                        console.error("이미지 로드 실패", error.nativeEvent.error);
+                        setLocalImage(null); // 에러 시 초기화
+                      }}
+                    />
                   ) : (
                     <View style={styles.emptyImageContainer}>
                       <MaterialCommunityIcons
