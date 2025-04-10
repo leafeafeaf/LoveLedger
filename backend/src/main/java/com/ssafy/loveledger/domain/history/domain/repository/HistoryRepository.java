@@ -20,9 +20,9 @@ public interface HistoryRepository extends JpaRepository<History, String> {
     @Query(
         "SELECT NEW com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse( "
             + "   d.category , " +
-            "   SUM(CASE WHEN d.transactionType > 0 THEN d.transactionAmount ELSE 0 END), "
+            "   SUM(CASE WHEN d.transactionType < 1 THEN d.transactionAmount ELSE 0 END), "
             +
-            "   SUM(CASE WHEN d.transactionType < 1 THEN d.transactionAmount ELSE 0 END) "
+            "   SUM(CASE WHEN d.transactionType > 0 THEN d.transactionAmount ELSE 0 END) "
             +
             ") " +
             "FROM History d " +
