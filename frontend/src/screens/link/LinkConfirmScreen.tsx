@@ -42,14 +42,6 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
 
   const { mutate: joinCouple, isPending: isJoining } = useJoinCouple();
 
-  // 초기 링크코드가 있는 경우에만 처리 (딥링크로 들어온 경우)
-  useEffect(() => {
-    if (initialLinkCode) {
-      console.log("[LinkConfirmScreen] 초기 링크코드 발견:", initialLinkCode);
-      setIsLoading(true);
-      validateLink();
-    }
-  }, [initialLinkCode]);
 
   // 유효성 검사 완료 후 처리
   useEffect(() => {
