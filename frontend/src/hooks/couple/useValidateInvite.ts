@@ -29,15 +29,7 @@ export const useValidateInvite = (inviteCode: string, userId: string) => {
         } as ValidateInviteError;
       }
 
-      if (!userId) {
-        throw {
-          status: "400",
-          message: "사용자 ID가 필요합니다.",
-          data: null,
-          timestamp: new Date().toISOString(),
-        } as ValidateInviteError;
-      }
-
+    
       try {
         console.log("[useValidateInvite] API 요청 시작:", {
           url: `/invite/validate/${inviteCode}`,

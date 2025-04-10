@@ -14,7 +14,6 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { theme } from "../../utils/theme";
 import { ProfileStackParamList } from "../../types";
 import { useAppSelector } from "../../hooks/reduxHooks";
-import { useValidateInvite } from "../../hooks/couple/useValidateInvite";
 import { useJoinCouple } from "../../hooks/couple/useJoinCouple";
 
 type LinkConfirmScreenProps = NativeStackScreenProps<
@@ -31,127 +30,37 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
   const userId = userInfo?.id || "";
   const [linkCode, setLinkCode] = useState(initialLinkCode);
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidated, setIsValidated] = useState(false);
-
-  const {
-    data,
-    error,
-    isLoading: isValidationLoading,
-    refetch: validateLink,
-  } = useValidateInvite(linkCode, userId);
 
   const { mutate: joinCouple, isPending: isJoining } = useJoinCouple();
 
 
 
   // 유효성 검사 완료 후 처리
-  useEffect(() => {
-    if (!isValidationLoading && (data || error)) {
-      setIsLoading(false);
 
-      console.log("[LinkConfirmScreen] 링크 검증 결과:", {
-        data: data ? JSON.stringify(data) : null,
-        error: error ? JSON.stringify(error) : null,
-        isError: !!error,
-      });
-
-      if (error) {
-        // 에러 타입에 따른 Alert 처리
-        console.log("[LinkConfirmScreen] 링크 검증 에러:", {
-          status: error.status,
-          message: error.message,
-          code: error.code,
-        });
-
-        if (error.status === "410") {
-          Alert.alert(
-            "만료된 초대 링크",
-            "이 초대 링크는 만료되었습니다. 새로운 링크를 요청해주세요.",
-            [{ text: "확인", onPress: () => console.log("이미 연동된 계정") }]
-          );
-        } else if (error.status === "400") {
-          Alert.alert(
-            "이미 연동된 계정",
-            "이미 다른 계정과 연동되어 있습니다.",
-            [{ text: "확인", onPress: () => console.log("이미 연동된 계정") }]
-          );
-        } else {
-          Alert.alert("오류가 발생했습니다", "잠시 후 다시 시도해주세요.", [
-            { text: "확인", onPress: () => console.log("이미 연동된 계정") },
-          ]);
-        }
-      } else if (data) {
-        try {
-          // 중첩된 JSON 문자열 파싱
-          const parsedData = typeof data === "string" ? JSON.parse(data) : data;
-          const partnerData = parsedData.data?.data?.data || parsedData.data;
-
-          console.log("[LinkConfirmScreen] 파싱된 파트너 정보:", partnerData);
-
-          if (partnerData) {
-            setIsValidated(true);
-            // 유효성 검사 성공 시 바로 연동 시작
-            console.log("[LinkConfirmScreen] 유효성 검사 성공 - 연동 시작");
-            joinCouple(linkCode, {
-              onSuccess: () => {
-                console.log("[LinkConfirmScreen] 연동 성공");
-                Alert.alert("연동 완료", "부부 연동이 완료되었습니다.", [
-                  { text: "확인", onPress: () => navigation.goBack() },
-                ]);
-              },
-              onError: (error) => {
-                console.error("[LinkConfirmScreen] 연동 실패:", {
-                  status: error.status,
-                  message: error.message,
-                  data: error.data,
-                  timestamp: error.timestamp,
-                });
-                Alert.alert(
-                  "오류",
-                  error.message
-                );
-              },
-            });
-          }
-        } catch (parseError) {
-          console.error("[LinkConfirmScreen] 데이터 파싱 에러:", parseError);
-          Alert.alert("오류가 발생했습니다", "잠시 후 다시 시도해주세요.", [
-            { text: "확인", onPress: () => navigation.goBack() },
-          ]);
-        }
-      }
-    }
-  }, [isValidationLoading, data, error, navigation, joinCouple]);
-
-  const handleValidateLink = async () => {
+  const handleJoinCouple = () => {
     if (!linkCode.trim()) {
       Alert.alert("알림", "초대 링크를 입력해주세요.");
       return;
     }
-    console.log(
-      "[LinkConfirmScreen] 확인 버튼 클릭 - 유효성 검사 시작:",
-      linkCode
-    );
-    console.log(
-      "[LinkConfirmScreen] API 요청 URL:",
-      `/invite/validate/${linkCode}`
-    );
-    console.log("[LinkConfirmScreen] API 요청 파라미터:", {
-      userId: userId,
-      linkCode: linkCode,
-    });
 
-    setIsLoading(true);
-    setIsValidated(false);
+    console.log("연동 시도:", { linkCode });
 
-    try {
-      await validateLink();
-    } catch (err) {
-      console.error("[LinkConfirmScreen] 검증 요청 실패:", err);
-    }
+    joinCouple(
+      linkCode,
+      {
+        onSuccess: () => {
+          Alert.alert("성공", "부부 연동이 완료되었습니다.");
+          navigation.goBack();
+        },
+        onError: (error: any) => {
+          console.error("연동 실패", error);
+          Alert.alert("실패", "연동에 실패했습니다. 올바른 링크인지 확인해주세요.");
+        },
+      }
+    );
   };
 
-  if (isLoading || isValidationLoading || isJoining) {
+  if (isLoading || isJoining) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -208,7 +117,7 @@ const LinkConfirmScreen: FC<LinkConfirmScreenProps> = ({
           />
           <Pressable
             style={styles.validateButton}
-            onPress={handleValidateLink}
+            onPress={handleJoinCouple}
             disabled={isLoading}
           >
             {isLoading ? (
