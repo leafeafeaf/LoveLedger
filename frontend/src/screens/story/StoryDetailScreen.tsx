@@ -393,13 +393,13 @@ const styles = StyleSheet.create({
   },
   // 폰트 스타일
   shillaFont: {
-    fontFamily: "Shilla_Culture(B)",
+    fontFamily: "Shilla_CultureB",
   },
   heirFont: {
     fontFamily: "HeirofLightBold",
   },
   gangwonFont: {
-    fontFamily: "강원교육새음",
+    fontFamily: "GangwonEdu",
   },
   chosunFont: {
     fontFamily: "ChosunNm",
