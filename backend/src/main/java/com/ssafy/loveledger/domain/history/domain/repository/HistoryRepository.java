@@ -3,6 +3,7 @@ package com.ssafy.loveledger.domain.history.domain.repository;
 import com.ssafy.loveledger.domain.account.domain.Account;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.MonthlyStatisticsResponse;
 import com.ssafy.loveledger.domain.history.domain.History;
+import com.ssafy.loveledger.domain.statistics.domain.Category;
 import com.ssafy.loveledger.domain.user.domain.User;
 import java.time.LocalDate;
 import java.util.List;
@@ -47,4 +48,15 @@ public interface HistoryRepository extends JpaRepository<History, String> {
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
+
+    /**
+     * 계좌 ID와 날짜 범위로 거래내역을 조회합니다.
+     *
+     * @param account 계좌 객체
+     * @param startDate 시작 날짜
+     * @param endDate 종료 날짜
+     * @return 거래내역 목록
+     */
+    List<History> findByAccountAndCreatedDateBetweenAndIsDeletedFalseOrderByCreatedDateDescCreatedTimeDesc(
+        Account account, LocalDate startDate, LocalDate endDate);
 }
