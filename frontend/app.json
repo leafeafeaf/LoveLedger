@@ -7,7 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "loveledger",
-    "deepLinking": true,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
