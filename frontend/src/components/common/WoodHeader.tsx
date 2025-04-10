@@ -45,13 +45,13 @@ const WoodHeader: React.FC<WoodHeaderProps> = ({
               </View>
             </Pressable>
           )}
-          
-          {showShare && (
-            <Pressable style={styles.iconButton} onPress={onShare}>
-              <MaterialCommunityIcons name="share-variant" size={24} color="white" />
-            </Pressable>
-          )}
-          
+        
+        {showShare && (
+          <Pressable style={styles.iconButton} onPress={onShare}>
+            <MaterialCommunityIcons name="share-variant" size={24} color="white" />
+          </Pressable>
+        )}
+        
           {!showShare && !showFontSelector && <View style={{width: 28}} />}
         </View>
       </View>
