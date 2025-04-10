@@ -9,6 +9,7 @@ import com.ssafy.loveledger.domain.account.presentation.dto.request.AccountHisto
 import com.ssafy.loveledger.domain.account.presentation.dto.request.CategoryPrescriptionRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.MemberInfoRequest;
 import com.ssafy.loveledger.domain.account.presentation.dto.request.SSAFYRequestHeader;
+import com.ssafy.loveledger.domain.account.presentation.dto.response.AccountResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.CategoryPrescriptionResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.DailyStatisticsResponse;
 import com.ssafy.loveledger.domain.account.presentation.dto.response.HistoryDetailResponse;
@@ -264,8 +265,9 @@ public class AccountService {
                     .build();
                 historyRepository.save(history);
 
-                account.setLastUpdated(LocalDateTime.now());
+                account.setAmount(history.getAmountAfterTransaction());
             }
+            account.setLastUpdated(LocalDateTime.now());
         }
     }
 
@@ -322,6 +324,18 @@ public class AccountService {
                 ErrorCode.ACCOUNT_CANT_CREATED
             );
         }
+    }
+
+    public AccountResponse getAccount(User user) {
+        Account account = user.getAccount().get(0);
+        AccountResponse response = AccountResponse.builder()
+            .accountId(account.getAccountId())
+            .bankCode(account.getBankCode())
+            .certedAt(account.getCertedAt())
+            .amount(account.getAmount())
+            .lastUpdated(account.getLastUpdated())
+            .build();
+        return response;
     }
 
     private SSAFYRequestHeader createRequestHeader(User user, String apiName, String code) {
