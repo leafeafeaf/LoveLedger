@@ -1,15 +1,67 @@
-import React, { FC } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import React, { FC, useState, useEffect } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import { StoryScreenProps, StorySettings, Story, Series } from "../../types";
 import Header from "../../components/common/Header";
+import { useDatePicker } from "../../hooks/useDatePicker";
+import { useDispatch } from "react-redux";
+import { clearCurrentStory, clearCoverImage, clearStorySavingState } from "../../store/contentSlice";
+import { CommonActions } from "@react-navigation/native";
 
 const StoryPreviewScreen: FC<StoryScreenProps<"StoryPreview">> = ({
   navigation,
   route,
 }) => {
   const { settings, series, story } = route.params;
+  const { resetAllDates } = useDatePicker();
+  const dispatch = useDispatch();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [fontStyle, setFontStyle] = useState<string | null>(null);
+
+  // 선택된 폰트 스타일을 설정합니다
+  useEffect(() => {
+    if (settings && settings.fontStyle) {
+      setFontStyle(settings.fontStyle);
+    }
+  }, [settings]);
+
+  // 폰트 스타일에 따른 스타일 객체를 반환하는 함수
+  const getFontStyle = () => {
+    if (!fontStyle) return null;
+
+    switch (fontStyle) {
+      case "신라문화체":
+        return styles.shillaFont;
+      case "빛의 계승자체":
+        return styles.heirFont;
+      case "강원교육새음체":
+        return styles.gangwonFont;
+      case "조선일보명조체":
+        return styles.chosunFont;
+      default:
+        return null;
+    }
+  };
+
+  const resetAndNavigateToMain = () => {
+    // 설정 초기화
+    resetAllDates();
+    dispatch(clearCurrentStory());
+    dispatch(clearCoverImage());
+    dispatch(clearStorySavingState());
+    
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Main" }]
+      })
+    );
+  };
+
+  const handleBack = () => {
+    setShowConfirmModal(true);
+  };
 
   const handleNext = () => {
     navigation.navigate("CoverSelection", {
@@ -31,13 +83,46 @@ const StoryPreviewScreen: FC<StoryScreenProps<"StoryPreview">> = ({
       <Header
         title="스토리 미리보기"
         showBack={true}
-        onBack={() => navigation.goBack()}
+        onBack={handleBack}
       />
+      
+      {/* 커스텀 확인 모달 */}
+      <Modal
+        visible={showConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>소설 작성 취소</Text>
+            <Text style={styles.modalContent}>
+              메인 화면으로 돌아가시겠습니까?{'\n'}
+              지금까지의 설정은 초기화됩니다.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => setShowConfirmModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]} 
+                onPress={resetAndNavigateToMain}
+              >
+                <Text style={styles.confirmButtonText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <View style={styles.paperContainer}>
-            <Text style={styles.storyTitle}>{story.title}</Text>
-            <Text style={styles.storyContent}>{story.content}</Text>
+            <Text style={[styles.storyTitle, getFontStyle()]}>{story.title}</Text>
+            <Text style={[styles.storyContent, getFontStyle()]}>{story.content}</Text>
           </View>
           <Pressable style={styles.regenerateButton} onPress={handleRegenerate}>
             <MaterialCommunityIcons
@@ -101,6 +186,19 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     textAlign: "justify",
   },
+  // 폰트 스타일 정의
+  shillaFont: {
+    fontFamily: "Shilla_Culture(B)",
+  },
+  heirFont: {
+    fontFamily: "HeirofLightBold",
+  },
+  gangwonFont: {
+    fontFamily: "강원교육새음",
+  },
+  chosunFont: {
+    fontFamily: "ChosunNm",
+  },
   regenerateButton: {
     flexDirection: "row",
     justifyContent: "center",
@@ -139,6 +237,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.white,
+  },
+  
+  // 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    ...theme.shadows.medium,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.md,
+  },
+  modalContent: {
+    fontSize: 16,
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: theme.colors.border,
+  },
+  confirmButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  cancelButtonText: {
+    color: theme.colors.text,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: theme.colors.white,
+    fontWeight: '600',
   },
 });
 
