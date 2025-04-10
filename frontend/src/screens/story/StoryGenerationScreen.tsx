@@ -8,6 +8,7 @@ import { StoryScreenProps } from "../../types";
 import { useFictionContent } from "../../hooks/useFictionContent";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
+import { useDatePicker } from "../../hooks/useDatePicker";
 import {
   startStoryGeneration,
   updateStoryGenerationProgress,
@@ -66,6 +67,7 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
   const { isGenerating, progress, error } = useSelector(
     (state: RootState) => state.content.storyGeneration
   );
+  const { resetAllDates } = useDatePicker();
 
   const bookAnimation = useRef(new Animated.Value(0)).current;
   const pageAnimation = useRef(new Animated.Value(0)).current;
@@ -80,6 +82,11 @@ const StoryGenerationScreen: FC<StoryScreenProps<"StoryGeneration">> = ({
 
     // API 호출
     generateStory();
+
+    // 화면을 나갈 때 날짜 초기화
+    return () => {
+      resetAllDates();
+    };
   }, []);
 
   const startAnimations = () => {

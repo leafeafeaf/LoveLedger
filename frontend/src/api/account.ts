@@ -1,10 +1,10 @@
 import { axiosInstance } from "./axios";
-
 import {
   AccountVerifyRequest,
   AccountVerifyResponse,
   AccountVerifyConfirmRequest,
   AccountVerifyConfirmResponse,
+  Transaction,
 } from "../types";
 
 export const verifyAccount = async (
@@ -21,4 +21,25 @@ export const confirmAccountVerification = async (
 ): Promise<AccountVerifyConfirmResponse> => {
   const response = await axiosInstance.post("/account/verify/confirm", data)
   return response.data;
+};
+
+export const getMonthlyTransactions = async (
+  year: number,
+  month: number,
+  token: string
+): Promise<Transaction[]> => {
+  const response = await axiosInstance.get(
+    "/account/history/monthly",
+    {
+      params: {
+        year,
+        month
+      },
+      headers: {
+        "Content-Type": "application/json; charset=utf8",
+        Authorization: token,
+      },
+    }
+  );
+  return response.data.data;
 };

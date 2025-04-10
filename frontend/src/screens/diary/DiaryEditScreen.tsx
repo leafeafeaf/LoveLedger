@@ -89,7 +89,6 @@ export default function DiaryEditScreen({
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent || "");
   const [selectedMood, setSelectedMood] = useState<MoodType>(initialMood as MoodType);
-  const [expense, setExpense] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
     try {
       return new Date(date);
@@ -257,18 +256,6 @@ export default function DiaryEditScreen({
             </View>
           </View>
 
-          <View style={styles.expenseInput}>
-            <Text style={styles.sectionTitle}>지출 금액</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="금액 입력"
-              value={expense}
-              onChangeText={setExpense}
-              keyboardType="numeric"
-              placeholderTextColor={theme.colors.textLight}
-            />
-          </View>
-
           <TextInput
             style={styles.contentInput}
             placeholder="내용을 입력하세요..."
@@ -320,50 +307,40 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    width: "100%",
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: theme.spacing.md,
   },
   dateSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.small,
   },
   dateText: {
     flex: 1,
     fontSize: 16,
     color: theme.colors.text,
-    marginLeft: 8,
+    marginHorizontal: theme.spacing.sm,
   },
   titleInput: {
-    fontSize: 20,
-    fontWeight: "600",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    fontSize: 18,
     color: theme.colors.text,
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: "white",
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.small,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   moodSelector: {
     marginBottom: 16,
@@ -371,59 +348,37 @@ const styles = StyleSheet.create({
   moodOptions: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: theme.spacing.lg,
   },
   moodOption: {
+    flex: 1,
     alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "white",
-    width: "23%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    marginHorizontal: theme.spacing.xs,
+    ...theme.shadows.small,
   },
   selectedMoodOption: {
-    backgroundColor: "#F6C324",
+    backgroundColor: theme.colors.primary,
   },
   moodLabel: {
+    marginTop: theme.spacing.xs,
     fontSize: 12,
     color: theme.colors.text,
-    marginTop: 4,
   },
   selectedMoodLabel: {
-    color: "white",
-  },
-  expenseInput: {
-    marginBottom: 16,
-  },
-  amountInput: {
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    color: theme.colors.text,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    color: theme.colors.white,
   },
   contentInput: {
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     fontSize: 16,
     color: theme.colors.text,
     minHeight: 200,
-    marginBottom: 16,
     textAlignVertical: "top",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...theme.shadows.small,
   },
   footer: {
     flexDirection: "row",

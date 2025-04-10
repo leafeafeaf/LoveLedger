@@ -29,7 +29,11 @@ import { axiosInstance } from "../../api/axios";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useDiaryList } from '../../hooks/useDiaryList';
 
-type Props = LibraryScreenProps<"LibraryMain">;
+// 두 네비게이터에서 모두 사용할 수 있도록 타입 정의
+type Props = {
+  navigation: any; // any 타입을 사용하여 타입 호환성 문제 해결
+  route?: any;
+};
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const [activeView, setActiveView] = useState<"album" | "list">("album");

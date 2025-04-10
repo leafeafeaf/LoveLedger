@@ -25,24 +25,24 @@ import LinkSuccessScreen from "./screens/link/LinkSuccessScreen";
 import DiaryDetailScreen from "./screens/diary/DiaryDetailScreen";
 import StoryDetailScreen from "./screens/story/StoryDetailScreen";
 
-import * as Linking from "expo-linking";
+import * as Linking from 'expo-linking';
 
-const prefix = Linking.createURL("/");
+const prefix = Linking.createURL('/');
 
 const linking = {
-  prefixes: [prefix, "loveledger://"],
+  prefixes: [prefix, 'loveledger://'],
   config: {
     screens: {
-      Auth: "auth",
-      Main: "main",
+      Auth: 'auth',
+      Main: 'main',
       LinkConfirm: {
-        path: "link-confirm",
+        path: 'link-confirm',
         parse: {
-          linkCode: (code: string) => code ?? "",
+          linkCode: (code: string) => code ?? '',
         },
       },
-      LinkSuccess: "link-success",
-      LinkError: "link-error",
+      LinkSuccessScreen: 'link-success',
+      LinkErrorScreen: 'link-error',
     },
   },
 };
@@ -87,56 +87,62 @@ const AppRouter = () => {
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* 인증 여부와 관계없이 항상 Auth 화면으로 이동 */}
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-
-        {/* 나머지 화면들 */}
-        <Stack.Screen name="Main" component={MainNavigator} />
-
-        <Stack.Screen
-          name="Story"
-          component={StoryNavigator}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Diary"
-          component={DiaryNavigator}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Daily"
-          component={DailyNavigator}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Profile"
-          component={ProfileNavigator}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen name="Library" component={LibraryNavigator} />
-        <Stack.Screen
-          name="DiaryDetail"
-          component={DiaryDetailScreen}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="StoryDetail"
-          component={StoryDetailScreen}
-          options={{ presentation: "modal" }}
-        />
-        {/* 기타 모달 스크린들 */}
-        <Stack.Group screenOptions={{ presentation: "modal" }}>
-          <Stack.Screen
-            name="TransactionEdit"
-            component={TransactionEditScreen}
-          />
-          <Stack.Screen
-            name="LinkGeneration"
-            component={LinkGenerationScreen}
-          />
-          <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
-          <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
-        </Stack.Group>
+        {isAuthenticated ? (
+          <>
+            {/* 인증된 사용자의 화면들 */}
+            <Stack.Screen name="Main" component={MainNavigator} />
+            <Stack.Screen
+              name="Story"
+              component={StoryNavigator}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="Diary"
+              component={DiaryNavigator}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="Daily"
+              component={DailyNavigator}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="Profile"
+              component={ProfileNavigator}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen name="Library" component={LibraryNavigator} />
+            <Stack.Screen
+              name="DiaryDetail"
+              component={DiaryDetailScreen}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="StoryDetail"
+              component={StoryDetailScreen}
+              options={{ presentation: "modal" }}
+            />
+            {/* 기타 모달 스크린들 */}
+            <Stack.Group screenOptions={{ presentation: "modal" }}>
+              <Stack.Screen
+                name="TransactionEdit"
+                component={TransactionEditScreen}
+              />
+              <Stack.Screen
+                name="LinkGeneration"
+                component={LinkGenerationScreen}
+              />
+              <Stack.Screen name="LinkConfirm" component={LinkConfirmScreen} />
+              <Stack.Screen name="LinkSuccess" component={LinkSuccessScreen} />
+            </Stack.Group>
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          </>
+        ) : (
+          <>
+            {/* 인증되지 않은 사용자는 인증 화면만 표시 */}
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

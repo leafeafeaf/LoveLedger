@@ -56,6 +56,9 @@ export type RootStackParamList = {
     partnerName: string;
     partnerEmail: string;
   };
+  LinkError: {
+    errorType: "expired" | "invalid" | "already_linked" | "generic";
+  };
   AccountVerification: undefined;
 };
 
@@ -83,6 +86,7 @@ export type ProfileStackParamList = {
     partnerEmail: string;
   };
 };
+
 
 // 스토리 스택 파라미터 타입
 export type StoryStackParamList = {
@@ -355,12 +359,13 @@ export type Story = {
 };
 
 // 스토리 설정 타입
-export type StorySettings = {
+export interface StorySettings {
   themeStyle: string;
   toneStyle: string;
-  lengthStyle?: string;
-  period?: string;
-};
+  lengthStyle: string;
+  period: string;
+  customQuery?: string; // RAG 연동을 위한 사용자 입력 쿼리, 선택적
+}
 
 // 커버 스타일 타입
 export type CoverStyle = {
@@ -482,6 +487,7 @@ export interface AccountVerifyResponse {
   timestamp: string;
   success: boolean;
 }
+
 
 // 계좌 인증 에러 타입
 export interface AccountVerifyError {
@@ -631,6 +637,7 @@ export interface InviteConflictResponse {
   };
   timestamp: string;
 }
+
 export interface TransactionHistory {
   transactionId: string;
   time: string;

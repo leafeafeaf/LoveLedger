@@ -1,35 +1,30 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type {
-  Transaction,
-  TransactionDetail,
-  PageInfo,
-  AccountDetailResponse,
-} from "../types";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { Transaction, TransactionDetail, PageInfo, AccountDetailResponse } from '../types';
 
 interface Goal {
-  goalAmount: number;
-  currentAmount: number;
-  startDate: string;
-  goalDate: string;
+  goalamount: number;
+  currentamount: number;
+  startdate: string;
+  goaldate: string;
   title: string;
-  contentURL: string;
+  contenturl: string;
 }
 
-interface MonthStat {
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
+interface MonthStatItem {
+  categoryName: string;
+  consumeSum: number;
+  earnSum: number;
+  percentage: number;
 }
 
 interface WeekStat {
-  weekNumber: number;
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
+  week: number;
+  totalEarnSum: number;
+  totalConsumeSum: number;
 }
 
 interface MonthlyStatResponse {
-  monthStat: MonthStat;
+  monthStat: MonthStatItem[];
   weekStat: WeekStat[];
 }
 
@@ -49,13 +44,15 @@ interface FinanceState {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
+  selectedYear: number;
+  selectedMonth: number;
   goalList: {
     goal: Goal | null;
     isLoading: boolean;
     error: string | null;
   };
   monthlyStat: {
-    monthStat: MonthStat;
+    monthStat: MonthStatItem[];
     weekStat: WeekStat[];
     isLoading: boolean;
     error: string | null;
@@ -85,17 +82,15 @@ const initialState: FinanceState = {
   transactions: [],
   isLoading: false,
   error: null,
+  selectedYear: new Date().getFullYear(),
+  selectedMonth: new Date().getMonth() + 1,
   goalList: {
     goal: null,
     isLoading: false,
     error: null,
   },
   monthlyStat: {
-    monthStat: {
-      totalIncome: 0,
-      totalExpense: 0,
-      balance: 0,
-    },
+    monthStat: [],
     weekStat: [],
     isLoading: false,
     error: null,
@@ -126,7 +121,7 @@ const initialState: FinanceState = {
 };
 
 const financeSlice = createSlice({
-  name: "finance",
+  name: 'finance',
   initialState,
   reducers: {
     fetchTransactionsStart: (state) => {
@@ -145,23 +140,19 @@ const financeSlice = createSlice({
       state.transactions.unshift(action.payload);
     },
     updateTransaction: (state, action: PayloadAction<Transaction>) => {
-      const index = state.transactions.findIndex(
-        (t) => t.id === action.payload.id
-      );
+      const index = state.transactions.findIndex(t => t.id === action.payload.id);
       if (index !== -1) {
         state.transactions[index] = action.payload;
       }
     },
     deleteTransaction: (state, action: PayloadAction<string>) => {
-      state.transactions = state.transactions.filter(
-        (t) => t.id !== action.payload
-      );
+      state.transactions = state.transactions.filter(t => t.id !== action.payload);
     },
     fetchGoalListStart: (state) => {
       state.goalList.isLoading = true;
       state.goalList.error = null;
     },
-    fetchGoalListSuccess: (state, action: PayloadAction<Goal | null>) => {
+    fetchGoalListSuccess: (state, action: PayloadAction<Goal>) => {
       state.goalList.isLoading = false;
       state.goalList.goal = action.payload;
     },
@@ -173,10 +164,7 @@ const financeSlice = createSlice({
       state.monthlyStat.isLoading = true;
       state.monthlyStat.error = null;
     },
-    fetchMonthlyStatSuccess: (
-      state,
-      action: PayloadAction<MonthlyStatResponse>
-    ) => {
+    fetchMonthlyStatSuccess: (state, action: PayloadAction<MonthlyStatResponse>) => {
       state.monthlyStat.monthStat = action.payload.monthStat;
       state.monthlyStat.weekStat = action.payload.weekStat;
       state.monthlyStat.isLoading = false;
@@ -189,10 +177,7 @@ const financeSlice = createSlice({
       state.calendarDailySum.isLoading = true;
       state.calendarDailySum.error = null;
     },
-    fetchCalendarDailySumSuccess: (
-      state,
-      action: PayloadAction<DailySum[]>
-    ) => {
+    fetchCalendarDailySumSuccess: (state, action: PayloadAction<DailySum[]>) => {
       state.calendarDailySum.data = action.payload;
       state.calendarDailySum.isLoading = false;
     },
@@ -204,10 +189,7 @@ const financeSlice = createSlice({
       state.accountDetail.isLoading = true;
       state.accountDetail.error = null;
     },
-    fetchAccountDetailSuccess: (
-      state,
-      action: PayloadAction<AccountDetailResponse>
-    ) => {
+    fetchAccountDetailSuccess: (state, action: PayloadAction<AccountDetailResponse>) => {
       state.accountDetail.isLoading = false;
       state.accountDetail.data = action.payload;
     },
@@ -241,22 +223,27 @@ const financeSlice = createSlice({
     deleteTransactionSuccess: (state, action: PayloadAction<string>) => {
       state.transactionDelete.isLoading = false;
       if (state.accountDetail.data) {
-        state.accountDetail.data.content =
-          state.accountDetail.data.content.filter(
-            (transaction) => transaction.transactionId !== action.payload
-          );
+        state.accountDetail.data.content = state.accountDetail.data.content.filter(
+          (transaction) => transaction.transactionId !== action.payload
+        );
       }
     },
     deleteTransactionFailure: (state, action: PayloadAction<string>) => {
       state.transactionDelete.isLoading = false;
       state.transactionDelete.error = action.payload;
     },
-  },
+    setSelectedYear: (state, action: PayloadAction<number>) => {
+      state.selectedYear = action.payload;
+    },
+    setSelectedMonth: (state, action: PayloadAction<number>) => {
+      state.selectedMonth = action.payload;
+    },
+  }
 });
 
-export const {
-  fetchTransactionsStart,
-  fetchTransactionsSuccess,
+export const { 
+  fetchTransactionsStart, 
+  fetchTransactionsSuccess, 
   fetchTransactionsFailure,
   addTransaction,
   updateTransaction,
@@ -279,5 +266,7 @@ export const {
   deleteTransactionStart,
   deleteTransactionSuccess,
   deleteTransactionFailure,
+  setSelectedYear,
+  setSelectedMonth,
 } = financeSlice.actions;
 export default financeSlice.reducer;

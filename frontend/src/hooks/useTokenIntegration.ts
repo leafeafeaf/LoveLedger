@@ -1,6 +1,7 @@
 import { useTokenApi } from "./useTokenApi";
 import { useAppDispatch, useAppSelector } from "./reduxHooks";
 import { fetchUserToken, setToken, clearToken } from "../store/tokenSlice";
+import { loginSuccess } from "../store/authSlice";
 import { useCallback, useEffect } from "react";
 
 /**
@@ -23,10 +24,18 @@ export const useTokenIntegration = () => {
   // 토큰 데이터가 변경되면 Redux 상태도 업데이트
   useEffect(() => {
     if (tokenData?.success && tokenData.data) {
+      // 토큰 상태 업데이트
       dispatch(
         setToken({
           accessToken: tokenData.data.accessToken,
           expiresIn: tokenData.data.expiresIn,
+        })
+      );
+      
+      // 인증 상태 업데이트 - 로그인 성공으로 처리
+      dispatch(
+        loginSuccess({
+          token: tokenData.data.accessToken
         })
       );
     }
@@ -34,16 +43,35 @@ export const useTokenIntegration = () => {
 
   // React Query를 사용하여 토큰 가져오기
   const fetchTokenWithQuery = useCallback(
-    (userId: number) => {
-      return getTokenForUser(userId);
+    async (userId: number) => {
+      const result = await getTokenForUser(userId);
+      if (result.data?.success && result.data?.data) {
+        // 인증 상태 업데이트 - 로그인 성공으로 처리
+        dispatch(
+          loginSuccess({
+            token: result.data.data.accessToken
+          })
+        );
+      }
+      return result;
     },
-    [getTokenForUser]
+    [getTokenForUser, dispatch]
   );
 
   // Redux를 사용하여 토큰 가져오기
   const fetchTokenWithRedux = useCallback(
-    (userId: number) => {
-      return dispatch(fetchUserToken(userId));
+    async (userId: number) => {
+      const result = await dispatch(fetchUserToken(userId));
+      if (result.meta.requestStatus === 'fulfilled') {
+        // 인증 상태 업데이트 - 로그인 성공으로 처리
+        const payload = result.payload as { accessToken: string, expiresIn: number };
+        dispatch(
+          loginSuccess({
+            token: payload.accessToken
+          })
+        );
+      }
+      return result;
     },
     [dispatch]
   );
@@ -55,8 +83,8 @@ export const useTokenIntegration = () => {
 
   return {
     // 통합된 상태 정보
-    token: tokenState.accessToken || tokenData?.data.accessToken || null,
-    expiresIn: tokenState.expiresIn || tokenData?.data.expiresIn || null,
+    token: tokenState.accessToken || tokenData?.data?.accessToken || null,
+    expiresIn: tokenState.expiresIn || tokenData?.data?.expiresIn || null,
     isLoading: tokenState.isLoading || isQueryLoading,
     error: tokenState.error || (isQueryError ? queryError?.message : null),
 

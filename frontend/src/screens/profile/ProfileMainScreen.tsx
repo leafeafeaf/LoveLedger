@@ -20,6 +20,7 @@ import { useUserDetail, useUpdateUserProfile } from "../../hooks/useUserApi";
 import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DatePicker from "../../components/common/DatePicker";
 
 type ProfileMainScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -41,7 +42,8 @@ type IconName =
   | "pencil"
   | "chevron-right"
   | "delete"
-  | "logout";
+  | "logout"
+  | "calendar-edit";
 
 interface Partner {
   name: string;
@@ -83,6 +85,11 @@ export default function ProfileMainScreen({
     useUpdateUserProfile();
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isImageUpdating, setIsImageUpdating] = useState(false);
+  const [shouldLogout, setShouldLogout] = useState(false);
+  
+  // DatePicker 관련 상태 추가
+  const [showMarryDatePicker, setShowMarryDatePicker] = useState(false);
+  const [localMarryDate, setLocalMarryDate] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,6 +97,19 @@ export default function ProfileMainScreen({
       loadSavedCoverImage();
     }, [queryClient])
   );
+
+  useEffect(() => {
+    if (shouldLogout) {
+      dispatch(logout());
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Auth" }],
+        })
+      );
+      setShouldLogout(false);
+    }
+  }, [shouldLogout, dispatch, navigation]);
 
   // 저장된 커버 이미지 로드
   const loadSavedCoverImage = async () => {
@@ -177,6 +197,25 @@ export default function ProfileMainScreen({
     return age;
   };
 
+  // 2. useEffect에서 userDetail이 변경될 때 localMarryDate 업데이트
+  useEffect(() => {
+    if (userDetail?.marryDate) {
+      setLocalMarryDate(userDetail.marryDate);
+    }
+  }, [userDetail]);
+
+  // 3. marryDate를 처리하는 함수 추가
+  const handleMarryDateSelect = (date: Date) => {
+    // YYYY-MM-DD 형식으로 변환
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    setLocalMarryDate(formattedDate);
+    setShowMarryDatePicker(false);
+  };
+
   if (isLoading || isUpdating || isImageUpdating) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -220,8 +259,8 @@ export default function ProfileMainScreen({
         : `${userDetail.name} & ${partnerName}`,
       since: isSolo
         ? "아직 부부 연동이 필요합니다"
-        : `${userDetail.marryDate || ""}부터 함께`,
-      meetDays: meetDays,
+        : `${localMarryDate || ""}부터 함께`,
+      meetDays: localMarryDate ? calculateMeetDays(localMarryDate) : meetDays,
       diariesCount: userDetail.diariesCount || 0,
       storiesCount: userDetail.storiesCount || 0,
     },
@@ -297,6 +336,52 @@ export default function ProfileMainScreen({
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert("로그아웃", "정말로 로그아웃하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "로그아웃",
+        onPress: async () => {
+          try {
+            // AsyncStorage에서 토큰 삭제
+            await AsyncStorage.removeItem("token");
+            
+            // Redux 로그아웃 액션 디스패치
+            dispatch(logout());
+            
+            // 로그아웃 성공 메시지 표시 후 Auth 화면으로 즉시 이동
+            Alert.alert("로그아웃 성공", "성공적으로 로그아웃되었습니다.", [
+              {
+                text: "확인",
+                onPress: () => {
+                  // 네비게이션 스택을 초기화하고 Auth 스택 내의 Login 화면으로 직접 이동
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [
+                        { 
+                          name: "Auth", 
+                          state: {
+                            routes: [
+                              { name: "Login" }
+                            ]
+                          }
+                        }
+                      ]
+                    })
+                  );
+                }
+              }
+            ]);
+          } catch (error) {
+            console.error("로그아웃 중 오류 발생:", error);
+            Alert.alert("오류", "로그아웃 중 오류가 발생했습니다.");
+          }
+        }
+      }
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -369,7 +454,23 @@ export default function ProfileMainScreen({
               </Text>
             </View>
           )}
-          <Text style={styles.sinceDate}>{profileData.couple.since}</Text>
+          {/* 결혼일 표시 부분 수정 */}
+          {!isSolo && (
+            <View style={styles.sinceDateContainer}>
+              <Text style={styles.sinceDate}>{profileData.couple.since}</Text>
+              <Pressable 
+                style={styles.dateEditButton}
+                onPress={() => setShowMarryDatePicker(true)}
+              >
+                <MaterialCommunityIcons
+                  name="calendar-edit"
+                  size={18}
+                  color={theme.colors.textLight}
+                />
+              </Pressable>
+            </View>
+          )}
+          {isSolo && <Text style={styles.sinceDate}>{profileData.couple.since}</Text>}
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -595,34 +696,7 @@ export default function ProfileMainScreen({
 
           <Pressable
             style={styles.menuItem}
-            onPress={() => {
-              Alert.alert("로그아웃", "정말로 로그아웃하시겠습니까?", [
-                { text: "취소", style: "cancel" },
-                {
-                  text: "로그아웃",
-                  onPress: () => {
-                    Alert.alert(
-                      "로그아웃 성공",
-                      "성공적으로 로그아웃되었습니다.",
-                      [
-                        {
-                          text: "확인",
-                          onPress: () => {
-                            dispatch(logout());
-                            navigation.dispatch(
-                              CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: "Auth" }],
-                              })
-                            );
-                          },
-                        },
-                      ]
-                    );
-                  },
-                },
-              ]);
-            }}
+            onPress={handleLogout}
           >
             <View
               style={[
@@ -700,6 +774,14 @@ export default function ProfileMainScreen({
           <Text style={styles.copyrightText}>© 2025 Love Ledger</Text>
         </View>
       </ScrollView>
+      
+      {/* DatePicker 모달 추가 */}
+      <DatePicker
+        visible={showMarryDatePicker}
+        onClose={() => setShowMarryDatePicker(false)}
+        onSelectDate={handleMarryDateSelect}
+        selectedDate={localMarryDate ? new Date(localMarryDate) : undefined}
+      />
     </View>
   );
 }
@@ -779,10 +861,15 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.xs,
     fontWeight: "500",
   },
-  sinceDate: {
-    fontSize: 16,
-    color: theme.colors.textLight,
+  sinceDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: theme.spacing.xs,
+  },
+  dateEditButton: {
+    marginLeft: theme.spacing.xs,
+    padding: 4,
   },
   statsContainer: {
     flexDirection: "row",
@@ -970,5 +1057,9 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     fontSize: 16,
     color: theme.colors.text,
+  },
+  sinceDate: {
+    fontSize: 16,
+    color: theme.colors.textLight,
   },
 });

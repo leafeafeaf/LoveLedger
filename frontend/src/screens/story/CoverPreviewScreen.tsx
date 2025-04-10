@@ -45,6 +45,7 @@ const CoverPreviewScreen: FC<StoryScreenProps<"CoverPreview">> = ({
     // 화면 진입 시 커버 생성
     if (story.content && coverStyle && story.title) {
       console.log("그림 생성 시작 : CoverPreviewScreen")
+      console.log("선택된 그림체 스타일(drawStyle):", coverStyle)
 
       mutate(
         {

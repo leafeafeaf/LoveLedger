@@ -16,13 +16,20 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../utils/theme";
 import Header from "../../components/common/Header";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { DiaryStackParamList } from "../../types";
+import { CompositeNavigationProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { DiaryStackParamList, RootStackParamList } from "../../types";
 import { useDiaryCreate } from "../../hooks/useDiaryCreate";
 
-type DiaryScreenProps = Omit<NativeStackScreenProps<DiaryStackParamList, "DiaryCreate">, 'route'> & {
-  route: {
-    params: DiaryCreateParams;
+type DiaryScreenNavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<DiaryStackParamList, "DiaryCreate">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+type DiaryScreenProps = {
+  navigation: DiaryScreenNavigationProp;
+  route?: {
+    params?: DiaryCreateParams;
   };
 };
 
@@ -50,7 +57,7 @@ export default function DiaryScreen({ navigation, route }: DiaryScreenProps) {
   const [expense, setExpense] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
     // route.params에서 날짜를 받아오고, 없으면 현재 날짜 사용
-    if (route.params?.date) {
+    if (route?.params?.date) {
       return new Date(route.params.date);
     }
     return new Date();

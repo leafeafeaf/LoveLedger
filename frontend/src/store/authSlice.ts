@@ -54,6 +54,8 @@ const authSlice = createSlice({
       // state.userInfo = action.payload.userInfo;
       state.isLoading = false;
       state.error = null;
+      // AsyncStorage에 토큰 저장
+      AsyncStorage.setItem('token', action.payload.token);
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.isLoading = false;
@@ -64,7 +66,8 @@ const authSlice = createSlice({
       state.userToken = null;
       state.userInfo = null;
       state.error = null;
-      AsyncStorage.clear();
+      // AsyncStorage에서 토큰 제거
+      AsyncStorage.removeItem('token');
     },
     updateUserInfo: (state, action: PayloadAction<Partial<UserInfo>>) => {
       if (state.userInfo) {
@@ -112,20 +115,25 @@ export const logoutAndClearStorage = () => async (dispatch: any) => {
 
 export const checkAuthStatus = () => async (dispatch: any) => {
   try {
+    console.log("자동 로그인 체크 시작");
     const token = await AsyncStorage.getItem("token");
+    console.log("저장된 토큰:", token ? "토큰 있음" : "토큰 없음");
 
     if (token) {
+      console.log("토큰 존재, 자동 로그인 처리");
+      // 토큰이 있으면 로그인 상태 복원
       dispatch(
         restoreLoginState({
           token,
           userInfo: {
-            id: "1",
+            id: "1", // 실제 환경에서는 토큰에서 디코딩하거나 API 호출하여 사용자 정보 가져오기
             name: "자동 로그인 사용자",
             email: "user@example.com",
           },
         })
       );
     } else {
+      console.log("토큰 없음, 로그인 필요");
       dispatch(setAutoLoginChecked(true));
     }
   } catch (error) {

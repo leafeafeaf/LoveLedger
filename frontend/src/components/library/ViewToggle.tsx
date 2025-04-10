@@ -19,8 +19,8 @@ const ViewToggle: React.FC<ViewToggleProps> = ({ activeView, onToggle }) => {
         <ImageBackground
           source={
             activeView === 'album'
-              ? require('../../../assets/images/library/library_bg.png')
-              : require('../../../assets/images/library/library_bg2.png')
+              ? require('../../../assets/images/library/library_bg2.png')
+              : require('../../../assets/images/library/library_bg.png')
           }
           style={styles.buttonBg}
           imageStyle={{ borderRadius: 4 }}
@@ -28,7 +28,7 @@ const ViewToggle: React.FC<ViewToggleProps> = ({ activeView, onToggle }) => {
           <MaterialCommunityIcons
             name="view-grid"
             size={20}
-            color={activeView === 'album' ? 'white' : theme.colors.primary}
+            color={activeView === 'album' ? theme.colors.primary : 'white'}
           />
         </ImageBackground>
       </Pressable>
@@ -40,8 +40,8 @@ const ViewToggle: React.FC<ViewToggleProps> = ({ activeView, onToggle }) => {
         <ImageBackground
           source={
             activeView === 'list'
-              ? require('../../../assets/images/library/library_bg.png')
-              : require('../../../assets/images/library/library_bg2.png')
+              ? require('../../../assets/images/library/library_bg2.png')
+              : require('../../../assets/images/library/library_bg.png')
           }
           style={styles.buttonBg}
           imageStyle={{ borderRadius: 4 }}
@@ -49,7 +49,7 @@ const ViewToggle: React.FC<ViewToggleProps> = ({ activeView, onToggle }) => {
           <MaterialCommunityIcons
             name="view-list"
             size={20}
-            color={activeView === 'list' ? 'white' : theme.colors.primary}
+            color={activeView === 'list' ? theme.colors.primary : 'white'}
           />
         </ImageBackground>
       </Pressable>
@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   toggleButton: {
     width: 40,
     height: 40,
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: 'visible',
     marginLeft: 4,
   },
   buttonBg: {
@@ -78,17 +78,17 @@ const styles = StyleSheet.create({
   },
   activeButton: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: -1.2, height: -1.2 },
     shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   inactiveButton: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 1.2, height: 1.2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    elevation: 4,
+    elevation: 3,
     transform: [{ translateY: -2 }]
   }
 });

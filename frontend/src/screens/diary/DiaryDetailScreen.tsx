@@ -1,13 +1,21 @@
 // screens/diary/DiaryDetailScreen.tsx
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Pressable,
+  ImageBackground,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LibraryStackParamList, RootStackParamList } from '../../types';
 import { useDiaryDetail } from '../../hooks/useDiaryDetail';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { theme } from '../../utils/theme';
-import Header from '../../components/common/Header';
+import WoodHeader from '../../components/common/WoodHeader';
 import MoodIcon from '../../components/common/MoodIcon';
 import { useNavigation } from '@react-navigation/native';
 import { CompositeNavigationProp } from '@react-navigation/native';
@@ -66,7 +74,7 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
   if (isLoading || isReduxLoading) {
     return (
       <View style={styles.container}>
-        <Header title="일기 상세" showBack={true} onBack={() => navigation.goBack()} />
+        <WoodHeader title="일기 상세" showBack={true} onBack={() => navigation.goBack()} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -77,7 +85,7 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
   if (error || !data) {
     return (
       <View style={styles.container}>
-        <Header title="일기 상세" showBack={true} onBack={() => navigation.goBack()} />
+        <WoodHeader title="일기 상세" showBack={true} onBack={() => navigation.goBack()} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error?.message || '일기를 불러오는데 실패했습니다.'}</Text>
         </View>
@@ -87,37 +95,47 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
 
   const moodText = getMoodText(data.data.mood);
 
-  // 상세 보기 UI
   return (
     <View style={styles.container}>
-      <Header 
+      <WoodHeader 
         title="일기 상세" 
         showBack={true} 
         onBack={() => navigation.goBack()}
-        rightElement={
-          <Text style={styles.editButton} onPress={handleEdit}>
-            수정
-          </Text>
-        }
       />
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.section}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{data.data.title}</Text>
-            <View style={styles.moodContainer}>
-              <MoodIcon mood={moodText} size={32} color={theme.colors.primary} />
+      
+      <ImageBackground
+        source={require("../../../assets/images/library/library_bg.png")}
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.contentContainer}>
+            <View style={styles.headerSection}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>{data.data.title}</Text>
+                <View style={styles.moodContainer}>
+                  <MoodIcon mood={moodText} size={32} color={theme.colors.primary} />
+                </View>
+              </View>
+              <Text style={styles.date}>{data.data.targetDate}</Text>
+            </View>
+            
+            <View style={styles.contentSection}>
+              <Text style={styles.contentText}>{data.data.content}</Text>
+            </View>
+            
+            <View style={styles.footerSection}>
+              <Text style={styles.metadata}>작성일: {data.data.createdAt}</Text>
+              <Text style={styles.metadata}>수정일: {data.data.updatedAt}</Text>
             </View>
           </View>
-          <Text style={styles.date}>{data.data.targetDate}</Text>
+        </ScrollView>
+
+        <View style={styles.bottomButtonContainer}>
+          <Pressable style={styles.editButton} onPress={handleEdit}>
+            <Text style={styles.editButtonText}>수정하기</Text>
+          </Pressable>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.contentText}>{data.data.content}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.metadata}>작성일: {data.data.createdAt}</Text>
-          <Text style={styles.metadata}>수정일: {data.data.updatedAt}</Text>
-        </View>
-      </ScrollView>
+      </ImageBackground>
     </View>
   );
 }
@@ -126,6 +144,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -146,8 +168,22 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  section: {
+  contentContainer: {
+    flex: 1,
     padding: theme.spacing.md,
+  },
+  headerSection: {
+    marginBottom: theme.spacing.md,
+  },
+  contentSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    minHeight: 400,
+    ...theme.shadows.medium,
+  },
+  footerSection: {
     marginBottom: theme.spacing.md,
   },
   titleContainer: {
@@ -164,6 +200,10 @@ const styles = StyleSheet.create({
   },
   moodContainer: {
     marginLeft: theme.spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: theme.spacing.xs,
+    borderRadius: theme.borderRadius.full,
+    ...theme.shadows.small,
   },
   date: {
     fontSize: 16,
@@ -179,8 +219,20 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     marginBottom: theme.spacing.xs,
   },
+  bottomButtonContainer: {
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+  },
   editButton: {
-    color: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.medium,
+  },
+  editButtonText: {
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
   },
