@@ -135,8 +135,11 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
     )),
   ];
 
+  console.log(`총 ${pages.length}개의 페이지 컴포넌트가 생성되었습니다.`);
+
   // 표지 화면에서 넘기기 애니메이션 시작
   const handleStartReading = () => {
+    console.log('책 읽기 시작');
     setShowCover(false);
   };
 
@@ -144,7 +147,7 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out this story: ${storyData.title}`,
+        message: `${storyData.title}\n\n${storyData.content}`,
       });
     } catch (error) {
       console.error("Error sharing:", error);
@@ -187,7 +190,12 @@ const StoryDetailScreen = ({ navigation, route }: Props) => {
         </Pressable>
       ) : (
         // 책 내용 페이지 (넘김 효과 포함)
-        <PageTurningView pages={pages} />
+        <PageTurningView 
+          pages={pages}
+          onPageChange={(index) => {
+            console.log('현재 페이지:', index + 1, '/', pages.length);
+          }}
+        />
       )}
 
       {/* 폰트 선택 모달 */}
@@ -303,6 +311,7 @@ function splitContentIntoPages(content: string): string[] {
     pages.push(currentPage.trim());
   }
   
+  console.log(`총 ${pages.length}개의 페이지로 분할되었습니다.`);
   return pages;
 }
 

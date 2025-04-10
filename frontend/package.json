@@ -27,6 +27,7 @@
     "expo": "~52.0.42",
     "expo-clipboard": "^7.0.1",
     "expo-image-picker": "^16.0.6",
+    "expo-linear-gradient": "^14.0.2",
     "expo-linking": "~7.0.5",
     "expo-status-bar": "~2.0.1",
     "expo-web-browser": "~14.0.2",
