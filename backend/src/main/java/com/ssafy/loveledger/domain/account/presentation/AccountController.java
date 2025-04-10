@@ -62,13 +62,13 @@ public class AccountController {
         User user = userUtil.getCurrentUser();
         Couple couple = coupleRepository.findByUserId(user.getId())
             .orElseThrow(() -> new LoveLedgerException(ErrorCode.COUPLE_NOT_FOUND));
-        User Lover =
+        User lover =
             couple.getUsers().get(0) == user ? couple.getUsers().get(1) : couple.getUsers().get(0);
-        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(user,
+        List<DailyStatisticsResponse> monthStat = accountService.getAccountHistoryByMonth(lover,
             year, month, pageno, size, sort);
         return monthStat;
     }
-    
+
     // TODO : 1. 계좌 0 번 리턴
     @GetMapping("/saveus")
     public List<WeekStatisticsResponse> saveAccount() {
