@@ -1214,6 +1214,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.xs,
+    zIndex:5
   },
   sliderLabel: {
     fontSize: 14,
