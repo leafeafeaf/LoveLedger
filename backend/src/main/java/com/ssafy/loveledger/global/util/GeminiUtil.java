@@ -46,7 +46,7 @@ public class GeminiUtil {
             - 이전 소설 내용:
             %s
             - 주인공 이름 :
-            %s 
+            %s
             - 배우자 이름 : 
             %s
             - 성별:
