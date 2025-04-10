@@ -12,7 +12,16 @@ import { queryClient } from "./src/api/queryClient";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    OTEnjoystoriesBA: require("./assets/fonts/OTEnjoy Bold.ttf"),
+    ChosunNm: require("./assets/fonts/ChosunNm.ttf"),
+    HeirofLightBold: require("./assets/fonts/HeirofLightBold.ttf"),
+    HeirofLightRegular: require("./assets/fonts/HeirofLightRegular.ttf"),
+    OTEnjoyBold: require("./assets/fonts/OTEnjoy Bold.ttf"),
+    OTEnjoyLight: require("./assets/fonts/OTEnjoy Light.ttf"),
+    OTEnjoyMedium: require("./assets/fonts/OTEnjoy Medium.ttf"),
+    ShillaCultureB: require("./assets/fonts/Shilla_Culture(B).ttf"),
+    ShillaCultureM: require("./assets/fonts/Shilla_Culture(M).ttf"),
+    Shilla_CultureB: require("./assets/fonts/Shilla_Culture(B).ttf"),
+    GangwonEdu: require("./assets/fonts/강원교육새음.ttf"),
   });
 
   if (!fontsLoaded) {
