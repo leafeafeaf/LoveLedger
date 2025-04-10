@@ -29,6 +29,21 @@ type RootNavigationProp = CompositeNavigationProp<
 
 type MoodType = 'happy' | 'angry' | 'peaceful' | 'sad';
 
+const formatKoreanDateTime = (isoDateString: string): string => {
+  const date = new Date(isoDateString);
+
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  const period = hours >= 12 ? "오후" : "오전";
+  const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+
+  return `${year}년 ${month}월 ${day}일 ${period} ${displayHour}시 ${minutes}분`;
+};
+
 export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScreenProps) {
   const { id } = route.params;
   const { data, isLoading, error } = useDiaryDetail(id);
@@ -124,8 +139,8 @@ export default function DiaryDetailScreen({ navigation, route }: DiaryDetailScre
             </View>
             
             <View style={styles.footerSection}>
-              <Text style={styles.metadata}>작성일: {data.data.createdAt}</Text>
-              <Text style={styles.metadata}>수정일: {data.data.updatedAt}</Text>
+              <Text style={styles.metadata}>작성일: {formatKoreanDateTime(data.data.createdAt)}</Text>
+              <Text style={styles.metadata}>수정일: {formatKoreanDateTime(data.data.updatedAt)}</Text>
             </View>
           </View>
         </ScrollView>

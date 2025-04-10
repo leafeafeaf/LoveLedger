@@ -14,6 +14,7 @@ import { useAccountVerification } from "../../hooks/useAccountVerification";
 import { useAppSelector } from "../../hooks/reduxHooks";
 import { RootStackParamList } from "../../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAccountInfo } from "@/hooks/useGetAccount";
 
 type AccountVerificationScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -33,7 +34,11 @@ export default function AccountVerificationScreen({
   const [step, setStep] = useState<"verify" | "confirm">("verify");
   const { verifyAccount, confirmAccount, isLoading, error, verifiedAccount } =
     useAccountVerification();
-  
+  const {
+    data: accountInfo,
+    isLoading: infoLoading,
+    error: infoError,
+  } = useAccountInfo();
 
   const handleVerify = async () => {
     const token = await AsyncStorage.getItem("token")
@@ -59,7 +64,7 @@ export default function AccountVerificationScreen({
 
   const handleConfirm = async () => {
     const token = await AsyncStorage.getItem("token")
-    
+
     if (!authCode) {
       Alert.alert("알림", "인증번호를 입력해주세요.");
       return;
@@ -77,7 +82,7 @@ export default function AccountVerificationScreen({
     }
 
     confirmAccount({ authCode, accountNo, token });
-    
+
     navigation.goBack();
   };
 
@@ -96,11 +101,28 @@ export default function AccountVerificationScreen({
         >
           <Text style={styles.backButtonText}>←</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>계좌 인증</Text>
+        <Text style={styles.headerTitle}>계좌 정보</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.content}>
+        {infoLoading ? (
+          <ActivityIndicator />
+        ) : infoError ? (
+          <Text style={styles.errorText}>
+            {infoError instanceof Error ? infoError.message : '계좌 정보를 불러올 수 없습니다.'}
+          </Text>
+        ) : accountInfo ? (
+          <View style={styles.accountCardWrapper}>
+            <Text style={styles.accountLabel}>등록된 계좌</Text>
+            <View style={styles.accountCard}>
+              <Text style={styles.accountNumber}>
+                {accountInfo.accountId.replace(/(\d{4})(?=\d)/g, '$1 ')}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         {step === "verify" ? (
           <>
             <Text style={styles.description}>
@@ -109,7 +131,7 @@ export default function AccountVerificationScreen({
             </Text>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>계좌번호</Text>
+              <Text style={styles.label}>계좌 인증</Text>
               <TextInput
                 style={styles.input}
                 value={accountNo}
@@ -250,5 +272,38 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  accountCardWrapper: {
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+  },
+
+  accountLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+
+  accountCard: {
+    width: 380,
+    height: 250,
+    borderRadius: 20,
+    backgroundColor: "#2D2D2D", // 어두운 톤
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+
+  accountNumber: {
+    color: theme.colors.white,
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    letterSpacing: 2,
   },
 });
