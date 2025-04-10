@@ -230,6 +230,7 @@ public class FictionService {
             [출력 목적]
             - 위의 정보를 바탕으로 **단 하나의 장면**을 **입력된 그림체 스타일로 시각적으로 묘사**하기 위한 텍스트 프롬프트를 생성하고,
             - 해당 프롬프트로 생성된 이미지 URL을 **JSON 형식**으로 반환합니다.
+            - 무조건 url에 항상 seed값을 넣어줘 seed 값은 항상 11 ex: https://image.pollinations.ai/prompt/A%20beautiful%20sunset%20over%20the%20ocean?seed=11
             
             [출력 형식]
             {
@@ -262,9 +263,9 @@ public class FictionService {
             
             8.가능한 한 귀엽고 따뜻한 분위기로 표현해 주세요 (단, 이야기의 분위기가 그렇지 않은 경우는 예외).
             
-            9. 반환값은 반드시 "image_url" 키를 가진 유효한 JSON 객체여야 합니다.
+            9. 반환값은 반드시 "image_url" 키를 가진 유효한 JSON 객체여야 합니다.                           
             
-            
+            10. url에 항상 seed값을 넣어줘 seed 값은 항상 11 ex: https://image.pollinations.ai/prompt/A%20beautiful%20sunset%20over%20the%20ocean?seed=11
             """.formatted(drawStyle, visual, title, content);
 
         CompletableFuture<Map<String, Object>> response = geminiUtil.askGemini(prompt)
