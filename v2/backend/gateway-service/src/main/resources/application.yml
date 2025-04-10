@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+ssafy:
+  url: ${SSAFY_NETWORK_URL}
+  apiKey: ${SSAFY_NETWORK_APIKEY}
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: mvc-service
+          uri: http://mvc-service:8081
+          predicates:
+            - Path=/mvc/**
+        - id: webflux-service
+          uri: http://webflux-service:8082
+          predicates:
+            - Path=/ai/**
+
+  application:
+    name: loveledger
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-name: google
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${GOOGLE_REDIRECT_URI}
+            authorization-grant-type: authorization_code
+            scope:
+              - profile
+              - email
+  jwt:
+    secret: ${SECRET_JWT}
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${DATABASE_URL}
+    username: ${DATABASE_NAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      connection-init-sql: "SET SESSION sql_mode=(SELECT REPLACE(@@SESSION.sql_mode, 'ONLY_FULL_GROUP_BY', ''))"
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    database-platform: org.hibernate.dialect.MariaDBDialect
+
+android:
+  oauth2:
+    google:
+      package-name: ${ANDROID_PACKAGE_NAME}  # AndroidManifest.xml에서 확인한 패키지 이름
+      sha1-certificate-fingerprint: ${ANDROID_SHA1_FINGERPRINT}  # keytool로 얻은 SHA-1 지문
+      custom-scheme: ${ANDROID_CUSTOM_SCHEME}  # 앱의 커스텀 URL 스킴 (예: loveledger://)

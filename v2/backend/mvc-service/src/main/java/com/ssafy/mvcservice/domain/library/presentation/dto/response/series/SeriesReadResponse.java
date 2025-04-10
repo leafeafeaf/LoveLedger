@@ -1,0 +1,15 @@
+package com.ssafy.mvcservice.domain.library.presentation.dto.response.series;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+public class SeriesReadResponse {
+
+    private String title;
+    private Long seriesId;
+
+}
