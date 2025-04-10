@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 import { StyleSheet } from "react-native";
@@ -9,6 +10,7 @@ import { theme } from "./src/utils/theme";
 import { useFonts } from "expo-font";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./src/api/queryClient";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -29,16 +31,18 @@ export default function App() {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <QueryClientProvider client={queryClient}>
-          <SafeAreaProvider style={styles.container}>
-            <Toaster />
-            <AppRouter />
-          </SafeAreaProvider>
-        </QueryClientProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <QueryClientProvider client={queryClient}>
+            <SafeAreaProvider style={styles.container}>
+              <Toaster />
+              <AppRouter />
+            </SafeAreaProvider>
+          </QueryClientProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
 }
 
