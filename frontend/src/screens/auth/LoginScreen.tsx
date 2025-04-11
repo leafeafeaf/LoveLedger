@@ -44,90 +44,56 @@ export default function LoginScreen() {
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
-//////////TODO 삭제
+  //////////TODO 삭제
   // TestQueryButton 컴포넌트 (내부에 정의)
-const TestQueryButton = () => {
-  const { fetchTokenWithQuery, fetchTokenWithRedux, token, isLoading, error } =
-    useTokenIntegration();
-  const [queryResult, setQueryResult] = useState<string | null>(null);
+  const TestQueryButton = () => {
+    const { fetchTokenWithRedux, token, isLoading, error } =
+      useTokenIntegration();
+    const [queryResult, setQueryResult] = useState<string | null>(null);
 
-  const handleQueryTest = async () => {
-    try {
-      const userId = 1;
-      const result = await fetchTokenWithQuery(userId);
-      setQueryResult(JSON.stringify(result.data, null, 2));
-      
-      navigation.dispatch(
-        StackActions.replace("Main")
-      );
+    const handleReduxTest = async () => {
+      try {
+        const userId = 1;
+        await fetchTokenWithRedux(userId);
+        setQueryResult(`Redux 토큰: ${token}`);
+        navigation.dispatch(
+          StackActions.replace("Main")
+        );
+      } catch (err: any) {
+        setQueryResult(`오류: ${err.message}`);
+      }
+    };
 
-    } catch (err: any) {
-      setQueryResult(`오류: ${err.message}`);
-    }
+    return (
+      <Pressable
+        style={tokenTestStyles.hiddenButton} 
+        onPress={handleReduxTest}
+      >
+        <Text style={tokenTestStyles.hiddenButtonText}>R</Text>
+      </Pressable>
+    );
   };
 
-  const handleReduxTest = async () => {
-    try {
-      const userId = 1;
-      await fetchTokenWithRedux(userId);
-      setQueryResult(`Redux 토큰: ${token}`);
-      navigation.dispatch(
-        StackActions.replace("Main")
-      );
-    } catch (err: any) {
-      setQueryResult(`오류: ${err.message}`);
+  // 테스트 버튼 스타일
+  const tokenTestStyles = StyleSheet.create({
+    hiddenButton: {
+      position: 'absolute',
+      bottom: 20,
+      left: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'transparent',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 999,
+    },
+    hiddenButtonText: {
+      fontSize: 10,
+      color: 'transparent',
     }
-  };
-
-  return (
-    <View>
-      <Button title="Query 테스트" onPress={handleQueryTest} />
-      <Button title="Redux 테스트" onPress={handleReduxTest} />
-      {queryResult && <Text>{queryResult}</Text>}
-      {error && <Text style={{ color: "red" }}>{error}</Text>}
-    </View>
-  );
-};
-
-// 테스트 버튼 스타일
-const tokenTestStyles = StyleSheet.create({
-  container: {
-    width: "100%",
-    alignItems: "center",
-    marginTop: 10,
-    gap: 10,
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    minWidth: 150,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "500",
-    fontSize: 14,
-  },
-  resultContainer: {
-    backgroundColor: "rgba(0,0,0,0.05)",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 5,
-    width: "100%",
-  },
-  resultText: {
-    fontSize: 12,
-    color: "#333",
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginTop: 5,
-  },
-});
-///////////여기까지
+  });
+  ///////////여기까지
   const { isLoading: authLoading, error } = useAppSelector(
     (state) => state.auth
   );
@@ -174,7 +140,7 @@ const tokenTestStyles = StyleSheet.create({
       if (isNewUser === true) {
         console.log("모달 열기")
         setShowSignUpModal(true);
-      }else if (isNewUser === false) {
+      } else if (isNewUser === false) {
         console.log("메인으로 이동")
         navigation.dispatch(
           StackActions.replace("Main")
@@ -512,6 +478,9 @@ const tokenTestStyles = StyleSheet.create({
           keyboardShouldPersistTaps="never"
           bounces={true}
         >
+          {/* 테스트 버튼 */}
+          <TestQueryButton />
+          
           {/* 헤더 부분 */}
           <View style={styles.header}>
             <MaterialCommunityIcons
@@ -539,8 +508,6 @@ const tokenTestStyles = StyleSheet.create({
             <Text style={styles.helpText}>
               로그인하면 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
             </Text>
-
-            {TestQueryButton()}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -619,27 +586,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // 테스트 버튼 스타일
-  testButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-  },
-  testButton: {
-    backgroundColor: theme.colors.secondary,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    ...theme.shadows.small,
-  },
-  testButtonText: {
-    color: "black",
-    fontWeight: "500",
-    fontSize: 14,
-  },
-
   // 모달 스타일
   modalContainer: {
     flex: 1,
@@ -648,10 +594,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: "90%",
+    width: "95%",
+    maxHeight: "85%",
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
     ...theme.shadows.medium,
   },
   modalHeader: {
@@ -673,13 +621,16 @@ const styles = StyleSheet.create({
   // 입력 폼 스타일
   input: {
     backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.lg,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.md,
     fontSize: 16,
-    height: 50,
+    lineHeight: 22, // fontSize보다 살짝 더 크게
+    height: 60,
     ...theme.shadows.small,
   },
+
   inputError: {
     borderColor: theme.colors.error,
     borderWidth: 1,
@@ -710,7 +661,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.md,
-    height: 50,
+    height: 62,
     ...theme.shadows.small,
   },
   switchLabelContainer: {

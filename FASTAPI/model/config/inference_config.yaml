@@ -1,0 +1,54 @@
+MODEL:
+    RESULTS:
+        KoBERT_26_CrossEntropy : KoBERT_26_CrossEntropyLoss
+        KoBERT_26_FocalLoss : KoBERT_26_FocalLoss
+        KoBERT_26_WeightedCrossEntropy : KoBERT_26_WeightedCE
+        KoBERT_32_CrossEntropy : KoBERT_32_CrossEntropyLoss
+        KoBERT_32_FocalLoss : KoBERT_32_FocalLoss
+        KoELECTRA_26_CrossEntropy : KoELECTRA_26_CrossEntropyLoss
+        KoELECTRA_26_FocalLoss : KoELECTRA_26_FocalLoss
+        KoELECTRA_26_WeightedCrossEntropy : KoELECTRA_26_WeightedCE
+        KoELECTRA_32_CrossEntropy : KoELECTRA_32_CrossEntropyLoss
+        KoELECTRA_32_FocalLoss : KoELECTRA_32_FocalLoss
+        RoBERTa_26_CrossEntropy : RoBERTa_26_CrossEntropyLoss
+        RoBERTa_26_FocalLoss : RoBERTa_26_FocalLoss
+        RoBERTa_26_WeightedCrossEntropy : RoBERTa_26_WeightedCE
+        RoBERTa_32_CrossEntropy : RoBERTa_32_CrossEntropyLoss
+        RoBERTa_32_FocalLoss : RoBERTa_32_FocalLoss
+    
+    model_name: KoBERT         #KoBERT, KoELECTRA, RoBERTa
+
+    max_seq_len: 26             #26, 32
+
+    pretrained_link: 
+        KoBERT: kykim/bert-kor-base
+        KoELECTRA: monologg/koelectra-base-v3-discriminator
+        RoBERTa: klue/roberta-base
+    
+    num_of_classes: 19
+
+TEST:
+    DIRECTORY : 
+        dataset : uncased
+    CHECKPOINT_PATH : 'KoBERT_26_CrossEntropyLoss'      #{model_name}_{max_seq_len}_{lossfn}(_{dataset})
+
+LABELING:
+    0: '교육'
+    1: '교통/자동차'
+    2: '기타소비'
+    3: '대형마트'
+    4: '미용'
+    5: '배달'
+    6: '보험'
+    7: '생필품'
+    8: '생활서비스'
+    9: '세금/공과금'
+    10: '쇼핑몰'
+    11: '여행/숙박'
+    12: '외식'
+    13: '의료/건강'
+    14: '주류/펍'
+    15: '취미/여가'
+    16: '카페'
+    17: '통신'
+    18: '편의점'

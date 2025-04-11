@@ -68,8 +68,8 @@ export const useCalendarDailySum = (year: number, month: number) => {
   const query = useQuery({
     queryKey: ["calendarDailySum", activeView, year, month],
     queryFn: () => fetchCalendarDailySum({ year, month, activeView }),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   useEffect(() => {

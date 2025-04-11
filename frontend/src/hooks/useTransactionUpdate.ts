@@ -10,6 +10,7 @@ import {
 interface UpdateTransactionParams {
   transactionId: string;
   updatedTargetName: string;
+  updatedCategory?: string;
 }
 
 interface UpdateTransactionResponse {
@@ -24,10 +25,11 @@ export const useTransactionUpdate = () => {
   const queryClient = useQueryClient();
 
   return useMutation<UpdateTransactionResponse, Error, UpdateTransactionParams>({
-    mutationFn: async ({ transactionId, updatedTargetName }) => {
+    mutationFn: async ({ transactionId, updatedTargetName, updatedCategory }) => {
       try {
         const response = await axiosInstance.put(`/account/history/${transactionId}`, {
-          updatedTargetName
+          updatedTargetName,
+          updatedCategory
         });
         return response.data;
       } catch (error: any) {

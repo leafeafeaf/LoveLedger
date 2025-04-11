@@ -20,6 +20,7 @@ export const useDiaryListQuery = (params: DiaryQueryParams) => {
       });
       return response.data.data;
     },
-    staleTime: 1000 * 60 * 3, // 3 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 };

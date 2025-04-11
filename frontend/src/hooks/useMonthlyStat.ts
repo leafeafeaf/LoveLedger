@@ -98,8 +98,8 @@ export const useMonthlyStat = (year: number, month: number) => {
   const query = useQuery({
     queryKey: ['monthlyStat', year, month],
     queryFn: () => fetchMonthlyStat({ year, month }),
-    staleTime: 5 * 60 * 1000, // 5분
-    gcTime: 30 * 60 * 1000, // 30분
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   useEffect(() => {

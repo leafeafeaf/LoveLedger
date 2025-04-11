@@ -45,7 +45,8 @@ export default function TransactionEditScreen({
       console.log('Before Update:', editedTransaction);
       await updateMutation.mutateAsync({
         transactionId: editedTransaction.transactionid,
-        updatedTargetName: editedTransaction.targetname.trim()
+        updatedTargetName: editedTransaction.targetname.trim(),
+        updatedCategory: editedTransaction.category
       });
       
       console.log('After Update:', editedTransaction);
@@ -90,6 +91,13 @@ export default function TransactionEditScreen({
     );
   }
 
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+    }).format(amount);
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -115,18 +123,11 @@ export default function TransactionEditScreen({
 
         <View style={styles.section}>
           <Text style={styles.label}>Amount</Text>
-          <TextInput
-            style={styles.input}
-            value={String(editedTransaction.amount)}
-            onChangeText={(text) =>
-              setEditedTransaction((prev) => ({
-                ...prev,
-                amount: parseInt(text) || 0,
-              }))
-            }
-            keyboardType="numeric"
-            placeholder="Enter amount"
-          />
+          <View style={styles.readOnlyField}>
+            <Text style={styles.readOnlyText}>
+              {formatCurrency(editedTransaction.amount)}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -143,85 +144,22 @@ export default function TransactionEditScreen({
 
         <View style={styles.section}>
           <Text style={styles.label}>Transaction Type</Text>
-          <View style={styles.typeSelector}>
-            <Pressable
-              style={[
-                styles.typeOption,
-                !editedTransaction.remittance && styles.selectedTypeOption,
-              ]}
-              onPress={() =>
-                setEditedTransaction((prev) => ({ ...prev, remittance: false }))
-              }
-            >
-              <MaterialCommunityIcons
-                name="bank-plus"
-                size={24}
-                color={
-                  !editedTransaction.remittance
-                    ? theme.colors.white
-                    : theme.colors.primary
-                }
-              />
-              <Text
-                style={[
-                  styles.typeText,
-                  !editedTransaction.remittance && styles.selectedTypeText,
-                ]}
-              >
-                Income
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.typeOption,
-                editedTransaction.remittance && styles.selectedTypeOption,
-              ]}
-              onPress={() =>
-                setEditedTransaction((prev) => ({ ...prev, remittance: true }))
-              }
-            >
-              <MaterialCommunityIcons
-                name="bank-minus"
-                size={24}
-                color={
-                  editedTransaction.remittance
-                    ? theme.colors.white
-                    : theme.colors.primary
-                }
-              />
-              <Text
-                style={[
-                  styles.typeText,
-                  editedTransaction.remittance && styles.selectedTypeText,
-                ]}
-              >
-                Expense
-              </Text>
-            </Pressable>
+          <View style={styles.readOnlyField}>
+            <Text style={styles.readOnlyText}>
+              {editedTransaction.remittance ? "Expense" : "Income"}
+            </Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Transaction Time</Text>
-          <TextInput
-            style={styles.input}
-            value={
-              editedTransaction.time 
+          <View style={styles.readOnlyField}>
+            <Text style={styles.readOnlyText}>
+              {editedTransaction.time 
                 ? editedTransaction.time.split("T")[1]?.substring(0, 5) || "00:00"
-                : "00:00"
-            }
-            onChangeText={(text) => {
-              const [hours, minutes] = text.split(":");
-              const currentDate =
-                editedTransaction.time?.split("T")[0] ||
-                new Date().toISOString().split("T")[0];
-              const newTime =
-                currentDate + `T${hours || "00"}:${minutes || "00"}:00`;
-              setEditedTransaction((prev) => ({ ...prev, time: newTime }));
-            }}
-            placeholder="HH:MM"
-          />
+                : "00:00"}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -285,31 +223,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     ...theme.shadows.small,
   },
-  typeSelector: {
-    flexDirection: "row",
-    gap: theme.spacing.md,
-  },
-  typeOption: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+  readOnlyField: {
+    backgroundColor: theme.colors.secondary,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
-    gap: theme.spacing.sm,
     ...theme.shadows.small,
   },
-  selectedTypeOption: {
-    backgroundColor: theme.colors.primary,
-  },
-  typeText: {
+  readOnlyText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  selectedTypeText: {
-    color: theme.colors.white,
+    color: theme.colors.textLight,
   },
   footer: {
     flexDirection: "row",

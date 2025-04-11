@@ -1,15 +1,16 @@
 // components/story/PageTurningView.tsx
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  PanResponder,
-  ImageBackground,
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Dimensions, 
+  ImageBackground, 
+  Platform,
+  TouchableOpacity 
 } from 'react-native';
 import { theme } from '../../utils/theme';
+import CustomPageFlipper, { PageFlipperHandle } from './CustomPageFlipper';
 
 interface PageTurningViewProps {
   pages: React.ReactNode[];
@@ -20,169 +21,95 @@ const { width, height } = Dimensions.get('window');
 
 const PageTurningView: React.FC<PageTurningViewProps> = ({ pages, onPageChange }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const pagePosition = useRef(new Animated.Value(0)).current;
-  const pageCurl = useRef(new Animated.Value(0)).current;
+  const [totalPages, setTotalPages] = useState(pages.length);
+  const [isLastPage, setIsLastPage] = useState(false);
+  const flipperRef = useRef<PageFlipperHandle>(null);
+  
+  // 페이지 수 변경 시 업데이트
+  useEffect(() => {
+    setTotalPages(pages.length);
+  }, [pages.length]);
+  
+  // 현재 페이지가 마지막 페이지인지 확인
+  useEffect(() => {
+    setIsLastPage(currentPage === totalPages - 1);
+  }, [currentPage, totalPages]);
 
-  // 페이지 전환 효과 - 더 빠르고 강한 효과로 수정
-  const animatePageTurn = (toValue: number, callback?: () => void) => {
-    setIsAnimating(true);
-    Animated.parallel([
-      Animated.timing(pagePosition, {
-        toValue,
-        duration: 300, // 애니메이션 시간 단축
-        useNativeDriver: true,
-      }),
-      Animated.timing(pageCurl, {
-        toValue: toValue === 0 ? 0 : 1,
-        duration: 300, // 애니메이션 시간 단축
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setIsAnimating(false);
-      if (callback) callback();
-    });
+  // 페이지 컴포넌트 생성
+  const pageComponents = pages.map((page, index) => (
+    <ImageBackground
+      key={`page-${index}`}
+      source={require('../../../assets/images/common/paper_texture.jpg')}
+      style={styles.paperTexture}
+      resizeMode="cover"
+      imageStyle={styles.imageStyle}
+    >
+      <View style={styles.pageContainer}>
+        {page}
+      </View>
+    </ImageBackground>
+  ));
+
+  // 페이지 변경 이벤트 핸들러
+  const handlePageChange = (index: number) => {
+    console.log('페이지 변경됨:', index + 1, '/', totalPages);
+    setCurrentPage(index);
+    if (onPageChange) {
+      onPageChange(index);
+    }
   };
-
+  
   // 다음 페이지로 이동
   const goToNextPage = () => {
-    if (currentPage < pages.length - 1 && !isAnimating) {
-      animatePageTurn(-width, () => {
-        pagePosition.setValue(0);
-        pageCurl.setValue(0);
-        setCurrentPage(prev => {
-          const newPage = prev + 1;
-          if (onPageChange) onPageChange(newPage);
-          return newPage;
-        });
-      });
+    if (!isLastPage && flipperRef.current) {
+      flipperRef.current.animateToNext();
     }
   };
-
+  
   // 이전 페이지로 이동
   const goToPrevPage = () => {
-    if (currentPage > 0 && !isAnimating) {
-      pagePosition.setValue(-width);
-      pageCurl.setValue(1);
-      animatePageTurn(0, () => {
-        setCurrentPage(prev => {
-          const newPage = prev - 1;
-          if (onPageChange) onPageChange(newPage);
-          return newPage;
-        });
-      });
+    if (currentPage > 0 && flipperRef.current) {
+      flipperRef.current.animateToPrev();
     }
-  };
-
-  // 페이지 드래그 제스처 설정 - 민감도 향상
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 5 && !isAnimating; // 민감도 증가 (20 -> 5)
-      },
-      onPanResponderMove: (_, gestureState) => {
-        // 오른쪽에서 왼쪽으로 스와이프 (다음 페이지)
-        if (gestureState.dx < 0 && currentPage < pages.length - 1) {
-          const newPosition = Math.max(gestureState.dx, -width);
-          pagePosition.setValue(newPosition);
-          // 커브 효과 강화
-          pageCurl.setValue(Math.min(Math.abs(newPosition) / (width * 0.7), 1));
-        }
-        // 왼쪽에서 오른쪽으로 스와이프 (이전 페이지)
-        else if (gestureState.dx > 0 && currentPage > 0) {
-          const reversePosition = -width + gestureState.dx;
-          pagePosition.setValue(Math.min(reversePosition, 0));
-          // 커브 효과 강화
-          pageCurl.setValue(Math.max(1 - gestureState.dx / (width * 0.7), 0));
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -20 && currentPage < pages.length - 1) { // 민감도 증가 (-50 -> -20)
-          // 다음 페이지로
-          goToNextPage();
-        } else if (gestureState.dx > 20 && currentPage > 0) { // 민감도 증가 (50 -> 20)
-          // 이전 페이지로
-          goToPrevPage();
-        } else {
-          // 원래 페이지로 복원
-          animatePageTurn(0);
-        }
-      },
-    })
-  ).current;
-
-  // 페이지 렌더링
-  const renderPage = (index: number) => {
-    if (index < 0 || index >= pages.length) return null;
-    return (
-      <View style={styles.pageContainer}>
-        {pages[index]}
-      </View>
-    );
-  };
-
-  // 페이지 넘김 효과 - 강화된 3D 효과
-  const curlStyles = {
-    transform: [
-      {
-        perspective: 1200, // 증가된 원근감
-      },
-      {
-        rotateY: pageCurl.interpolate({
-          inputRange: [0, 1],
-          outputRange: ['0deg', '-30deg'], // 더 깊은 회전 효과
-        }),
-      },
-      {
-        translateX: pagePosition,
-      },
-    ],
-    backfaceVisibility: 'hidden' as 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: pageCurl.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -8], // 더 깊은 그림자
-      }),
-      height: 0,
-    },
-    shadowOpacity: pageCurl.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 0.7], // 더 진한 그림자
-    }),
-    shadowRadius: 8, // 더 넓은 그림자
-    elevation: 8,
   };
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      {/* 현재 페이지 */}
-      <Animated.View style={[styles.page, curlStyles]}>
-        <ImageBackground 
-          source={require('../../../assets/images/common/paper_texture.jpg')}
-          style={styles.paperTexture}
+    <View style={styles.container}>
+      <CustomPageFlipper
+        ref={flipperRef}
+        onPageChange={handlePageChange}
+      >
+        {pageComponents}
+      </CustomPageFlipper>
+      
+      {/* 페이지 네비게이션 버튼 */}
+      <View style={[
+        styles.pageNumberContainer,
+        isLastPage && styles.lastPageNumberContainer
+      ]}>
+        <TouchableOpacity 
+          style={[styles.navButton, currentPage === 0 && styles.disabledNavButton]} 
+          onPress={goToPrevPage}
+          disabled={currentPage === 0}
         >
-          {renderPage(currentPage)}
-        </ImageBackground>
-      </Animated.View>
-
-      {/* 다음 페이지 (미리 로드) */}
-      {currentPage < pages.length - 1 && (
-        <View style={[styles.nextPage]}>
-          <ImageBackground 
-            source={require('../../../assets/images/common/paper_texture.jpg')}
-            style={styles.paperTexture}
-          >
-            {renderPage(currentPage + 1)}
-          </ImageBackground>
-        </View>
-      )}
-
-      {/* 페이지 번호 */}
-      <View style={styles.pageNumberContainer}>
-        <Text style={styles.pageNumber}>
-          {currentPage + 1} / {pages.length}
+          <Text style={[styles.navButtonText, currentPage === 0 && styles.disabledNavButtonText]}>{'<'}</Text>
+        </TouchableOpacity>
+        
+        <Text style={[
+          styles.pageNumber,
+          isLastPage && styles.lastPageNumber
+        ]}>
+          {currentPage + 1} / {totalPages}
+          {isLastPage && ' (마지막)'}
         </Text>
+        
+        <TouchableOpacity 
+          style={[styles.navButton, isLastPage && styles.disabledNavButton]} 
+          onPress={goToNextPage}
+          disabled={isLastPage}
+        >
+          <Text style={[styles.navButtonText, isLastPage && styles.disabledNavButtonText]}>{'>'}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -193,46 +120,85 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     backgroundColor: '#FFFBF2',
-    width: width, // 전체 화면 너비 사용
-    overflow: 'hidden', // 넘치는 내용 숨김
+    width: width,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   pageContainer: {
-    width: width,
-    minHeight: height - 160, // 헤더 공간 여유 확보
+    width: '100%',
+    height: '100%',
     paddingHorizontal: 20,
     paddingVertical: 20,
-  },
-  page: {
-    position: 'absolute',
-    width: width, // 전체 화면 너비 사용
-    height: '100%',
-    backgroundColor: 'white',
-    zIndex: 1, // 현재 페이지가 위에 오도록
-  },
-  nextPage: {
-    position: 'absolute',
-    width: width, // 전체 화면 너비 사용
-    height: '100%',
-    backgroundColor: 'white',
-    zIndex: 0, // 다음 페이지가 아래에 오도록
   },
   paperTexture: {
     width: '100%',
     height: '100%',
   },
+  imageStyle: {
+    opacity: 0.7,  // 배경 이미지 투명도 조정
+  },
   pageNumberContainer: {
     position: 'absolute',
     bottom: 30,
     alignSelf: 'center',
-    zIndex: 2, // 페이지 번호가 항상 보이도록
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 15,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  lastPageNumberContainer: {
+    backgroundColor: 'rgba(255, 245, 200, 0.6)',
   },
   pageNumber: {
-    fontSize: 12,
-    color: '#666', // 더 진한 색상으로 변경
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', // 반투명 배경 추가
-    paddingHorizontal: 8,
+    fontSize: 14,
+    color: '#666',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 10,
+  },
+  lastPageNumber: {
+    color: '#A25252',
+    fontWeight: '500',
+  },
+  navButton: {
+    padding: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(246, 195, 36, 0.2)',
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#8B7239',
+  },
+  disabledNavButton: {
+    backgroundColor: 'rgba(200, 200, 200, 0.2)',
+  },
+  disabledNavButtonText: {
+    color: '#AAAAAA',
   },
 });
 

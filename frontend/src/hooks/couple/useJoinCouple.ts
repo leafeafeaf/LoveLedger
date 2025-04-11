@@ -19,29 +19,19 @@ export interface JoinCoupleResponse {
 
 export const useJoinCouple = () => {
   const queryClient = useQueryClient();
-  const userToken = useAppSelector((state) => state.auth.userToken);
 
   return useMutation<JoinCoupleResponse, ErrorResponseType, string>({
     mutationFn: async (inviteCode: string) => {
       console.log("[useJoinCouple] API 요청 시작:", {
         url: `/couple/join/${inviteCode}`,
         method: "POST",
-        headers: {
-          Authorization: userToken,
-          "Content-Type": "application/json; charset=utf8",
-        },
       });
 
       try {
         const response = await axiosInstance.post<JoinCoupleResponse>(
           `/couple/join/${inviteCode}`,
           {}, // 빈 객체로 body 전달 (API 명세에 따름)
-          {
-            headers: {
-              Authorization: userToken,
-              "Content-Type": "application/json; charset=utf8",
-            },
-          }
+          {}
         );
 
         console.log("[useJoinCouple] API 응답 성공:", {
